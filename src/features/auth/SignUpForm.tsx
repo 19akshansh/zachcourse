@@ -229,7 +229,7 @@ export default function SignUpForm() {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#6366F1]/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="text-center mb-6 relative">
-        <span className="text-4xl select-none">✨📚</span>
+        <span className="text-4xl select-none">🎓</span>
         <h2 className="text-3xl font-extrabold text-[#FAF9FD] tracking-tight mt-3">ZachCourse</h2>
         <p className="text-sm text-[#8E88AB] mt-1 font-medium">Create your learning portal account</p>
       </div>

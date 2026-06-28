@@ -125,12 +125,12 @@ export default function AppSidebar({
       <div className="flex items-center justify-between p-4 border-b border-[#1E1E2E] h-14 shrink-0">
         <div className={`flex-col min-w-0 ${isCollapsed ? 'flex md:hidden' : 'flex'}`}>
           <div className="flex items-center gap-2">
-            <span className="text-xl select-none">✨📚</span>
+            <span className="text-xl select-none">🎓</span>
             <span className="font-bold text-white text-lg truncate">ZachCourse</span>
           </div>
           <span className="text-[10px] text-[#8E88AB] mt-0.5 truncate">Your learning companion</span>
         </div>
-        <div className={`mx-auto text-xl select-none ${isCollapsed ? 'hidden md:block' : 'hidden'}`}>✨📚</div>
+        <div className={`mx-auto text-xl select-none ${isCollapsed ? 'hidden md:block' : 'hidden'}`}>🎓</div>
       </div>
 
       <div className="flex-1 flex flex-col overflow-y-auto">

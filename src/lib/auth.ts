@@ -36,7 +36,7 @@ export const auth = betterAuth({
           subject: "Reset your password - ZachCourse",
           html: `
             <div style="font-family: sans-serif; background: #0A0A0F; color: #F8FAFC; padding: 40px; border-radius: 12px; max-width: 480px; margin: auto">
-              <h1 style="color: #6366F1">✨📚 ZachCourse</h1>
+              <h1 style="color: #6366F1">🎓 ZachCourse</h1>
               <h2>Reset Your Password</h2>
               <p>Hello ${user.name || "Student"}, click the button below to reset your password:</p>
               <a href="${url}" style="display: inline-block; background: #6366F1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 16px 0">Reset Password</a>
@@ -58,7 +58,7 @@ export const auth = betterAuth({
         subject: "Verify your ZachCourse email",
         html: `
           <div style="font-family:Inter,sans-serif;background:#0A0A0F;color:#F8FAFC;padding:40px;border-radius:12px;max-width:480px;margin:auto">
-            <h1 style="color:#6366F1">✨📚 ZachCourse</h1>
+            <h1 style="color:#6366F1">🎓 ZachCourse</h1>
             <h2>Verify your email</h2>
             <p>Click the button below to verify your email and start learning.</p>
             <a href="${url}" style="display:inline-block;background:#6366F1;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">Verify Email →</a>

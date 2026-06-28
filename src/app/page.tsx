@@ -95,7 +95,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-50 w-full border-b border-[#1E1E2E] bg-[#0A0A0F]/80 backdrop-blur-md transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate("/")}>
-            <span className="text-3xl select-none" id="nav-logo">✨📚</span>
+            <span className="text-3xl select-none" id="nav-logo">🎓</span>
             <span className="font-extrabold text-2xl tracking-tight text-[#F8FAFC] hover:text-[#6366F1] transition">
               ZachCourse
             </span>
@@ -464,7 +464,7 @@ export default function LandingPage() {
       <footer className="border-t border-[#1E1E2E] bg-[#0A0A0F] py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <span className="text-2xl select-none">✨📚</span>
+            <span className="text-2xl select-none">🎓</span>
             <span className="text-sm font-bold text-[#FAF9FD] tracking-tight">
               © 2026 ZachCourse
             </span>

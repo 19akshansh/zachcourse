@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-gradient-to-bl from-[#8B5CF6]/10 to-[#6366F1]/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
 
         <div className="flex flex-col items-center gap-4 relative z-10">
-          <span className="text-5xl animate-bounce mb-2 select-none">✨📚</span>
+          <span className="text-5xl animate-bounce mb-2 select-none">🎓</span>
           <h1 className="text-3xl font-black text-[#F8FAFC] tracking-tight bg-gradient-to-r from-white to-[#CECADF] bg-clip-text text-transparent">
             ZachCourse
           </h1>

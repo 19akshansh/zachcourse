@@ -42,7 +42,7 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
         
         <div className="p-8 md:p-12 flex flex-col">
           <div className="flex items-center gap-3 mb-6">
-            <span className="text-4xl select-none">✨📚</span>
+            <span className="text-4xl select-none">🎓</span>
             <span className="font-bold text-2xl tracking-tight text-[#FAF9FD]">ZachCourse</span>
           </div>
 

@@ -59,7 +59,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
 
         {/* Logo centered on mobile / only visible on mobile screen sizes */}
         <div className="md:hidden flex items-center gap-1.5 ml-1 select-none">
-          <span className="text-xl">✨📚</span>
+          <span className="text-xl">🎓</span>
           <span className="font-bold text-white text-base hidden sm:inline">ZachCourse</span>
         </div>
       </div>
