@@ -1,0 +1,41 @@
+{
+  "course_title": "Machine Learning Foundations",
+  "weeks": [
+    {
+      "week_number": 1,
+      "title": "Introduction to Linear Models & Optimization",
+      "summary": "Master the basics of linear regression and the fundamental gradient descent optimizer.",
+      "estimated_hours": 10,
+      "topics": [
+        "Gradient Descent",
+        "Linear Regression",
+        "Cost Functions"
+      ],
+      "learning_style_adapted": "Hands-on projects implementing gradient descent from scratch."
+    },
+    {
+      "week_number": 2,
+      "title": "Classification and Decision Trees",
+      "summary": "Understand decision boundaries, logistic regression, entropy, and information gain metrics.",
+      "estimated_hours": 10,
+      "topics": [
+        "Logistic Regression",
+        "Decision Trees",
+        "Entropy"
+      ],
+      "learning_style_adapted": "Hands-on classification labs with scikit-learn decision trees."
+    },
+    {
+      "week_number": 3,
+      "title": "Deep Neural Networks Foundations",
+      "summary": "Explore neural networks, backpropagation algorithms, and common activation functions.",
+      "estimated_hours": 10,
+      "topics": [
+        "Backpropagation",
+        "Activation Functions",
+        "Neural Networks"
+      ],
+      "learning_style_adapted": "Hands-on backpropagation exercises and simple multi-layer perceptrons."
+    }
+  ]
+}

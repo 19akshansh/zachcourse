@@ -1,0 +1,20 @@
+Machine Learning Foundations Syllabus
+=====================================
+Course Description:
+An introductory to intermediate course on core Machine Learning models, mathematical fundamentals, and pipeline engineering.
+
+Module 1: Linear Models and Optimization (Week 1)
+-----------------------------------------------
+- Concepts: Linear Regression, Cost Functions, Mean Squared Error, Gradient Descent optimization.
+- Hands-on: Building gradient descent from scratch in Python.
+- Topics: Gradient Descent, Linear Regression, Cost Functions
+
+Module 2: Classification and Trees (Week 2)
+------------------------------------------
+- Concepts: Logistic Regression, Binary classification, Decision Trees, Entropy, Information Gain.
+- Topics: Logistic Regression, Decision Trees, Entropy
+
+Module 3: Neural Networks (Week 3)
+----------------------------------
+- Concepts: Multi-layer Perceptrons, Backpropagation algorithm, Activation Functions (ReLU, Sigmoid).
+- Topics: Backpropagation, Activation Functions, Neural Networks

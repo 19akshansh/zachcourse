@@ -1,0 +1,6 @@
+{
+  "name": "ZachCourse",
+  "description": "An intelligent multi-agent learning system that creates personalized learning roadmaps, guides users through topics, and tests their knowledge.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

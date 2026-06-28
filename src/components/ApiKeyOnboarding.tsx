@@ -1,0 +1,131 @@
+import React, { useState } from "react";
+import { Key, ArrowRight, ShieldCheck, ExternalLink, Loader2 } from "lucide-react";
+import { validateUserKey } from "../lib/usage";
+import { toast } from "sonner";
+
+interface ApiKeyOnboardingProps {
+  onActivate: () => void;
+  onSkip: () => void;
+}
+
+export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) {
+  const [apiKey, setApiKey] = useState("");
+  const [isActivating, setIsActivating] = useState(false);
+
+  const handleActivate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const key = apiKey.trim();
+    if (!key || key.length < 20) {
+      toast.error("Please paste your full API key");
+      return;
+    }
+    
+    setIsActivating(true);
+    // Try the key against the API
+    const isValid = await validateUserKey(key);
+    setIsActivating(false);
+    
+    if (!isValid) {
+      toast.error("That key did not work — double-check you copied it fully");
+      return;
+    }
+    
+    localStorage.setItem("zc_user_key", key);
+    toast.success("API key activated! Let's go 🚀");
+    onActivate();
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0F0D19] flex items-center justify-center p-4 font-sans text-white">
+      <div className="bg-[#111118] border border-[#1E1E2E] rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative">
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#6366F1] via-[#8B5CF6] to-[#EC4899] z-10 rounded-t-3xl"></div>
+        
+        <div className="p-8 md:p-12 flex flex-col">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-4xl select-none">✨📚</span>
+            <span className="font-bold text-2xl tracking-tight text-[#FAF9FD]">ZachCourse</span>
+          </div>
+
+          <h2 className="text-3xl font-black text-[#FAF9FD] tracking-tight mb-3">
+            One last step! 🚀
+          </h2>
+          <p className="text-sm text-[#8E88AB] leading-relaxed mb-8 max-w-lg">
+            ZachCourse is completely free — you just need your own Gemini API key (also free). 
+            This unlocks unlimited personalized courses, roadmap generation, and mentor chats.
+          </p>
+
+          <div className="space-y-6 mb-8">
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-[#1A172E] border border-[#2A2443] flex items-center justify-center font-bold text-sm text-[#8E88AB] shrink-0">1</div>
+              <div>
+                <a 
+                  href="https://aistudio.google.com/apikey" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[#818CF8] hover:text-[#6366F1] font-semibold text-sm transition"
+                >
+                  Get Free Key <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+                <p className="text-xs text-[#8E88AB] mt-1">Sign in with Google and click "Create API key".</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-[#1A172E] border border-[#2A2443] flex items-center justify-center font-bold text-sm text-[#8E88AB] shrink-0">2</div>
+              <div>
+                <p className="text-sm font-semibold text-[#FAF9FD]">Copy your API key <span className="text-[#8E88AB] font-normal">(usually starts with AIzaSy or AQ.)</span></p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="w-8 h-8 rounded-full bg-[#1A172E] border border-[#2A2443] flex items-center justify-center font-bold text-sm text-[#8E88AB] shrink-0">3</div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-[#FAF9FD] mb-3">Paste below and hit Activate</p>
+                <form onSubmit={handleActivate} className="space-y-3">
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Key className="h-4 w-4 text-[#8E88AB]" />
+                    </div>
+                    <input
+                      type="password"
+                      value={apiKey}
+                      onChange={(e) => {
+                        setApiKey(e.target.value);
+                      }}
+                      className="block w-full pl-10 pr-3 py-2.5 bg-[#1A172E] border border-[#2A2443] rounded-xl text-[#FAF9FD] placeholder-[#8E88AB] focus:ring-2 focus:ring-[#6366F1] focus:border-transparent transition text-sm"
+                      placeholder="Paste your API key..."
+                    />
+                  </div>
+                  
+                  <button
+                    type="submit"
+                    disabled={isActivating}
+                    className="w-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:from-[#5054D3] hover:to-[#7C3AED] text-white font-bold py-2.5 px-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {isActivating ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Validating Key...
+                      </>
+                    ) : (
+                      <>
+                        Activate My Key <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between border-t border-[#1E1E2E] pt-6 mt-2">
+            <div className="flex items-center gap-1.5 text-xs text-[#8E88AB]">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Your key stays securely in YOUR browser.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
