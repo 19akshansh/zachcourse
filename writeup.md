@@ -161,32 +161,21 @@ prompt iteration, and human oversight in building reliable AI
 applications.
 
 ------------------------------------------------------------------------
+<div align="center">
 
-Repository context extracted:
+# 🎓 ZachCourse
 
-::: {align="center"}
-```{=html}
-<h1>
-```
-🎓 ZachCourse
-```{=html}
-</h1>
-```
-```{=html}
-<p>
-```
-A multi-agent AI learning companion that turns any topic into a
-personalized, interactive course.
-```{=html}
-</p>
-```
-`<a href="https://ais-dev-fg6nnldzwvuyvu3rsspevg-53963441605.asia-east1.run.app">`{=html}
-`<img src="https://img.shields.io/badge/Live-Demo-brightgreen.svg" alt="Live Demo" />`{=html}
-`</a>`{=html}
-`<a href="https://github.com/19akshansh/zachcourse/blob/main/LICENSE">`{=html}
-`<img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" />`{=html}
-`</a>`{=html}
-:::
+**A multi-agent AI learning companion that turns any topic into a personalized, interactive course.**
+
+<a href="https://ais-dev-fg6nnldzwvuyvu3rsspevg-53963441605.asia-east1.run.app">
+  <img src="https://img.shields.io/badge/Live-Demo-brightgreen.svg" alt="Live Demo">
+</a>
+
+<a href="https://github.com/19akshansh/zachcourse/blob/main/LICENSE">
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
+</a>
+
+</div>
 
 ## ✨ What It Does
 
