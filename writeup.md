@@ -188,10 +188,3 @@ applications.
     multiple-choice quizzes tailored to your current lesson.
 -   **Real Persistence:** All courses, chat histories, and quiz scores
     are saved securely so you can pick up exactly where you left off.
-
-## 🤖 The Agent System
-
-ZachCourse is powered by a team of specialized AI agents working
-together:
-
--   **Roadmap Agent:** Uses structured output genera
