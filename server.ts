@@ -1,5 +1,7 @@
 import "dotenv/config";
 import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { generateText, generateObject, tool, isStepCount } from "ai";
@@ -24,7 +26,29 @@ const serverGoogle = createGoogleGenerativeAI({
 const getServerModel = (modelId = "gemini-3.5-flash") => 
   serverGoogle(modelId);
 
-app.use(express.json());
+app.use(helmet({
+  contentSecurityPolicy: false, // disabled so Vite SPA works
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+
+const aiRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // 20 requests per minute per IP across all AI routes
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "TOO_MANY_REQUESTS", message: "Rate limit exceeded. Please wait a moment." },
+  keyGenerator: (req) => 
+    (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() 
+    || req.socket.remoteAddress 
+    || "unknown",
+});
+
+app.use("/api/generate-roadmap", aiRateLimit);
+app.use("/api/generate-lesson", aiRateLimit);
+app.use("/api/generate-quiz", aiRateLimit);
+app.use("/api/mentor-chat", aiRateLimit);
 
 // Check for duplicate email before registering to prevent silent redirects on duplicate signup
 app.post("/api/auth/sign-up/email", async (req, res, next) => {
@@ -367,6 +391,14 @@ I'm super excited to keep learning together! What's on your mind? 💫`;
 // 1. API: Generate Roadmap
 app.post("/api/generate-roadmap", async (req, res) => {
   const { topic, sourceUrl, textContent } = req.body;
+  if (topic && topic.length > 500) {
+    res.status(400).json({ error: "Topic too long. Max 500 characters." });
+    return;
+  }
+  if (textContent && textContent.length > 10000) {
+    res.status(400).json({ error: "Text content too long. Max 10000 characters." });
+    return;
+  }
   try {
     if (!topic && !sourceUrl && !textContent) {
       res.status(400).json({ error: "Missing topic, url, or content." });
@@ -508,6 +540,19 @@ app.post("/api/mentor-chat", async (req, res) => {
       currentLessonTitle 
     } = req.body;
 
+    if (!message || typeof message !== "string") {
+      res.status(400).json({ error: "Message is required." });
+      return;
+    }
+    if (message.length > 2000) {
+      res.status(400).json({ error: "Message too long. Max 2000 characters." });
+      return;
+    }
+    if (history && history.length > 20) {
+      res.status(400).json({ error: "History too long." });
+      return;
+    }
+
     // Check if user passed their own key
     const userKey = req.headers["x-user-key"] as string | undefined;
     const googleClient = userKey ? createGoogleGenerativeAI({ apiKey: userKey }) : serverGoogle;
@@ -568,6 +613,36 @@ TEACHING STYLE:
           }),
           execute: async ({ url, reason }: { url: string, reason: string }) => {
             try {
+              // Block internal/private network requests (SSRF protection)
+              const parsedUrl = new URL(url);
+              const blockedHosts = [
+                "169.254.169.254", // AWS/GCP metadata
+                "metadata.google.internal",
+                "localhost",
+                "127.0.0.1",
+                "0.0.0.0",
+                "::1",
+              ];
+              const isPrivateIp = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(parsedUrl.hostname);
+              if (blockedHosts.includes(parsedUrl.hostname) || isPrivateIp) {
+                return {
+                  success: false,
+                  error: "Blocked: internal network access not allowed",
+                  content: "",
+                  title: "",
+                  url,
+                };
+              }
+              if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+                return {
+                  success: false,
+                  error: "Blocked: only http/https URLs allowed",
+                  content: "",
+                  title: "",
+                  url,
+                };
+              }
+
               const response = await fetch(url, {
                 headers: {
                   "User-Agent": "Mozilla/5.0 (compatible; ZachCourse/1.0)",
