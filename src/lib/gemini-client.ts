@@ -28,7 +28,7 @@ export async function callGemini(
       })
       
       const { text } = await generateText({
-        model: google("gemini-3.5-flash"),
+        model: google("gemini-2.5-flash"),
         system: systemPrompt || undefined,
         prompt,
       })

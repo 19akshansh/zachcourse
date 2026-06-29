@@ -14,6 +14,7 @@ import AppSidebar, { CourseListItem } from "./components/AppSidebar";
 import AppHeader from "./components/AppHeader";
 import { ApiKeyOnboarding } from "./components/ApiKeyOnboarding";
 import RoadmapGraph from "./components/RoadmapGraph";
+import VisualRoadmapsTab from "./components/VisualRoadmapsTab";
 import { toast, Toaster } from "sonner";
 import { 
   BookOpen, 
@@ -238,6 +239,18 @@ export default function App() {
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [isLoadingCourse, setIsLoadingCourse] = useState(false);
 
+  // Visual Roadmaps states
+  const [vroadmaps, setVRoadmaps] = useState<any[]>([]);
+  const [activeVRoadmapId, setActiveVRoadmapId] = useState<string | null>(null);
+
+  // Load visual roadmaps on mount
+  useEffect(() => {
+    if (!sessionData?.user) return;
+    trpc.getVisualRoadmaps.query().then(data => {
+      setVRoadmaps(data);
+    }).catch(console.error);
+  }, [sessionData]);
+
   // Derived states from activeCourse
   const currentRoadmap = activeCourse?.roadmapData;
   const completedLessons = activeCourse?.completedLessons || [];
@@ -247,26 +260,22 @@ export default function App() {
   // Load courses list on mount
   useEffect(() => {
     if (!sessionData?.user) return;
-    const fetchCourses = async (attempt = 0) => {
-      setIsLoadingCourses(true);
-      try {
-        const data = await trpc.getCourses.query();
-        setCourses(data as any as CourseListItem[]);
+    setIsLoadingCourses(true);
+    trpc.getCourses.query()
+      .then((data: any) => {
+        setCourses(data);
         setIsLoadingCourses(false);
         if (data.length > 0 && !activeCourseId) {
           setActiveCourseId(data[0].id);
         }
-      } catch (err: any) {
-        if (attempt < 2) {
-          setTimeout(() => fetchCourses(attempt + 1), 1000 * (attempt + 1));
-        } else {
-          console.error("Failed to load courses after retries:", err);
-          setIsLoadingCourses(false);
-          toast.error("Could not load your courses. Please refresh.");
+      })
+      .catch((err: any) => {
+        console.error("tRPC getCourses error:", err);
+        setIsLoadingCourses(false);
+        if (!err?.message?.includes("UNAUTHORIZED")) {
+          toast.error("Couldn't load your courses — please refresh");
         }
-      }
-    };
-    fetchCourses();
+      });
   }, [sessionData]);
 
   // Load full course when activeCourseId changes
@@ -294,11 +303,24 @@ export default function App() {
     }
     let cancelled = false;
     trpc.getUserProgress.query()
-      .then((progress) => {
-        if (!cancelled && progress) setUserDbProgress(progress);
+      .then(data => {
+        if (!cancelled && data) setUserDbProgress(data);
       })
-      .catch((err) => {
-        if (!cancelled) console.error("Error loading progress via tRPC:", err);
+      .catch(err => {
+        if (cancelled) return;
+        console.error("tRPC getUserProgress error:", err);
+        // Only show toast if it's not an auth error
+        // (auth errors are expected when session is loading)
+        if (!err?.message?.includes("UNAUTHORIZED")) {
+          toast.error("Failed to load progress — retrying...");
+          // Retry once after 2 seconds
+          setTimeout(() => {
+            if (cancelled) return;
+            trpc.getUserProgress.query()
+              .then(data => { if (data) setUserDbProgress(data); })
+              .catch(() => {}); // silent on retry fail
+          }, 2000);
+        }
       });
     return () => { cancelled = true; };
   }, [sessionData?.user?.id]);
@@ -347,6 +369,8 @@ export default function App() {
   const [quizData, setQuizData] = useState<Quiz | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
+  const [quizDifficulty, setQuizDifficulty] = useState<string>("Medium");
+  const [quizQuestionCount, setQuizQuestionCount] = useState<number>(3);
 
   // Chat Mentor states
   const [mentorInput, setMentorInput] = useState<string>("");
@@ -540,6 +564,20 @@ Rules:
     setSelectedAnswers({});
 
     try {
+      if (activeCourseId) {
+        // Check if content already exists in DB
+        const savedContent = await trpc.getLessonContent.query({
+          courseId: activeCourseId,
+          lessonId: lesson.id
+        });
+
+        if (savedContent && savedContent.content) {
+          setLessonContent(savedContent.content);
+          setGeneratingLesson(false);
+          return;
+        }
+      }
+
       const userKey = localStorage.getItem("zc_user_key");
       let content: string;
 
@@ -582,6 +620,18 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
       }
 
       setLessonContent(content);
+
+      if (activeCourseId) {
+        // Save the newly generated content to DB
+        await trpc.saveLessonContent.mutate({
+          courseId: activeCourseId,
+          lessonId: lesson.id,
+          content: content
+        }).catch(err => {
+          console.error("Failed to save lesson content:", err);
+        });
+      }
+
     } catch (err) {
       console.error(err);
       toast.error("Connection issue — please try again");
@@ -627,21 +677,28 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
   };
 
   // Start / Generate Quiz
-  const handleStartQuiz = async () => {
+  const handleStartQuiz = () => {
+    if (!selectedLesson) return;
+    setQuizData(null);
+    setQuizSubmitted(false);
+    setSelectedAnswers({});
+    setActiveTab("quiz");
+  };
+
+  const generateQuiz = async () => {
     if (!selectedLesson) return;
 
     setGeneratingQuiz(true);
     setQuizData(null);
     setQuizSubmitted(false);
     setSelectedAnswers({});
-    setActiveTab("quiz");
 
     try {
       const userKey = localStorage.getItem("zc_user_key");
       let data: any;
 
       if (userKey) {
-        const systemPrompt = `You are a professional assessor and educator. Your job is to generate exactly 3 interactive multiple choice questions based on the lesson provided. Return ONLY a valid JSON object matching this schema. Do not write any markdown blocks or explanations before or after the JSON.
+        const systemPrompt = `You are a professional assessor and educator. Your job is to generate exactly ${quizQuestionCount} interactive multiple choice questions based on the lesson provided. The difficulty level should be ${quizDifficulty}. Return ONLY a valid JSON object matching this schema. Do not write any markdown blocks or explanations before or after the JSON.
 Schema:
 {
   "questions": [
@@ -655,7 +712,7 @@ Schema:
   ]
 }`;
 
-        const prompt = `Generate a 3-question quiz for:
+        const prompt = `Generate a ${quizQuestionCount}-question quiz at ${quizDifficulty} difficulty for:
 Lesson Title: "${selectedLesson.title}"
 Study Guide Content:
 ${lessonContent}`;
@@ -669,7 +726,8 @@ ${lessonContent}`;
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             lessonTitle: selectedLesson.title,
-            lessonContent: lessonContent
+            lessonContent: lessonContent.slice(0, 800),
+            concepts: selectedLesson.concepts
           })
         });
 
@@ -833,7 +891,10 @@ ${lessonContent}`;
         headers,
         body: JSON.stringify({
           message: userMessage,
-          history: mentorMessages.map(m => ({ role: m.role, content: m.content })),
+          history: mentorMessages.slice(-10).map(m => ({
+            role: m.role,
+            content: m.content.slice(0, 1000)
+          })),
           currentCourseTitle: activeCourse?.title,
           currentLessonTitle: selectedLesson?.title
         })
@@ -1143,6 +1204,70 @@ ${lessonContent}`;
           
           <div className="p-4 md:p-6 lg:p-8">
             
+            {/* TAB 0: VISUAL ROADMAPS */}
+            {activeTab === "visual-roadmaps" && (
+              <VisualRoadmapsTab
+                roadmaps={vroadmaps}
+                hasKey={hasKey}
+                onRoadmapGenerated={async (roadmapData, meta) => {
+                  const saved = await trpc.saveVisualRoadmap.mutate({
+                    title: roadmapData.title,
+                    topic: meta.topic,
+                    description: roadmapData.description,
+                    difficulty: roadmapData.difficulty,
+                    totalDuration: roadmapData.totalDuration,
+                    experienceLevel: meta.experienceLevel,
+                    weeklyHours: meta.weeklyHours,
+                    roadmapData: roadmapData,
+                  });
+                  setVRoadmaps(prev => [saved, ...prev]);
+                  setActiveVRoadmapId(saved.id);
+                  toast.success("Roadmap saved! ✨");
+                }}
+                onDelete={async (id) => {
+                  try {
+                    await trpc.deleteVisualRoadmap.mutate({ id });
+                    // Remove from local state
+                    setVRoadmaps(prev => prev.filter(r => r.id !== id));
+                    // If deleted roadmap was the active one, clear it
+                    if (activeVRoadmapId === id) {
+                      setActiveVRoadmapId(null);
+                    }
+                    toast.success("Roadmap deleted");
+                  } catch (err: any) {
+                    console.error("Delete roadmap error:", err);
+                    toast.error("Failed to delete — please try again");
+                  }
+                }}
+                onToggleFavorite={async (id, isFavorite) => {
+                  await trpc.toggleFavoriteRoadmap.mutate({ id, isFavorite });
+                  setVRoadmaps(prev => prev.map(r => r.id === id ? { ...r, isFavorite } : r));
+                }}
+                activeVRoadmapId={activeVRoadmapId}
+                setActiveVRoadmapId={setActiveVRoadmapId}
+                onToggleNodeComplete={async (roadmapId, nodeId) => {
+                  const roadmap = vroadmaps.find(r => r.id === roadmapId);
+                  if (!roadmap) return;
+                  const current = (roadmap.completedNodeIds as string[]) || [];
+                  const updated = current.includes(nodeId)
+                    ? current.filter((id: string) => id !== nodeId)
+                    : [...current, nodeId];
+
+                  setVRoadmaps(prev => prev.map(r => r.id === roadmapId ? { ...r, completedNodeIds: updated } : r));
+
+                  try {
+                    await trpc.updateVisualRoadmapProgress.mutate({
+                      id: roadmapId,
+                      completedNodeIds: updated,
+                    });
+                  } catch (err) {
+                    setVRoadmaps(prev => prev.map(r => r.id === roadmapId ? { ...r, completedNodeIds: current } : r));
+                    toast.error("Failed to save progress");
+                  }
+                }}
+              />
+            )}
+
             {/* TAB 1: ROADMAP & LESSON VIEW */}
         {activeTab === "roadmap" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -1151,7 +1276,8 @@ ${lessonContent}`;
             <div className="lg:col-span-5 flex flex-col gap-8">
               
               {/* Goal-Oriented Course Creator */}
-              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-8 shadow-xl relative overflow-hidden" id="course-builder-form">
+              {!activeCourseId && (
+              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl relative overflow-hidden" id="course-builder-form">
 
                 <div className="flex items-center gap-3 mb-6">
                   <span className="text-3xl select-none">✨</span>
@@ -1223,11 +1349,13 @@ ${lessonContent}`;
                     <button
                       type="button"
                       onClick={() => setShowUrlInputs(!showUrlInputs)}
-                      className="flex items-center gap-2 text-base font-semibold text-[#FAF9FD]/80 hover:text-[#818CF8] transition"
+                      className="w-full flex items-center justify-between text-left gap-2 text-base font-semibold text-[#FAF9FD]/80 hover:text-[#818CF8] transition"
                     >
-                      <span>📎</span>
-                      <span>Add a course link or textbook syllabus (optional)</span>
-                      {showUrlInputs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="shrink-0">📎</span>
+                        <span>Add a course link or textbook syllabus (optional)</span>
+                      </div>
+                      {showUrlInputs ? <ChevronUp className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
                     </button>
 
                     {showUrlInputs && (
@@ -1280,10 +1408,11 @@ ${lessonContent}`;
                   </button>
                 </form>
               </div>
+              )}
 
               {/* Progress Summary Card */}
               {currentRoadmap && (
-              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl flex items-center justify-between gap-6">
+              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 sm:p-6 shadow-xl flex items-center justify-between gap-4 sm:gap-6">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">🔥</span>
@@ -1298,8 +1427,8 @@ ${lessonContent}`;
 
               {/* Active Roadmap Navigator */}
               {currentRoadmap && (
-              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-8 shadow-xl">
-                <div className="border-b border-[#2A2443] pb-5 mb-5 flex justify-between items-start">
+              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 md:p-8 shadow-xl">
+                <div className="border-b border-[#2A2443] pb-5 mb-5 flex flex-col md:flex-row md:justify-between items-start gap-4 md:gap-0">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs bg-indigo-950/40 text-[#818CF8] font-bold px-3 py-1 rounded-full border border-indigo-500/30">
@@ -1425,12 +1554,12 @@ ${lessonContent}`;
             <div className="lg:col-span-7 flex flex-col gap-8" id="study-panel">
               
               {selectedLesson ? (
-                <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-8 shadow-xl flex flex-col gap-6 min-h-[500px]">
+                <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 md:p-8 shadow-xl flex flex-col gap-6 min-h-[500px]">
                   
                   {/* Lesson Heading */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#2A2443] pb-5 gap-4">
                     <div>
-                      <div className="flex items-center gap-2 mb-1.5">
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
                         <span className="text-xs font-bold text-[#818CF8] uppercase tracking-wider bg-indigo-950/40 border border-indigo-500/20 px-2.5 py-1 rounded-full">{lessonModuleTitle}</span>
                         <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
                         <span className="text-sm font-medium text-[#8E88AB]">{selectedLesson.duration} study time</span>
@@ -1576,7 +1705,7 @@ ${lessonContent}`;
             
             {/* Quick Helper Prompts (span 4) */}
             <div className="lg:col-span-4 flex flex-col gap-6">
-              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl">
+              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl">
                 <h3 className="text-lg font-bold text-[#FAF9FD] mb-2 flex items-center gap-2">
                   <span>🧑‍🏫</span>
                   <span>Companion Help desk</span>
@@ -1608,7 +1737,7 @@ ${lessonContent}`;
               </div>
 
               {/* Course Context Card */}
-              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl">
+              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl">
                 <h4 className="text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-2">Active Context</h4>
                 <div className="space-y-2">
                   <p className="text-base font-semibold text-[#FAF9FD] truncate">📚 {currentRoadmap.title}</p>
@@ -1622,7 +1751,7 @@ ${lessonContent}`;
             </div>
 
             {/* Chat Box (span 8) */}
-            <div className="lg:col-span-8 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl flex flex-col h-[400px] md:h-[500px] lg:h-[600px]">
+            <div className="lg:col-span-8 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col h-[400px] md:h-[500px] lg:h-[600px]">
               <div className="flex items-center gap-3 border-b border-[#2A2443] pb-4 mb-4">
                 <span className="text-3xl select-none">🧑‍🏫</span>
                 <div>
@@ -1635,7 +1764,7 @@ ${lessonContent}`;
               </div>
 
               {/* Message List */}
-              <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2">
+              <div className="flex-1 overflow-y-auto max-h-[calc(100vh-280px)] md:max-h-none space-y-4 mb-4 p-2">
                 {mentorMessages.map((msg, index) => {
                   const isUser = msg.role === "user";
                   const msgText = msg.content || msg.text;
@@ -1644,7 +1773,7 @@ ${lessonContent}`;
                       key={index}
                       className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                     >
-                      <div className={`flex items-start gap-2.5 max-w-[85%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+                      <div className={`flex items-start gap-2.5 max-w-[92%] sm:max-w-[85%] md:max-w-[80%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
                         <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 select-none text-lg">
                           {isUser ? "👤" : "🧑‍🏫"}
                         </div>
@@ -1658,7 +1787,7 @@ ${lessonContent}`;
                           {isUser ? (
                             <p className="whitespace-pre-wrap">{msgText}</p>
                           ) : (
-                            <div className="prose prose-sm max-w-none prose-invert">
+                            <div className="prose prose-sm max-w-none prose-invert overflow-x-auto">
                               <Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{msgText}</Markdown>
                             </div>
                           )}
@@ -1712,7 +1841,7 @@ ${lessonContent}`;
           <div className="w-full md:max-w-3xl md:mx-auto bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 md:p-8 shadow-xl relative overflow-hidden min-h-[400px]" id="quiz-container">
 
             
-            <div className="flex items-center justify-between border-b border-[#2A2443] pb-4 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#2A2443] pb-4 mb-6">
               <div className="flex items-center gap-3">
                 <span className="text-3xl select-none">📝</span>
                 <div>
@@ -1722,7 +1851,7 @@ ${lessonContent}`;
               </div>
               
               {selectedLesson && (
-                <span className="text-sm font-semibold text-[#818CF8] bg-[#121021] px-3 py-1 rounded-full border border-[#2A2443]">
+                <span className="text-sm font-semibold text-[#818CF8] bg-[#121021] px-3 py-1 rounded-full border border-[#2A2443] truncate max-w-[200px] sm:max-w-none" title={selectedLesson.title}>
                   Topic: {selectedLesson.title}
                 </span>
               )}
@@ -1819,6 +1948,57 @@ ${lessonContent}`;
                   </div>
                 )}
               </div>
+            ) : selectedLesson ? (
+              <div className="py-8 flex flex-col items-center justify-center gap-6">
+                <span className="text-5xl select-none">⚙️</span>
+                <div className="text-center">
+                  <h3 className="text-2xl font-bold text-[#FAF9FD]">Configure your Quiz</h3>
+                  <p className="text-base text-[#8E88AB] max-w-sm mt-2 mx-auto">
+                    Customize the difficulty and length of your quiz for: <br/> <span className="font-semibold text-[#818CF8]">{selectedLesson.title}</span>
+                  </p>
+                </div>
+                
+                <div className="w-full max-w-md space-y-4 text-left">
+                  <div>
+                    <label className="block text-sm font-bold text-[#CECADF] mb-2">Difficulty</label>
+                    <select
+                      value={quizDifficulty}
+                      onChange={(e) => setQuizDifficulty(e.target.value)}
+                      className="w-full bg-[#121021] border border-[#2A2443] rounded-xl py-3 px-4 text-[#FAF9FD] focus:outline-none focus:border-[#6366F1]"
+                    >
+                      <option value="Beginner">Beginner</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Hard">Hard</option>
+                      <option value="Expert">Expert</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-bold text-[#CECADF] mb-2">Number of Questions</label>
+                    <input
+                      type="number"
+                      min={3}
+                      max={40}
+                      value={quizQuestionCount}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value);
+                        if (isNaN(val)) val = 3;
+                        if (val > 40) val = 40;
+                        if (val < 3 && e.target.value !== "") val = 3; // allow typing
+                        setQuizQuestionCount(val);
+                      }}
+                      className="w-full bg-[#121021] border border-[#2A2443] rounded-xl py-3 px-4 text-[#FAF9FD] focus:outline-none focus:border-[#6366F1]"
+                    />
+                  </div>
+
+                  <button
+                    onClick={generateQuiz}
+                    className="w-full mt-4 bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold text-base px-6 py-4 rounded-2xl transition cursor-pointer hover:-translate-y-0.5 shadow-lg shadow-indigo-600/20"
+                  >
+                    Generate Quiz
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="text-center py-12 flex flex-col items-center justify-center gap-6">
                 <span className="text-5xl select-none">🗺️</span>
@@ -1845,7 +2025,7 @@ ${lessonContent}`;
           <div className="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             
             {/* Left Box: Stats Summary */}
-            <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-8 shadow-xl flex flex-col items-center text-center gap-6">
+            <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 md:p-8 shadow-xl flex flex-col items-center text-center gap-6">
               <h3 className="text-2xl font-bold text-[#FAF9FD]">Your Progression Dashboard</h3>
               
               {renderProgressRing(completionPercentage, 120, 9)}
@@ -1877,7 +2057,7 @@ ${lessonContent}`;
             </div>
 
             {/* Right Box: Achievements and perfect quizzes */}
-            <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-8 shadow-xl space-y-6">
+            <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 md:p-8 shadow-xl space-y-6">
               <h3 className="text-2xl font-bold text-[#FAF9FD] flex items-center gap-2">
                 <Trophy className="w-6 h-6 text-amber-500" />
                 <span>Your badges & Achievements</span>
@@ -1885,22 +2065,38 @@ ${lessonContent}`;
 
               <div className="space-y-4">
                 {/* Badge 1: New Learner */}
-                <div className="flex items-start gap-4 p-3 bg-indigo-950/20 rounded-2xl border border-indigo-500/20">
-                  <span className="text-3xl select-none mt-1">🌱</span>
-                  <div>
+                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-indigo-950/20 rounded-2xl border border-indigo-500/20">
+                  <span className="text-3xl select-none mt-1 shrink-0">🌱</span>
+                  <div className="flex-1 min-w-0">
                     <h4 className="text-base font-bold text-[#FAF9FD]">Curious Explorer</h4>
                     <p className="text-sm text-[#8E88AB] font-medium">You took your first steps on your learning companion roadmap!</p>
                   </div>
                 </div>
 
                 {/* Badge 2: Quizzes */}
-                <div className="flex items-start gap-4 p-3 bg-amber-950/20 rounded-2xl border border-amber-500/20">
-                  <span className="text-3xl select-none mt-1">🏆</span>
-                  <div>
-                    <h4 className="text-base font-bold text-[#FAF9FD]">Quiz Taker</h4>
-                    <p className="text-sm text-[#8E88AB] font-medium">
-                      Tested knowledge. Active check scores: {Object.keys(completedQuizzes).length} quizzes completed.
+                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-amber-950/20 rounded-2xl border border-amber-500/20">
+                  <span className="text-3xl select-none mt-1 shrink-0">🏆</span>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-base font-bold text-[#FAF9FD]">Quiz Performance</h4>
+                    <p className="text-sm text-[#8E88AB] font-medium mb-2">
+                      You have completed {Object.keys(completedQuizzes).length} quizzes.
                     </p>
+                    {Object.entries(completedQuizzes).length > 0 && (
+                      <div className="space-y-2 mt-2">
+                        {Object.entries(completedQuizzes).map(([lessonId, score]) => {
+                           const allLessons = (currentRoadmap as any)?.modules?.flatMap((m: any) => m.lessons) || [];
+                           const lessonTitle = allLessons.find((l: any) => l.id === lessonId)?.title || "Lesson Quiz";
+                           return (
+                             <div key={lessonId} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#121021] px-3 py-2 rounded-xl gap-2">
+                               <span className="text-xs text-[#CECADF] truncate w-full sm:max-w-[150px]" title={lessonTitle}>{lessonTitle}</span>
+                               <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap self-start sm:self-auto ${Number(score) >= 60 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                                 {score}% Correct
+                               </span>
+                             </div>
+                           );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1913,16 +2109,13 @@ ${lessonContent}`;
                     <div className="grid grid-cols-1 gap-2">
                       {completedLessons.map((id) => {
                         // Find title
-                        let foundTitle = "Custom lesson node";
-                        currentRoadmap.modules.forEach(m => {
-                          const l = m.lessons.find(less => less.id === id);
-                          if (l) foundTitle = l.title;
-                        });
+                        const allLessons = currentRoadmap?.modules?.flatMap((m: any) => m.lessons) || [];
+                        const foundTitle = allLessons.find((l: any) => l.id === id)?.title || "Custom lesson node";
 
                         return (
-                          <div key={id} className="flex items-center gap-2 text-sm font-semibold text-[#10B981] bg-emerald-950/20 border border-emerald-500/20 px-3.5 py-2 rounded-xl">
+                          <div key={id} className="flex items-center gap-2 sm:gap-3 text-sm font-semibold text-[#10B981] bg-emerald-950/20 border border-emerald-500/20 px-3.5 py-2.5 rounded-xl">
                             <CheckCircle className="w-4.5 h-4.5 text-[#10B981] shrink-0" />
-                            <span className="truncate text-[#CECADF] font-medium">{foundTitle}</span>
+                            <span className="flex-1 min-w-0 truncate text-[#CECADF] font-medium">{foundTitle}</span>
                           </div>
                         );
                       })}

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import helmet from "helmet";
+import cors from "cors";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -14,6 +15,39 @@ import { appRouter, createContext } from "./src/server/trpc";
 import { prisma } from "./src/lib/db";
 
 const app = express();
+
+const ALLOWED_ORIGINS = [
+  process.env.VITE_APP_URL,
+  process.env.APP_URL,
+  process.env.BETTER_AUTH_URL,
+  "http://localhost:3000",
+  "http://localhost:5173",
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile, curl, server-to-server) or sandboxed iframes ("null")
+    if (!origin || origin === "null") return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin) || 
+        origin.includes("run.app") ||
+        origin.includes("localhost")) {
+      return callback(null, true);
+    }
+    callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,  // CRITICAL — allows cookies to be sent
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: [
+    "Content-Type", 
+    "Authorization",
+    "x-trpc-source",
+    "cookie",
+  ],
+}));
+
+// Handle preflight requests for ALL routes
+app.options("*", cors());
+
 app.set("trust proxy", true);
 const PORT = 3000;
 
@@ -23,12 +57,14 @@ const serverGoogle = createGoogleGenerativeAI({
 });
 
 // Helper to get a model — easy to swap
-const getServerModel = (modelId = "gemini-3.5-flash") => 
+const getServerModel = (modelId = "gemini-2.5-flash") => 
   serverGoogle(modelId);
 
 app.use(helmet({
-  contentSecurityPolicy: false, // disabled so Vite SPA works
+  contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginOpenerPolicy: false,
 }));
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
@@ -44,6 +80,24 @@ const aiRateLimit = rateLimit({
     || req.socket.remoteAddress 
     || "unknown",
 });
+
+async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  try {
+    const headers = new Headers();
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (typeof value === "string") headers.set(key, value);
+    }
+    const session = await auth.api.getSession({ headers });
+    if (!session?.user) {
+      res.status(401).json({ error: "UNAUTHORIZED", message: "Please sign in first." });
+      return;
+    }
+    (req as any).user = session.user;
+    next();
+  } catch {
+    res.status(401).json({ error: "UNAUTHORIZED" });
+  }
+}
 
 app.use("/api/generate-roadmap", aiRateLimit);
 app.use("/api/generate-lesson", aiRateLimit);
@@ -87,27 +141,6 @@ app.use(
   })
 );
 
-// In-memory simple store for simulated session progress & active roadmaps
-interface Roadmap {
-  title: string;
-  description: string;
-  difficulty: string;
-  modules: {
-    id: string;
-    title: string;
-    description: string;
-    lessons: {
-      id: string;
-      title: string;
-      duration: string;
-      concepts: string[];
-    }[];
-  }[];
-}
-
-const roadmapsStore: Record<string, Roadmap> = {};
-const progressStore: Record<string, { completedLessons: string[]; completedQuizzes: Record<string, number> }> = {};
-
 // Helper for sleep/delay during backoff
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -116,17 +149,18 @@ async function sleep(ms: number) {
 // Highly robust wrapper for calling Gemini API with exponential backoff and model/local fallbacks
 async function callAI(
   prompt: string,
-  options: { json?: boolean; schema?: z.ZodType<any>, systemPrompt?: string, messages?: { role: "system" | "user" | "assistant", content: string }[] } = {}
+  options: { json?: boolean; schema?: z.ZodType<any>, systemPrompt?: string, messages?: { role: "system" | "user" | "assistant", content: string }[], apiKey?: string } = {}
 ): Promise<any> {
   const models = [
-    "gemini-3.5-flash",
-    "gemini-2.5-flash", 
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
     "gemini-2.5-pro"
   ];
   
   for (const modelId of models) {
     try {
-      const model = serverGoogle(modelId);
+      const googleClient = options.apiKey ? createGoogleGenerativeAI({ apiKey: options.apiKey }) : serverGoogle;
+      const model = googleClient(modelId);
       
       if (options.schema) {
         const { object } = await generateObject({
@@ -389,7 +423,7 @@ I'm super excited to keep learning together! What's on your mind? 💫`;
 }
 
 // 1. API: Generate Roadmap
-app.post("/api/generate-roadmap", async (req, res) => {
+app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
   const { topic, sourceUrl, textContent } = req.body;
   if (topic && topic.length > 500) {
     res.status(400).json({ error: "Topic too long. Max 500 characters." });
@@ -436,7 +470,7 @@ Topic: ${topic}
 Experience level: ${experienceLevel}
 Hours per week: ${weeklyHours}
 ${sourceUrl ? "Reference URL: " + sourceUrl : ""}
-${textContent ? "Syllabus: " + textContent : ""}
+${textContent ? "Syllabus excerpt: " + textContent.slice(0, 3000) : ""}
 
 Rules:
 - 3-5 modules, each with 3-5 lessons
@@ -447,20 +481,106 @@ Rules:
 
     const roadmapData = await callAI(prompt, { schema })
       ?? getLocalFallbackRoadmap(topic || "Technology Mastery", sourceUrl, textContent);
-    
-    const key = topic || "custom_course_" + Date.now();
-    roadmapsStore[key] = roadmapData;
-    progressStore[key] = { completedLessons: [], completedQuizzes: {} };
 
-    res.json({ roadmapKey: key, roadmap: roadmapData });
+    res.json({ roadmap: roadmapData });
   } catch (error: any) {
     console.error("Error generating roadmap:", error);
     res.status(500).json({ error: error.message || "Failed to generate roadmap" });
   }
 });
 
+app.post("/api/generate-visual-roadmap", aiRateLimit, async (req, res) => {
+  const { topic, experienceLevel, weeklyHours, sourceUrl } = req.body
+
+  const schema = z.object({
+    title: z.string(),
+    description: z.string(),
+    difficulty: z.enum(["Beginner", "Intermediate", "Advanced"]),
+    totalDuration: z.string(),
+    prerequisites: z.array(z.string()),
+    nodes: z.array(z.object({
+      id: z.string(),
+      type: z.enum([
+        "start",
+        "module",
+        "lesson",
+        "milestone",
+        "project",
+        "end"
+      ]),
+      label: z.string(),
+      description: z.string(),
+      duration: z.string().optional(),
+      difficulty: z.enum(["Beginner","Intermediate","Advanced"]).optional(),
+      concepts: z.array(z.string()).optional(),
+      moduleId: z.string().optional(),
+      order: z.number(),
+      resources: z.array(z.object({
+        title: z.string(),
+        type: z.enum(["video","article","doc","practice"]),
+        url: z.string().optional(),
+      })).optional(),
+    })),
+    edges: z.array(z.object({
+      id: z.string(),
+      source: z.string(),
+      target: z.string(),
+      label: z.string().optional(),
+      type: z.enum(["required","optional","parallel"]),
+    })),
+  })
+
+  const prompt = `You are a world-class curriculum architect.
+Generate a comprehensive visual learning roadmap as a graph.
+
+Topic: "${topic}"
+Experience level: ${experienceLevel || "beginner"}
+Hours per week: ${weeklyHours || 5}
+${sourceUrl ? "Reference: " + sourceUrl : ""}
+
+GRAPH STRUCTURE RULES:
+1. Start with exactly ONE "start" node (id: "start")
+2. Create 3-5 module nodes (id: "module_1", "module_2" etc)
+3. Each module has 3-5 lesson nodes 
+   (id: "m1_lesson_1", "m1_lesson_2" etc)
+4. After each module add a "milestone" node with a 
+   mini-project or quiz checkpoint
+5. At least 2 "project" nodes (real hands-on builds)
+6. End with exactly ONE "end" node (id: "end") 
+   labeled "You're Job-Ready! 🎉" or similar
+7. Edges define the path:
+   - Lessons connect linearly within a module
+   - Some lessons can have parallel optional paths
+   - Milestones gate the next module
+8. Include 2-3 OPTIONAL side-path nodes for "going deeper"
+   connected with type: "optional"
+
+CONTENT RULES:
+- Every lesson node MUST have: concepts (3-5 terms), 
+  duration, difficulty, and 2-3 resources
+- Make descriptions specific and actionable
+  (not "learn about X" but "build a X that does Y")
+- Progressive difficulty: Beginner → Intermediate → Advanced
+- First lesson: completable in 20 minutes
+- Last project: portfolio-worthy, takes 2-4 hours
+
+Produce a graph with 20-35 total nodes and 25-40 edges.`
+
+  try {
+    const userKey = req.headers["x-user-key"] as string | undefined;
+    const data = await callAI(prompt, { schema, apiKey: userKey })
+    if (!data) {
+      res.status(500).json({ error: "Generation failed" })
+      return
+    }
+    res.json({ roadmap: data })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // 2. API: Generate Study Guide Content
-app.post("/api/generate-lesson", async (req, res) => {
+app.post("/api/generate-lesson", requireAuth, async (req, res) => {
   const { roadmapKey, moduleId, lessonId, lessonTitle, concepts } = req.body;
   try {
     if (!lessonTitle) {
@@ -492,7 +612,7 @@ Be thorough, friendly, and practical.`;
 });
 
 // 3. API: Generate Quiz
-app.post("/api/generate-quiz", async (req, res) => {
+app.post("/api/generate-quiz", requireAuth, async (req, res) => {
   const { lessonTitle, lessonContent } = req.body;
   try {
     if (!lessonTitle) {
@@ -531,7 +651,7 @@ Requirements:
 });
 
 // 4. API: Ask Mentor Chat
-app.post("/api/mentor-chat", async (req, res) => {
+app.post("/api/mentor-chat", requireAuth, async (req, res) => {
   try {
     const { 
       message, 
@@ -556,7 +676,7 @@ app.post("/api/mentor-chat", async (req, res) => {
     // Check if user passed their own key
     const userKey = req.headers["x-user-key"] as string | undefined;
     const googleClient = userKey ? createGoogleGenerativeAI({ apiKey: userKey }) : serverGoogle;
-    const models = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.5-pro"];
+    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
     let text: string | undefined;
 
     for (const modelId of models) {
@@ -839,35 +959,7 @@ app.get("/api/verify-star", async (req, res) => {
   }
 });
 
-// IP Rate limiting for Express /api/ai proxy (max 3 requests per minute per IP)
-const expressIpLimitMap = new Map<string, { count: number; resetTime: number }>();
-
-function isExpressRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const windowMs = 60000;
-  const limitInfo = expressIpLimitMap.get(ip);
-
-  if (!limitInfo || now > limitInfo.resetTime) {
-    expressIpLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
-    return false;
-  }
-
-  if (limitInfo.count >= 3) {
-    return true;
-  }
-
-  limitInfo.count += 1;
-  return false;
-}
-
-app.post("/api/ai", async (req, res) => {
-  const clientIp = (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown").toString();
-
-  if (isExpressRateLimited(clientIp)) {
-    res.status(429).json({ error: "TOO_MANY_REQUESTS", message: "Rate limit exceeded. Max 3 requests per minute." });
-    return;
-  }
-
+app.post("/api/ai", aiRateLimit, async (req, res) => {
   try {
     const cookies = req.headers.cookie || "";
     

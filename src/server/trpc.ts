@@ -13,13 +13,18 @@ export const createContext = async (opts: CreateExpressContextOptions) => {
       value.forEach(v => headers.append(key, v));
     }
   }
-  const session = await auth.api.getSession({
-    headers,
-  });
-  return {
-    prisma,
-    session,
-  };
+
+  // Explicitly ensure cookie header is included
+  // (Express sometimes lowercases it)
+  const cookieHeader = opts.req.headers["cookie"] || 
+    opts.req.headers["Cookie"] || "";
+  if (cookieHeader && !headers.has("cookie")) {
+    headers.set("cookie", cookieHeader as string);
+  }
+
+  const session = await auth.api.getSession({ headers });
+
+  return { prisma, session };
 };
 
 type Context = Awaited<ReturnType<typeof createContext>>;
@@ -186,6 +191,43 @@ export const appRouter = router({
       });
     }),
 
+  getLessonContent: protectedProcedure
+    .input(z.object({ courseId: z.string(), lessonId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const course = await ctx.prisma.course.findUnique({
+        where: { id: input.courseId, userId: ctx.user.id },
+      });
+      if (!course) throw new TRPCError({ code: "UNAUTHORIZED" });
+      
+      const content = await ctx.prisma.lessonContent.findUnique({
+        where: {
+          courseId_lessonId: { courseId: input.courseId, lessonId: input.lessonId }
+        }
+      });
+      return content;
+    }),
+
+  saveLessonContent: protectedProcedure
+    .input(z.object({ courseId: z.string(), lessonId: z.string(), content: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const course = await ctx.prisma.course.findUnique({
+        where: { id: input.courseId, userId: ctx.user.id },
+      });
+      if (!course) throw new TRPCError({ code: "UNAUTHORIZED" });
+      
+      return await ctx.prisma.lessonContent.upsert({
+        where: {
+          courseId_lessonId: { courseId: input.courseId, lessonId: input.lessonId }
+        },
+        update: { content: input.content },
+        create: {
+          courseId: input.courseId,
+          lessonId: input.lessonId,
+          content: input.content
+        }
+      });
+    }),
+
   deleteCourse: protectedProcedure
     .input(z.object({ courseId: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -193,6 +235,7 @@ export const appRouter = router({
       if (!course || course.userId !== ctx.user.id) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Course not found or unauthorized" });
       }
+
       return await ctx.prisma.course.delete({
         where: { id: input.courseId }
       });
@@ -209,6 +252,90 @@ export const appRouter = router({
         where: { id: input.courseId },
         data: { title: input.title }
       });
+    }),
+  getVisualRoadmaps: protectedProcedure.query(async ({ ctx }) => {
+    return await ctx.prisma.visualRoadmap.findMany({
+      where: { userId: ctx.user.id },
+      orderBy: [
+        { isFavorite: "desc" },
+        { updatedAt: "desc" }
+      ],
+      select: {
+        id: true,
+        title: true,
+        topic: true,
+        difficulty: true,
+        experienceLevel: true,
+        totalDuration: true,
+        isFavorite: true,
+        completedNodeIds: true,
+        roadmapData: true,
+        createdAt: true,
+      }
+    })
+  }),
+
+  getVisualRoadmap: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const roadmap = await ctx.prisma.visualRoadmap.findFirst({
+        where: { id: input.id, userId: ctx.user.id }
+      })
+      if (!roadmap) throw new TRPCError({ code: "NOT_FOUND" })
+      return roadmap
+    }),
+
+  saveVisualRoadmap: protectedProcedure
+    .input(z.object({
+      title: z.string(),
+      topic: z.string(),
+      description: z.string().optional(),
+      difficulty: z.string(),
+      totalDuration: z.string().optional(),
+      experienceLevel: z.string(),
+      weeklyHours: z.number(),
+      roadmapData: z.any(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.prisma.visualRoadmap.create({
+        data: { userId: ctx.user.id, ...input }
+      })
+    }),
+
+  toggleFavoriteRoadmap: protectedProcedure
+    .input(z.object({ id: z.string(), isFavorite: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.prisma.visualRoadmap.update({
+        where: { id: input.id, userId: ctx.user.id },
+        data: { isFavorite: input.isFavorite }
+      })
+    }),
+
+  deleteVisualRoadmap: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.prisma.visualRoadmap.delete({
+        where: { id: input.id, userId: ctx.user.id }
+      })
+    }),
+
+  updateVisualRoadmapProgress: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      completedNodeIds: z.array(z.string()),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.prisma.visualRoadmap.update({
+        where: { id: input.id, userId: ctx.user.id },
+        data: {
+          completedNodeIds: input.completedNodeIds,
+          updatedAt: new Date(),
+        },
+        select: {
+          id: true,
+          completedNodeIds: true,
+        }
+      })
     }),
 });
 

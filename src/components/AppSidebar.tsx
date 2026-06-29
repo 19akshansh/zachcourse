@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Map, MessageSquare, FileText, TrendingUp, LogOut, Plus, MoreVertical, Trash2, Edit2 } from "lucide-react";
+import { Map, MessageSquare, FileText, TrendingUp, LogOut, Plus, MoreVertical, Trash2, Edit2, GitBranch } from "lucide-react";
 import type { Course } from "@prisma/client";
 
 export interface CourseListItem {
@@ -134,6 +134,45 @@ export default function AppSidebar({
       </div>
 
       <div className="flex-1 flex flex-col overflow-y-auto">
+        {/* GLOBAL NAV SECTION */}
+        <div className="p-3">
+          {!isCollapsed && (
+            <div className="flex items-center justify-between px-2 mb-2">
+              <span className="text-[10px] font-bold text-[#8E88AB] uppercase tracking-wider">Explore</span>
+            </div>
+          )}
+          
+          <button
+            onClick={() => {
+              setActiveCourseId(null);
+              setActiveTab("visual-roadmaps");
+              if (window.innerWidth < 768) onClose();
+            }}
+            className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer
+              ${isCollapsed ? "px-0 justify-center" : "px-3"}
+              ${activeTab === "visual-roadmaps"
+                ? "bg-indigo-600/15 text-[#818CF8]" 
+                : "text-[#8E88AB] hover:bg-white/5 hover:text-[#FAF9FD]"
+              }
+            `}
+          >
+            <GitBranch className="w-4 h-4 shrink-0" />
+            {!isCollapsed && (
+              <div className="flex items-center justify-between w-full ml-3">
+                <span className="text-xs font-semibold truncate transition-opacity duration-200">
+                  Visual Roadmaps
+                </span>
+                <span className="bg-[#10B981]/20 text-[#10B981] text-[9px] font-bold px-1.5 py-0.5 rounded-sm ml-2">
+                  NEW
+                </span>
+              </div>
+            )}
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="mx-3 border-t border-[#1E1E2E]" />
+
         {/* COURSES SECTION */}
         <div className="p-3">
           {!isCollapsed && (

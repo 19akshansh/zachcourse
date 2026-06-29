@@ -11,6 +11,7 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || "default-secret-development-key-123",
   baseURL: process.env.BETTER_AUTH_URL || process.env.APP_URL || "http://localhost:3000",
   trustedOrigins: [
+    "null",
     "https://ais-dev-fg6nnldzwvuyvu3rsspevg-53963441605.asia-east1.run.app",
     "https://ais-pre-fg6nnldzwvuyvu3rsspevg-53963441605.asia-east1.run.app",
     "http://localhost:3000",

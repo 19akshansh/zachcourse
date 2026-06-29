@@ -18,6 +18,7 @@ model User {
   updatedAt     DateTime      @updatedAt
   accounts      Account[]
   courses       Course[]
+  visualRoadmaps VisualRoadmap[]
   sessions      Session[]
   userProgress  UserProgress?
 
@@ -107,6 +108,7 @@ model Course {
   updatedAt        DateTime        @updatedAt
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages         CourseMessage[]
+  lessonContents   LessonContent[]
 
   @@map("course")
 }
@@ -121,4 +123,36 @@ model CourseMessage {
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@map("course_message")
+}
+
+model LessonContent {
+  id        String   @id @default(cuid())
+  courseId  String
+  lessonId  String
+  content   String
+  createdAt DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, lessonId])
+  @@map("lesson_content")
+}
+
+model VisualRoadmap {
+  id               String   @id @default(cuid())
+  userId           String
+  title            String
+  topic            String
+  description      String?
+  difficulty       String   @default("Beginner")
+  totalDuration    String?
+  experienceLevel  String   @default("beginner")
+  weeklyHours      Int      @default(5)
+  roadmapData      Json
+  completedNodeIds Json     @default("[]")
+  isFavorite       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("visual_roadmap")
 }
