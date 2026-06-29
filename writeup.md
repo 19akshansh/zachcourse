@@ -1,174 +1,208 @@
-# ZachCourse: Autonomous AI Learning Architect and Socratic Tutor
+# ZachCourse: An AI-Powered Personalized Learning Platform
+
+> **Capstone Submission -- Google AI Studio Vibe Coding Agents Course**
 
-An agentic educational platform that dynamically generates personalized learning roadmaps, interactive study materials, and context-aware Socratic mentorship.
+## Problem
+
+Traditional online learning platforms provide static curricula that
+rarely adapt to an individual learner's background, pace, or goals.
+Learners often spend significant time searching across documentation,
+videos, and forums whenever they encounter a difficult concept,
+interrupting their learning flow. ZachCourse addresses this challenge by
+combining curriculum generation, lesson authoring, assessment, and
+tutoring into a unified AI-assisted learning experience.
+
+## Solution Overview
 
----
+ZachCourse generates personalized learning roadmaps from
+natural-language goals, produces lesson content on demand, creates
+quizzes for self-assessment, and offers contextual tutoring throughout
+the learning journey. Instead of shipping a fixed catalog of courses,
+the application creates learning experiences dynamically based on each
+learner's objectives.
 
-# 1. Problem
+The project was built using an AI-assisted development workflow with
+Google AI Studio. AI accelerated component generation, interface
+refinement, prompt iteration, and debugging, while architectural
+decisions, validation, and testing remained developer-driven.
 
-The modern landscape of self-directed online education suffers from a rigid, one-size-fits-all architectural paradigm. Learners approach new domains with vastly different baseline knowledge, available time commitments, and specific end goals. Traditional Massive Open Online Courses (MOOCs) provide static curricula that cannot adapt to these dynamic user constraints. Consequently, learners frequently experience cognitive overload when the material advances too quickly, or disengagement when the pacing is too slow. 
+## Technical Architecture
 
-Furthermore, when a self-directed learner encounters a conceptual roadblock, static documentation and pre-recorded videos offer zero interactive resolution. The student is forced to context-switch, navigating away from the curriculum to search forums or query generalized LLMs, which lack the specific context of the student’s current syllabus and progress.
+The application follows a client-server architecture.
 
-An AI agent is the ideal solution to this problem because it bridges the gap between static content and human tutoring. By leveraging structured generation and context-aware retrieval, an agentic system can synthesize a bespoke curriculum tailored to the user's specific parameters, dynamically generate learning materials on demand, and provide persistent, context-grounded mentorship that adapts to the learner's real-time performance and questions.
+-   **Frontend:** React with Vite and Tailwind CSS for a responsive
+    interface.
+-   **Backend:** Express and tRPC expose AI-powered endpoints while
+    keeping model credentials off the client.
+-   **Authentication:** Better Auth manages user authentication.
+-   **Database:** Prisma with PostgreSQL stores user progress and
+    generated learning artifacts.
+-   **LLM:** Gemini 2.5 Flash powers roadmap generation, lesson
+    creation, quizzes, and tutoring.
+-   **Markdown Rendering:** Generated lessons support rich Markdown
+    formatting.
 
----
+Rather than relying on one large prompt, the system separates
+responsibilities into specialized workflows, improving maintainability
+and output consistency.
 
-# 2. Solution Overview
+## Agent Design
+
+The application uses multiple specialized AI roles:
 
-ZachCourse is a full-stack, AI-driven educational environment that acts as both a curriculum architect and a dedicated tutor. Rather than serving pre-computed courses, the system synthesizes entire learning journeys on the fly based on user intent.
+-   Curriculum generation
+-   Lesson generation
+-   Quiz generation
+-   Context-aware tutoring
 
-**Key Capabilities:**
-*   **Goal-Oriented Course Creator:** Accepts natural language topics, experience levels, and weekly time constraints to generate a multi-module, progressive learning roadmap.
-*   **Dynamic Lesson Generation:** Synthesizes comprehensive, markdown-formatted study guides tailored to the specific nodes within the generated roadmap.
-*   **Conceptual Quizmaster:** Evaluates user retention by generating multiple-choice assessments focused on conceptual understanding rather than rote syntax memorization.
-*   **Context-Aware Socratic Mentor:** A persistent chat interface that injects the user's current roadmap position (course and lesson titles) into the LLM context window, providing highly relevant, localized guidance.
+Each workflow receives only the context required for its task. This
+reduces prompt complexity, improves consistency, and lowers token usage.
+The tutoring workflow also receives the learner's current lesson context
+so responses remain focused on the active topic instead of drifting into
+unrelated explanations.
+
+## Development Process
 
-**User Workflow:**
-The user initializes a session by providing a learning objective (e.g., "Python Fundamentals"). The Architect Agent generates a visual roadmap. The user navigates through the roadmap nodes, reading dynamically generated lessons. At any point, the user can pivot to the Mentor tab to ask clarifying questions about the active lesson, or transition to the Quiz tab to validate their understanding. Progress and mastery are logged persistently, creating a continuous feedback loop.
+Google AI Studio significantly accelerated development. Instead of
+manually implementing every interface from scratch, development became
+an iterative loop:
 
----
-
-# 3. Technical Architecture
-
-The application employs a robust client-server architecture, heavily utilizing the `@google/genai` TypeScript SDK for orchestration.
-
-**Frontend (React + Vite + Tailwind CSS):**
-The client is a single-page application focused on responsive, adaptive layouts. It utilizes `react-markdown` with `remark-math` and `rehype-katex` plugins to securely and accurately render complex mathematical formulas and code blocks generated by the LLM. The state management tracks active roadmaps, selected lessons, and chat histories, dynamically updating the DOM without full page reloads.
-
-**Backend (Express.js + Node.js):**
-The backend serves as a secure proxy and orchestration layer. It exposes RESTful endpoints (`/api/generate-roadmap`, `/api/generate-lesson`, `/api/generate-quiz`, `/api/mentor-chat`) that encapsulate the AI logic. This isolation is critical; it prevents the exposure of API keys to the client and allows for secure injection of system prompts and middleware constraints.
-
-**LLM Orchestration:**
-The system primarily leverages the `gemini-2.5-flash` model for its optimal balance of low latency and high reasoning capability, with fallback mechanisms designed to utilize `gemini-2.0-flash` or `gemini-2.5-pro` if required. 
-
-**Data Flow & Memory:**
-1.  **Stateless API Calls:** The Express backend remains predominantly stateless. State is maintained on the client (or via the database through tRPC endpoints) and explicitly passed to the backend during API invocation.
-2.  **Context Injection:** When the client queries the mentor, it passes not just the user's message, but the `currentCourseTitle`, `currentLessonTitle`, and a sliced array of the `history`.
-3.  **Database Integration:** Prisma ORM is utilized to track `userProgress` and `visualRoadmap` states persistently, ensuring that the learner's journey survives browser session terminations.
-
----
-
-# 4. Agent Design
-
-The system does not rely on a single, monolithic prompt. Instead, it utilizes four distinct, specialized agent personas, each constrained by specific system instructions and structural requirements.
-
-**The Curriculum Architect Agent:**
-*   **Role:** Synthesizes the syllabus.
-*   **Reasoning:** Prompted to act as an expert instructional designer. It takes inputs like `Topic`, `Student level`, and `Hours/week`.
-*   **Output Constraint:** Enforced to return structured JSON adhering to a strict schema defining modules, lessons, duration, and concepts. This ensures the frontend UI can reliably parse and render the roadmap graph.
-
-**The Content Generator Agent:**
-*   **Role:** Drafts the actual study material.
-*   **Context Management:** Receives the overarching `roadmapTitle` and the specific `lessonTitle` and `concepts`.
-*   **Prompt Design:** Instructed to produce engaging, heavily formatted Markdown, utilizing analogies suitable for the requested experience level.
-
-**The Quizmaster Agent:**
-*   **Role:** Generates assessments.
-*   **Memory Strategy:** Rather than sending the entire generated lesson back to the LLM (which wastes tokens and increases latency), the backend slices the `lessonContent` to the first 800 characters, focusing the LLM on the core concepts defined in the lesson metadata. It outputs a strict JSON array of questions, options, and a `correctIndex`.
-
-**The Socratic Mentor Agent:**
-*   **Role:** Interactive tutoring.
-*   **Prompt Engineering:** Explicitly instructed to adopt a Socratic methodology. It is forbidden from simply outputting direct answers or writing complete code solutions immediately. Instead, it must guide the student through targeted questions.
-*   **Context Window Management:** To prevent context bloat and hallucination drift, the conversational memory is strictly truncated. The backend only accepts the last 10 messages of the conversation history, and individual message contents are capped at 1,000 characters. Furthermore, the active `lessonTitle` is injected into the system prompt, anchoring the LLM's responses to the user's current position in the UI.
-
----
-
-# 5. Development Process
-
-The development of ZachCourse heavily leveraged the "vibe coding" paradigm using Google AI Studio. This approach fundamentally shifted the engineering focus from manual syntax construction to high-level architectural orchestration and iterative prompt refinement.
-
-**Vibe Coding Workflow:**
-Initial scaffolding was generated through natural language descriptions of the desired educational platform. The AI Studio agent rapidly generated the React component structures and the Express boilerplate. 
-
-The core of the development process involved iterative refinement of the UI and the LLM integration logic. For example, early iterations of the responsive design failed on tablet breakpoints. By utilizing the agent to execute specific `grep` commands across the codebase (e.g., locating all instances of `grid-cols`), I was able to direct the AI to apply surgical Tailwind CSS modifications (`grid-cols-1 md:grid-cols-2 lg:grid-cols-12`) ensuring a fluid user experience across devices without manually rewriting the div structures.
-
-**Debugging and Refinement:**
-A significant portion of development was dedicated to defensive programming against LLM output variability. Initially, the Architect Agent would occasionally wrap its JSON output in Markdown code blocks (e.g., ` ```json `), which caused the native `JSON.parse()` to throw exceptions. The debugging workflow involved recognizing this failure pattern and instructing the agent to implement a regex sanitization pipeline (`reply.replace(/```json\s?|```/g, "").trim()`) before parsing.
-
-This collaborative human-AI loop dramatically accelerated the implementation of complex features, allowing me to focus on the semantic design of the agent prompts rather than DOM manipulation.
-
----
-
-# 6. Evaluation
-
-The system was evaluated primarily through rigorous qualitative testing and functional validation, focusing on architectural stability, prompt adherence, and user experience.
-
-**Usability and Responsiveness:**
-The frontend layout was heavily tested across various viewport dimensions. The iterative vibe-coding process resulted in a highly fluid UI, where complex components like the chat interface and the dynamic roadmap grid gracefully collapse and expand using Tailwind's responsive prefixes. 
-
-**Correctness and Schema Adherence:**
-A critical evaluation metric was the reliability of the structured JSON outputs from the Architect and Quizmaster agents. The system achieved near-perfect correctness after implementing the regex sanitization and providing explicit schema definitions in the system prompts. The UI rarely experiences parsing crashes.
-
-**Latency:**
-By utilizing `gemini-2.5-flash`, the latency for generating interactive chat responses and quizzes is exceptionally low, typically resolving within 1-2 seconds. The generation of the overarching roadmap is the longest operation (due to the high token output), but is masked effectively in the UI with loading states and localized spinner components.
-
-**Robustness and Edge Cases:**
-The system was tested against edge cases, such as users requesting overly broad topics (e.g., "Teach me everything about computers") or excessively long input strings. The backend mitigates this by enforcing strict character limits on incoming requests (e.g., truncating topic inputs and slicing reference text).
-
----
-
-# 7. Safety & Responsible AI
-
-Deploying autonomous agents requires strict adherence to safety protocols to protect both the user and the underlying infrastructure.
-
-**Authentication and Access Control:**
-To prevent unauthorized consumption of LLM API quotas, all backend orchestration routes (`/api/generate-*`) are protected by a custom `requireAuth` middleware. This middleware interfaces with the session management API to cryptographically verify user headers before passing the request to the Gemini SDK.
-
-**Rate Limiting:**
-To mitigate potential denial-of-service vectors and cost-exhaustion attacks, an IP-based rate limiting algorithm (`aiRateLimit`) is implemented globally across the AI proxy routes.
-
-**Prompt Injection Resistance and Context Guardrails:**
-The system employs strict input sanitization. When constructing the prompt for the Mentor Agent, the user's message history is aggressively truncated. Slicing the history to the last 10 messages and capping content at 1,000 characters prevents a malicious actor from executing a complex, multi-turn prompt injection attack designed to override the Socratic system instructions. 
-
-**Hallucination Mitigation:**
-The Mentor Agent's propensity to hallucinate generic information is sharply reduced by dynamically injecting the `currentCourseTitle` and `currentLessonTitle` directly into its hidden system context. This acts as a semantic anchor, forcing the model to heavily weight its responses toward the specific curriculum the user is currently viewing.
-
----
-
-# 8. Challenges & Tradeoffs
-
-Engineering an agentic system inherently involves balancing capability against reliability and cost.
-
-**Tradeoff: Context Window vs. Latency:**
-Initially, I attempted to pass the entire generated lesson content into the Mentor Agent and Quizmaster Agent to ensure maximum accuracy. However, this dramatically increased latency and token consumption. The engineering compromise was to slice the context. For quizzes, only the first 800 characters of the lesson and the core `concepts` array are passed. This forces the LLM to generate questions based on high-level concepts rather than specific paragraphs, which serendipitously improved the pedagogical quality of the quizzes while drastically reducing latency.
-
-**Challenge: JSON Output Reliability:**
-Coercing standard LLMs to output pure, parseable JSON without trailing commas or markdown formatting is a well-documented challenge. While the `gemini-2.5-flash` model supports structured output configurations, I chose to implement a manual regex cleaning pipeline on the Express server. This tradeoff slightly increased backend complexity but guaranteed that even if the model deviated slightly into markdown formatting, the application would not crash. 
-
-**Design Decision: Stateless Backend Orchestration:**
-I explicitly chose not to maintain conversational memory in the Express server's memory heap or a Redis cache. Instead, the React frontend holds the chat state and passes the required historical slice back to the server on every request. While this increases the payload size of the HTTP request, it renders the backend entirely stateless, allowing it to scale infinitely and horizontally without session affinity concerns.
-
----
-
-# 9. What I Learned
-
-The process of building ZachCourse provided profound insights into the reality of deploying production-grade AI agents.
-
-**Prompting is Architecture:**
-I learned that prompt engineering is not merely about writing clever sentences; it is a fundamental architectural component. Designing the exact schema for the Architect Agent dictated the entire React component structure of the frontend. The prompt *is* the API contract.
-
-**Defensive Engineering is Mandatory:**
-When the core logic of your application relies on probabilistic models, defensive programming is not optional. I learned to never trust the raw output of an LLM. Implementing robust sanitization, fallback parsing, and safe UI error boundaries is what separates a fragile prototype from a reliable product.
-
-**The Power of Vibe Coding:**
-Utilizing Google AI Studio for "vibe coding" demonstrated that the bottleneck in software engineering is shifting from syntax generation to architectural intent. The ability to issue commands like "Find where the sidebar grid overflows on mobile and apply a responsive Tailwind class" fundamentally changes the speed of iteration.
-
----
-
-# 10. Future Improvements
-
-While ZachCourse is highly functional, several architectural enhancements could elevate its capabilities further.
-
-1.  **Retrieval-Augmented Generation (RAG) for External Syllabi:** The current implementation accepts an optional URL or text snippet to guide course generation. Implementing a true RAG pipeline (using vector embeddings and a database like Pinecone or pgvector) would allow users to upload massive textbooks or entire documentation sites, enabling the Architect Agent to generate roadmaps grounded entirely in verified external literature.
-2.  **Multi-Agent Debate for Quality Assurance:** Before presenting the generated lesson to the user, a secondary "Reviewer Agent" could evaluate the drafted content against the initial lesson concepts. If the content drifts, the agents could debate and self-correct prior to UI rendering.
-3.  **Granular Observability:** Integrating specialized LLM observability tools (like LangSmith or Helicone) would provide deeper insights into token usage, latency bottlenecks, and prompt degradation over time, allowing for data-driven optimization of the system prompts.
-4.  **Advanced Memory Vectorization:** Instead of simply truncating the chat history to the last 10 messages, implementing a semantic memory system would allow the Mentor Agent to recall specific struggles the user had days or weeks ago, offering a truly long-term, personalized tutoring relationship.
-
----
-
-# Conclusion
-
-ZachCourse demonstrates the transformative potential of orchestrating specialized AI agents to solve complex, dynamic problems. By moving beyond simple text wrappers and building a structured, multi-agent architecture, the system successfully addresses the rigidity of traditional online learning. 
-
-Through careful prompt engineering, defensive backend orchestration, strict context management, and responsive UI design, the application delivers an adaptive, highly personalized educational experience. This project underscores the reality that the future of software development lies not just in writing code, but in expertly choreographing AI agents to execute complex, user-centric workflows safely and reliably.
+1.  Describe desired functionality.
+2.  Generate an initial implementation.
+3.  Review generated code.
+4.  Test manually.
+5.  Refine prompts.
+6.  Repeat until requirements were satisfied.
+
+This approach reduced time spent on boilerplate while allowing more
+effort to be invested in system architecture, prompt engineering, and
+user experience.
+
+## Evaluation
+
+Evaluation focused on functional correctness rather than benchmark
+scores.
+
+Testing included:
+
+-   roadmap generation for multiple subjects
+-   lesson generation quality
+-   quiz consistency
+-   conversational tutoring
+-   responsive layouts
+-   malformed user input
+-   JSON parsing reliability
+-   authentication flow
+
+The project was refined through repeated prompt iteration and manual
+testing until generated outputs were consistently usable.
+
+## Responsible AI
+
+The application incorporates several safeguards:
+
+-   authenticated access to AI functionality
+-   server-side model orchestration
+-   limited conversational context
+-   structured outputs where appropriate
+-   validation before rendering generated content
+
+These measures improve reliability while reducing opportunities for
+prompt misuse and malformed outputs.
+
+## Challenges and Trade-offs
+
+Several engineering decisions required balancing capability with
+simplicity.
+
+Passing large amounts of lesson content to every AI request improved
+context but increased latency and token consumption. Restricting prompts
+to the most relevant information produced faster responses while
+maintaining quality.
+
+Similarly, separating functionality into multiple specialized workflows
+increased implementation complexity but resulted in more predictable
+outputs than using a single monolithic prompt.
+
+## Lessons Learned
+
+Building ZachCourse reinforced several ideas:
+
+-   Prompt engineering is a software design activity rather than simply
+    writing better instructions.
+-   Reliable AI applications require validation, defensive programming,
+    and iterative testing.
+-   Smaller, specialized AI workflows are easier to maintain than one
+    highly complex prompt.
+-   Human review remains essential throughout AI-assisted software
+    development.
+
+## Future Work
+
+Planned improvements include:
+
+-   retrieval-augmented generation for uploaded learning resources
+-   semantic long-term learner memory
+-   richer analytics and progress tracking
+-   automated evaluation pipelines
+-   improved observability
+-   collaborative multi-agent review of generated lessons
+
+## Conclusion
+
+ZachCourse demonstrates how modern AI models can support personalized
+education beyond simple question answering. By combining roadmap
+generation, lesson authoring, assessment, and contextual tutoring within
+a cohesive application, the project showcases practical agent
+orchestration and an AI-assisted development workflow. The experience
+highlighted both the strengths and limitations of current language
+models while emphasizing the importance of thoughtful architecture,
+prompt iteration, and human oversight in building reliable AI
+applications.
+
+------------------------------------------------------------------------
+
+Repository context extracted:
+
+::: {align="center"}
+```{=html}
+<h1>
+```
+🎓 ZachCourse
+```{=html}
+</h1>
+```
+```{=html}
+<p>
+```
+A multi-agent AI learning companion that turns any topic into a
+personalized, interactive course.
+```{=html}
+</p>
+```
+`<a href="https://ais-dev-fg6nnldzwvuyvu3rsspevg-53963441605.asia-east1.run.app">`{=html}
+`<img src="https://img.shields.io/badge/Live-Demo-brightgreen.svg" alt="Live Demo" />`{=html}
+`</a>`{=html}
+`<a href="https://github.com/19akshansh/zachcourse/blob/main/LICENSE">`{=html}
+`<img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" />`{=html}
+`</a>`{=html}
+:::
+
+## ✨ What It Does
+
+-   **Dynamic Curriculums:** Paste a URL, topic, or raw text, and
+    ZachCourse instantly generates a structured, week-by-week learning
+    roadmap.
+-   **Tireless AI Mentor:** Chat with a persistent tutor that remembers
+    your progress, reads external links, and answers questions 24/7.
+-   **Adaptive Assessments:** Test your knowledge with on-the-fly
+    multiple-choice quizzes tailored to your current lesson.
+-   **Real Persistence:** All courses, chat histories, and quiz scores
+    are saved securely so you can pick up exactly where you left off.
+
+## 🤖 The Agent System
+
+ZachCourse is powered by a team of specialized AI agents working
+together:
+
+-   **Roadmap Agent:** Uses structured output genera
