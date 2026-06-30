@@ -7,11 +7,18 @@ export const trpc = createTRPCClient<AppRouter>({
       url: "/api/trpc",
       // CRITICAL: send cookies with every tRPC request
       // Without this, Better Auth session is never read
-      fetch: (url, options) =>
-        window.fetch(url, {
+      fetch: (url, options) => {
+        const token = localStorage.getItem("session_token");
+        const headers = new Headers(options?.headers || {});
+        if (token) {
+          headers.set("Authorization", `Bearer ${token}`);
+        }
+        return window.fetch(url, {
           ...options,
           credentials: "include",
-        }),
+          headers,
+        });
+      },
       headers: () => ({
         "x-trpc-source": "react",
       }),

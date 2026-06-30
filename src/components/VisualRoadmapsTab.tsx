@@ -3,6 +3,7 @@ import { trpc } from "../lib/trpc-client";
 import { Map, ArrowRight, Star, Trash2, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import VisualRoadmapGraph from "./VisualRoadmapGraph";
+import { apiFetch } from "../lib/api";
 
 
 export interface VisualRoadmapsTabProps {
@@ -44,7 +45,7 @@ export default function VisualRoadmapsTab({
     setIsGenerating(true);
     try {
       const userKey = localStorage.getItem("zc_user_key") || "";
-      const res = await fetch("/api/generate-visual-roadmap", {
+      const res = await apiFetch("/api/generate-visual-roadmap", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",

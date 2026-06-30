@@ -12,6 +12,7 @@ import { callGemini } from "./lib/gemini-client";
 import { getStarBonusRemaining, decrementStarBonus } from "./lib/usage";
 import AppSidebar, { CourseListItem } from "./components/AppSidebar";
 import AppHeader from "./components/AppHeader";
+import { apiFetch } from "./lib/api";
 import { ApiKeyOnboarding } from "./components/ApiKeyOnboarding";
 import RoadmapGraph from "./components/RoadmapGraph";
 import VisualRoadmapsTab from "./components/VisualRoadmapsTab";
@@ -485,7 +486,7 @@ Rules:
         roadmapDataResult = JSON.parse(cleanReply);
       } else {
         // Server Action / Proxy Call (if guest or skipped key)
-        const response = await fetch("/api/generate-roadmap", {
+        const response = await apiFetch("/api/generate-roadmap", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -596,7 +597,7 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
 
         content = await callGemini(prompt, systemPrompt);
       } else {
-        const response = await fetch("/api/generate-lesson", {
+        const response = await apiFetch("/api/generate-lesson", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -721,7 +722,7 @@ ${lessonContent}`;
         const cleanReply = reply.replace(/```json\s?|```/g, "").trim();
         data = JSON.parse(cleanReply);
       } else {
-        const response = await fetch("/api/generate-quiz", {
+        const response = await apiFetch("/api/generate-quiz", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -886,7 +887,7 @@ ${lessonContent}`;
         headers["x-user-key"] = userKey;
       }
       
-      const response = await fetch("/api/mentor-chat", {
+      const response = await apiFetch("/api/mentor-chat", {
         method: "POST",
         headers,
         body: JSON.stringify({
@@ -1039,7 +1040,7 @@ ${lessonContent}`;
         if (!authEmail) {
           throw new Error("Please enter your registered email address.");
         }
-        await (authClient as any).forgetPassword({
+        await (authClient as any).requestPasswordReset({
           email: authEmail,
           redirectTo: window.location.origin + "/?reset-password=true",
         });

@@ -11,10 +11,13 @@ import {
   Panel,
   Handle,
   Position,
+  PanOnScrollMode,
+  useReactFlow,
+  ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
-import { Play, CheckCircle, Trophy, Hammer, Flag, X, Download } from "lucide-react";
+import { Play, CheckCircle, Trophy, Hammer, Flag, X, Download, RotateCcw } from "lucide-react";
 
 // --- CUSTOM NODES ---
 
@@ -165,7 +168,7 @@ export interface VisualRoadmapGraphProps {
   onClose?: () => void;
 }
 
-export default function VisualRoadmapGraph({
+function VisualRoadmapGraphInner({
   roadmapData,
   completedNodeIds,
   onToggleComplete,
@@ -174,6 +177,13 @@ export default function VisualRoadmapGraph({
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null);
+  const { fitView, setCenter, getZoom } = useReactFlow();
+
+  useEffect(() => {
+    setIsTouchDevice('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  }, []);
 
   useEffect(() => {
     if (!roadmapData || !roadmapData.nodes || !roadmapData.edges) return;
@@ -241,6 +251,7 @@ export default function VisualRoadmapGraph({
   }, [roadmapData, completedNodeIds]);
 
   const onNodeClick = (event: React.MouseEvent, node: any) => {
+    setActiveNodeId(node.id);
     if (['lesson', 'project', 'milestone'].includes(node.type)) {
       setSelectedNodeId(node.id);
     }
@@ -256,7 +267,7 @@ export default function VisualRoadmapGraph({
   };
 
   return (
-    <div style={{ width: '100%', height: '700px' }} className="relative bg-[#0F0D19] rounded-xl overflow-hidden border border-[#1E1E2E]">
+    <div style={{ width: '100%', height: 'min(700px, 75vh)' }} className="relative bg-[#0F0D19] rounded-xl overflow-hidden border border-[#1E1E2E]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -269,11 +280,31 @@ export default function VisualRoadmapGraph({
         minZoom={0.1}
         maxZoom={1.5}
         className="bg-[#0F0D19]"
+        panOnScroll={true}
+        panOnScrollMode={PanOnScrollMode.Free}
+        zoomOnScroll={false}
+        zoomOnPinch={true}
+        zoomOnDoubleClick={true}
+        panOnDrag={true}
+        preventScrolling={true}
+        selectionOnDrag={false}
+        proOptions={{ hideAttribution: true }}
+        defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+        attributionPosition="bottom-left"
+        nodesDraggable={!isTouchDevice}
+        nodesConnectable={false}
+        elementsSelectable={true}
       >
         <Background color="#2A2443" gap={20} variant={BackgroundVariant.Dots} />
-        <Controls className="react-flow__controls" />
+        <Controls 
+          className="react-flow__controls" 
+          showZoom={true}
+          showFitView={true}
+          showInteractive={true}
+          fitViewOptions={{ padding: 0.2, duration: 400 }}
+        />
         <MiniMap 
-          className="react-flow__minimap" 
+          className="react-flow__minimap cursor-pointer" 
           nodeColor={(n) => {
             if (n.type === 'start') return '#10B981';
             if (n.type === 'end') return '#EAB308';
@@ -283,7 +314,39 @@ export default function VisualRoadmapGraph({
             if (completedNodeIds.includes(n.id)) return '#10B981';
             return '#111118';
           }}
-          maskColor="rgba(15, 13, 25, 0.7)"
+          nodeStrokeColor={(n) => {
+            if (n.id === activeNodeId) return '#FAF9FD';
+            return 'transparent';
+          }}
+          nodeStrokeWidth={3}
+          maskColor="rgba(15, 13, 25, 0.75)"
+          maskStrokeColor="#6366F1"
+          maskStrokeWidth={2}
+          pannable={true}
+          zoomable={true}
+          zoomStep={10}
+          inversePan={false}
+          style={{
+            width: isTouchDevice ? 100 : 220,
+            height: isTouchDevice ? 70 : 150,
+          }}
+          onClick={(event, position) => {
+            // Pan the main canvas to wherever the user clicked on the minimap
+            setCenter(position.x, position.y, { zoom: getZoom(), duration: 400 });
+          }}
+          onNodeClick={(event, node) => {
+            // Clicking a node thumbnail inside the minimap jumps straight to it
+            event.stopPropagation();
+            const flowNode = nodes.find((n) => n.id === node.id);
+            if (flowNode) {
+              setCenter(
+                flowNode.position.x + (flowNode.width || 180) / 2,
+                flowNode.position.y + (flowNode.height || 80) / 2,
+                { zoom: 1, duration: 500 }
+              );
+              onNodeClick(event as any, flowNode);
+            }
+          }}
         />
         
         <Panel position="top-left" className="bg-[#1A172E]/90 backdrop-blur border border-[#2A2443] p-4 rounded-xl shadow-2xl m-4">
@@ -293,15 +356,32 @@ export default function VisualRoadmapGraph({
             <span>{completedNodeIds.length} Completed</span>
             <span>{roadmapData?.totalDuration || "Est. 4 weeks"}</span>
           </div>
-          {onClose && (
-            <button 
-              onClick={onClose}
-              className="mt-3 text-xs bg-[#2A2443] hover:bg-[#3F395B] text-white px-3 py-1.5 rounded-lg transition-colors"
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fitView({ padding: 0.2, duration: 400 })}
+              className="mt-3 text-xs bg-[#2A2443] hover:bg-[#3F395B] text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
             >
-              Back to Roadmaps
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset View
             </button>
-          )}
+            {onClose && (
+              <button 
+                onClick={onClose}
+                className="mt-3 text-xs bg-[#2A2443] hover:bg-[#3F395B] text-white px-3 py-1.5 rounded-lg transition-colors"
+              >
+                Back to Roadmaps
+              </button>
+            )}
+          </div>
         </Panel>
+
+        {!isTouchDevice && (
+          <Panel position="bottom-right" className="mb-2 mr-2">
+            <div className="text-[10px] text-[#8E88AB] bg-[#1A172E]/80 backdrop-blur px-2 py-1 rounded-md border border-[#2A2443]">
+              💡 Click the map to jump around
+            </div>
+          </Panel>
+        )}
       </ReactFlow>
 
       {/* Detail Panel */}
@@ -396,5 +476,13 @@ export default function VisualRoadmapGraph({
         )}
       </div>
     </div>
+  );
+}
+
+export default function VisualRoadmapGraph(props: VisualRoadmapGraphProps) {
+  return (
+    <ReactFlowProvider>
+      <VisualRoadmapGraphInner {...props} />
+    </ReactFlowProvider>
   );
 }

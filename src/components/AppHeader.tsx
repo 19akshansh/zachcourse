@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight, LogOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, HelpCircle } from "lucide-react";
 import KeyStatusBadge from "./KeyStatusBadge";
 
 interface AppHeaderProps {
@@ -99,6 +99,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
               <button
                 onClick={() => {
                   setDropdownOpen(false);
+                  localStorage.removeItem("session_token");
                   onSignOut();
                 }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#8E88AB] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer text-left"

@@ -4,6 +4,7 @@ import {
   getStarBonusRemaining, 
   decrementStarBonus 
 } from "./usage"
+import { apiFetch } from "./api"
 
 export function hasUserKey(): boolean {
   return !!(
@@ -54,7 +55,7 @@ export async function callGemini(
   // No user key — use server proxy with quota check
   const starBonus = getStarBonusRemaining()
 
-  const response = await fetch("/api/ai", {
+  const response = await apiFetch("/api/ai", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt, systemPrompt }),

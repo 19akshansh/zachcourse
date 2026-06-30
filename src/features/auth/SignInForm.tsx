@@ -27,7 +27,6 @@ export default function SignInForm() {
       const { data, error } = await authClient.signIn.email({
         email,
         password,
-        callbackURL: "/dashboard",
       });
 
       // Log every response for debugging
@@ -70,6 +69,11 @@ export default function SignInForm() {
 
       if (data) {
         toast.success("Welcome back! 🎉");
+        if (data.token) {
+          localStorage.setItem("session_token", data.token);
+        } else if ((data as any).session?.token) {
+          localStorage.setItem("session_token", (data as any).session.token);
+        }
         window.location.href = "/dashboard";
       }
     } catch (err: any) {

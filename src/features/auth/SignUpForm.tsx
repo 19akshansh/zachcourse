@@ -67,7 +67,6 @@ export default function SignUpForm() {
         email,
         password,
         name,
-        callbackURL: "/sign-in",
       });
 
       // Destructure safely — Better Auth can return undefined for either
