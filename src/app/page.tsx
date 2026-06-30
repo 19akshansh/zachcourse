@@ -479,7 +479,10 @@ export default function LandingPage() {
               <span>Kaggle Submission</span>
               <ExternalLink className="w-3 h-3" />
             </a>
-            <span>Built for Google x Kaggle AI Agents 2026</span>
+            <a href="https://www.kaggle.com/competitions/5-day-ai-agents-intensive-vibecoding-course-with-google/overview" target="_blank" rel="noopener noreferrer" className="hover:text-[#FAF9FD] transition flex items-center gap-1">
+              <span>Built for Google x Kaggle AI Agents Vibecoding 2026</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
           </div>
         </div>
       </footer>
