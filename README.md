@@ -11,6 +11,12 @@
   <a href="https://zachcourse-955328668699.asia-southeast1.run.app">
     <img src="https://img.shields.io/badge/Live-Demo-brightgreen.svg" alt="Live Demo" />
   </a>
+  <a href="https://youtu.be/Qj53fDui1kM">
+    <img src="https://img.shields.io/badge/Video-Explanation-red.svg?logo=youtube" alt="Video Explanation" />
+  </a>
+  <a href="https://www.kaggle.com/competitions/vibecoding-agents-capstone-project/writeups/zachcourse">
+    <img src="https://img.shields.io/badge/Kaggle-Submission-blue.svg?logo=kaggle" alt="Kaggle Submission" />
+  </a>
   <a href="https://github.com/19akshansh/zachcourse/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" />
   </a>
