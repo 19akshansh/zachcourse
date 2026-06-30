@@ -471,8 +471,12 @@ export default function LandingPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-6 text-xs text-[#94A3B8] font-semibold">
-            <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#FAF9FD] transition flex items-center gap-1">
+            <a href="https://github.com/19akshansh/zachcourse" target="_blank" rel="noopener noreferrer" className="hover:text-[#FAF9FD] transition flex items-center gap-1">
               <span>GitHub</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <a href="https://www.kaggle.com/competitions/vibecoding-agents-capstone-project/writeups/zachcourse" target="_blank" rel="noopener noreferrer" className="hover:text-[#FAF9FD] transition flex items-center gap-1">
+              <span>Kaggle Submission</span>
               <ExternalLink className="w-3 h-3" />
             </a>
             <span>Built for Google x Kaggle AI Agents 2026</span>

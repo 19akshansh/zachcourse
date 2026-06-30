@@ -25,6 +25,15 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [countdown, setCountdown] = useState(2);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const errorParam = params.get("error");
+    if (errorParam === "INVALID_TOKEN") {
+      setGlobalError("This reset link is invalid or has expired. Please request a new one.");
+      toast.error("Invalid or expired reset link");
+    }
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -65,9 +74,12 @@ export default function ResetPasswordPage() {
     setLoading(true);
     setGlobalError("");
     try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get("token") || undefined;
       // Better Auth handles the token automatically from the query string
       const res = await (authClient as any).resetPassword({
         newPassword: data.password,
+        token: token,
       });
       if (res?.error) {
         const msg = res.error.message?.toLowerCase() || "";
