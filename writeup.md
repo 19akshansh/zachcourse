@@ -180,7 +180,7 @@ personalized, interactive course.
 ```{=html}
 </p>
 ```
-`<a href="https://ais-dev-fg6nnldzwvuyvu3rsspevg-53963441605.asia-east1.run.app">`{=html}
+`<a href="https://zachcourse-955328668699.asia-southeast1.run.app">`{=html}
 `<img src="https://img.shields.io/badge/Live-Demo-brightgreen.svg" alt="Live Demo" />`{=html}
 `</a>`{=html}
 `<a href="https://github.com/19akshansh/zachcourse/blob/main/LICENSE">`{=html}

@@ -8,7 +8,7 @@
   <p>
     <code>GEMINI API</code> • <code>MULTI-AGENT</code> • <code>REACT + tRPC</code>
   </p>
-  <a href="https://ais-dev-fg6nnldzwvuyvu3rsspevg-53963441605.asia-east1.run.app">
+  <a href="https://zachcourse-955328668699.asia-southeast1.run.app">
     <img src="https://img.shields.io/badge/Live-Demo-brightgreen.svg" alt="Live Demo" />
   </a>
   <a href="https://github.com/19akshansh/zachcourse/blob/main/LICENSE">
