@@ -421,7 +421,22 @@ export default function App() {
 
   // API Key Check
   if (sessionData?.user && !hasKey) {
-    return <ApiKeyOnboarding onActivate={() => setHasKey(true)} onSkip={() => {}} />;
+    return (
+      <>
+        <ApiKeyOnboarding onActivate={() => setHasKey(true)} onSkip={() => {}} />
+        <Toaster 
+          theme="dark" 
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: "#111118",
+              border: "1px solid #1E1E2E",
+              color: "#F8FAFC",
+            },
+          }}
+        />
+      </>
+    );
   }
 
   if (!sessionData?.user) {

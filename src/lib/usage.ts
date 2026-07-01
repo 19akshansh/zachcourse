@@ -65,7 +65,9 @@ export async function validateUserKey(key: string): Promise<{ valid: boolean, er
       return { valid: true }
     }
     // 400 bad request but key accepted = valid key
-    if (msg.includes("400")) return { valid: true }
+    if (msg.includes("400") && !msg.toLowerCase().includes("api key not valid")) {
+      return { valid: true }
+    }
     
     console.error("[validateUserKey] failed:", msg)
     return { valid: false, error: msg }
