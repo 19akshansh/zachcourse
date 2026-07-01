@@ -422,20 +422,7 @@ export default function App() {
   // API Key Check
   if (sessionData?.user && !hasKey) {
     return (
-      <>
-        <ApiKeyOnboarding onActivate={() => setHasKey(true)} onSkip={() => {}} />
-        <Toaster 
-          theme="dark" 
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: "#111118",
-              border: "1px solid #1E1E2E",
-              color: "#F8FAFC",
-            },
-          }}
-        />
-      </>
+      <ApiKeyOnboarding onActivate={() => setHasKey(true)} onSkip={() => {}} />
     );
   }
 
@@ -1127,22 +1114,7 @@ ${lessonContent}`;
 
   const publicPage = getPublicPage();
   if (publicPage) {
-    return (
-      <>
-        {publicPage}
-        <Toaster
-          theme="dark"
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: "#111118",
-              border: "1px solid #1E1E2E",
-              color: "#F8FAFC",
-            },
-          }}
-        />
-      </>
-    );
+    return publicPage;
   }
 
   return (
@@ -2155,18 +2127,6 @@ ${lessonContent}`;
         </div>
       </main>
     </div>
-
-    <Toaster 
-      theme="dark" 
-      position="top-right"
-      toastOptions={{
-        style: {
-          background: "#111118",
-          border: "1px solid #1E1E2E",
-          color: "#F8FAFC",
-        },
-      }}
-    />
 
   </div>
 );
