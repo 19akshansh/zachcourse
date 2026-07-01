@@ -151,8 +151,14 @@ export default function SignUpForm() {
 
       // Genuine new account
       setEmailSent(true);
-      toast.success("Account created! Check your inbox 📬", { duration: 5000 });
-      setTimeout(() => { window.location.href = "/sign-in"; }, 4000);
+      toast.success("Account created successfully! 🎉", {
+        description: "Please go to your mailbox and verify your email before logging in.",
+        duration: 10000,
+        action: {
+          label: "Go to Sign in",
+          onClick: () => { window.location.href = "/sign-in"; }
+        }
+      });
 
     } catch (err: any) {
       console.error("[signup] caught exception:", err);

@@ -39,9 +39,8 @@ export default function SignInForm() {
 
       if (error) {
         const msg = error.message?.toLowerCase() ?? "";
-        if (msg.includes("verif") || msg.includes("email")) {
-          toast.error("Please verify your email first 📬", {
-            description: "Check your inbox and spam folder",
+        if (msg.includes("verif") || (error as any).code === "EMAIL_NOT_VERIFIED") {
+          toast.error("We've sent a mail to your registered Email, please verify before first login", {
             duration: 6000,
             action: {
               label: "Resend",
@@ -57,7 +56,8 @@ export default function SignInForm() {
         } else if (
           msg.includes("password") || 
           msg.includes("credential") ||
-          msg.includes("invalid")
+          msg.includes("invalid") ||
+          msg.includes("email")
         ) {
           toast.error("Incorrect email or password");
         } else {

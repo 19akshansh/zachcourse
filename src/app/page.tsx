@@ -84,7 +84,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-[#F8FAFC] font-sans antialiased selection:bg-[#6366F1]/30 selection:text-white overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#0A0A0F] text-[#F8FAFC] font-sans antialiased selection:bg-[#6366F1]/30 selection:text-white overflow-x-hidden">
       
       {/* BACKGROUND ORBS */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-[#6366F1]/10 to-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse"></div>
