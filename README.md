@@ -22,6 +22,10 @@
   </a>
 </div>
 
+<p align="center">
+  <b>📖 Documentation:</b> <a href="SPEC.md">Technical Spec</a> • <a href="AGENTS.md">Agent Architecture</a> • <a href="IMPLEMENTATION.md">Implementation Notes</a>
+</p>
+
 ## ✨ Core Features
 
 | 🎓 Dynamic Curricula | 🤖 AI Mentor |
