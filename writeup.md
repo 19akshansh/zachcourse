@@ -183,7 +183,7 @@ personalized, interactive course.
 `<a href="https://zachcourse-955328668699.asia-southeast1.run.app">`{=html}
 `<img src="https://img.shields.io/badge/Live-Demo-brightgreen.svg" alt="Live Demo" />`{=html}
 `</a>`{=html}
-`<a href="https://youtu.be/Qj53fDui1kM">`{=html}
+`<a href="https://youtu.be/fVWvpGBCMc8">`{=html}
 `<img src="https://img.shields.io/badge/Video-Explanation-red.svg?logo=youtube" alt="Video Explanation" />`{=html}
 `</a>`{=html}
 `<a href="https://www.kaggle.com/competitions/vibecoding-agents-capstone-project/writeups/zachcourse">`{=html}

@@ -22,11 +22,21 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
     
     setIsActivating(true);
     // Try the key against the API
-    const isValid = await validateUserKey(key);
-    setIsActivating(false);
-    
-    if (!isValid) {
-      toast.error("That key did not work — double-check you copied it fully");
+    try {
+      const result = await validateUserKey(key);
+      setIsActivating(false);
+      
+      if (!result.valid) {
+        if (result.error) {
+          toast.error(`Key validation failed: ${result.error}`);
+        } else {
+          toast.error("That key did not work — double-check you copied it fully");
+        }
+        return;
+      }
+    } catch (err: any) {
+      setIsActivating(false);
+      toast.error(`Validation error: ${err.message || "Unknown error"}`);
       return;
     }
     

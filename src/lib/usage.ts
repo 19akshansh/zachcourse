@@ -40,8 +40,8 @@ export function decrementStarBonus(): number {
 /**
  * Validates a Gemini API Key client-side
  */
-export async function validateUserKey(key: string): Promise<boolean> {
-  if (!key || key.trim().length < 20) return false
+export async function validateUserKey(key: string): Promise<{ valid: boolean, error?: string }> {
+  if (!key || key.trim().length < 20) return { valid: false, error: "Key is too short" }
   
   try {
     const { createGoogleGenerativeAI } = await import("@ai-sdk/google")
@@ -55,19 +55,19 @@ export async function validateUserKey(key: string): Promise<boolean> {
       maxOutputTokens: 5,
     })
     
-    return !!text
+    return { valid: !!text }
     
   } catch (err: any) {
     const msg = err?.message || ""
     // Quota/rate limit = key IS valid, just exhausted
     if (msg.includes("429") || msg.includes("quota") || 
         msg.includes("rate")) {
-      return true
+      return { valid: true }
     }
     // 400 bad request but key accepted = valid key
-    if (msg.includes("400")) return true
+    if (msg.includes("400")) return { valid: true }
     
     console.error("[validateUserKey] failed:", msg)
-    return false
+    return { valid: false, error: msg }
   }
 }
