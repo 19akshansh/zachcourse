@@ -259,6 +259,74 @@ Final text response → saved to CourseMessage table
 
 ---
 
+## Agent 6 — Judge Agent
+
+**File:** `server.ts` → `POST /api/generate-lesson` (integrated inline)
+
+**Purpose:** Acts as an automated evaluation pipeline to score generated lesson content for quality (clarity, accuracy, depth, engagement) before it is sent to the user.
+
+**Technique:** `generateObject` with a strict Zod schema for evaluation scores and feedback. Followed by a re-prompt of the Lesson Agent if the verdict is `needs_revision` or `fail` (max 1 retry to control latency).
+
+**Input:**
+```typescript
+{
+  lessonTitle: string,
+  concepts: string[],
+  contentToEvaluate: string
+}
+```
+
+**Output schema (Zod):**
+```typescript
+z.object({
+  clarityScore: z.number().min(1).max(10),
+  accuracyScore: z.number().min(1).max(10),
+  depthScore: z.number().min(1).max(10),
+  engagementScore: z.number().min(1).max(10),
+  overallScore: z.number().min(1).max(10),
+  issues: z.array(z.string()),
+  verdict: z.enum(["pass", "needs_revision", "fail"]),
+  feedback: z.string(),
+})
+```
+
+**Persistence:** The `overallScore` and `evaluationData` are returned alongside the lesson and saved via `trpc.saveLessonContent` to the `LessonContent` table for quality tracking.
+
+---
+
+## Agent 7 — Critic Agent
+
+**File:** `server.ts` → `POST /api/generate-roadmap` and `POST /api/generate-visual-roadmap` (integrated inline)
+
+**Purpose:** Acts as a quality control reviewer that examines a generated roadmap (standard or visual) before it reaches the user. If the roadmap is flawed (e.g. illogical ordering, bad time estimates, or invalid graph structure), the Critic Agent rejects it and provides revision notes, triggering a re-prompt of the original Roadmap Agent.
+
+**Technique:** `generateObject` with a Zod schema to output structured critique (approval status, issues list, and revision notes). The Critic Agent runs synchronously before sending the response to the client.
+
+**Input:**
+```typescript
+{
+  // The full JSON output of the Roadmap Agent or Visual Roadmap Agent
+}
+```
+
+**Output schema (Zod):**
+```typescript
+z.object({
+  approved: z.boolean(),
+  issues: z.array(z.object({
+    severity: z.enum(["minor", "major"]),
+    location: z.string(),
+    problem: z.string(),
+    suggestion: z.string(),
+  })),
+  revisionNotes: z.string().optional(),
+})
+```
+
+**Persistence:** This agent runs inline and doesn't persist its critique directly to the database, though its presence is noted in a `_reviewMeta` object appended to the returned roadmap JSON.
+
+---
+
 ## MCP Server — ZachCourse Tools
 
 **File:** `mcp_server.ts`

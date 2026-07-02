@@ -121,6 +121,7 @@ Chat history. `role`: `"user"` | `"assistant"`. `content`: full message text. Or
 
 ### LessonContent
 Cached lesson markdown per `courseId` + `lessonId`. Upserted — never regenerated for the same user/lesson pair.
+Now also stores `qualityScore` (Int, 1-10) and `evaluationData` (JSON) from the Judge Agent.
 
 ### VisualRoadmap
 Standalone visual graph roadmaps. Stores full node/edge JSON from Visual Roadmap Agent. `completedNodeIds` (JSON array). `isFavorite` (boolean) for pinning.
@@ -155,7 +156,7 @@ Standalone visual graph roadmaps. Stores full node/edge JSON from Visual Roadmap
 #### `POST /api/generate-roadmap`
 ```
 Body: { topic, sourceUrl?, textContent?, experienceLevel, weeklyHours }
-Returns: { roadmap: RoadmapObject }
+Returns: { roadmap: RoadmapObject (with optional _reviewMeta: { revised: boolean, issuesFound: number }) }
 Errors: 400 (missing params / too long), 500 (AI failure)
 ```
 
@@ -163,13 +164,13 @@ Errors: 400 (missing params / too long), 500 (AI failure)
 ```
 Body: { topic, experienceLevel, weeklyHours, sourceUrl? }
 Headers: x-user-key (optional, user's own Gemini key)
-Returns: { roadmap: VisualRoadmapObject }
+Returns: { roadmap: VisualRoadmapObject (with optional _reviewMeta: { revised: boolean, issuesFound: number }) }
 ```
 
 #### `POST /api/generate-lesson`
 ```
 Body: { lessonTitle, courseTopic, concepts[], experienceLevel }
-Returns: { content: string (markdown) }
+Returns: { content: string (markdown), qualityScore?: number, evaluationData?: object }
 ```
 
 #### `POST /api/generate-quiz`

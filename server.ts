@@ -602,8 +602,49 @@ Rules:
 - First lesson completable in under 30 min
 - Adapt depth to experience level`;
 
-    const roadmapData = await callAI(prompt, { schema })
+    let roadmapData = await callAI(prompt, { schema })
       ?? getLocalFallbackRoadmap(topic || "Technology Mastery", sourceUrl, textContent);
+
+    // --- CRITIC AGENT ---
+    let reviewMeta = { revised: false, issuesFound: 0 };
+    if (roadmapData) {
+      const criticSchema = z.object({
+        approved: z.boolean(),
+        issues: z.array(z.object({
+          severity: z.enum(["minor", "major"]),
+          location: z.string(),
+          problem: z.string(),
+          suggestion: z.string(),
+        })),
+        revisionNotes: z.string().optional(),
+      });
+
+      const criticPrompt = `You are an expert curriculum reviewer. Review the following generated roadmap against these criteria:
+- Logical lesson ordering and prerequisites
+- Appropriate difficulty progression
+- No duplicate or overlapping lessons
+- Realistic time estimates
+
+Roadmap to review:
+${JSON.stringify(roadmapData)}
+`;
+      const critique = await callAI(criticPrompt, { schema: criticSchema });
+      
+      if (critique && !critique.approved && critique.revisionNotes) {
+        console.log(`[Critic Agent] Roadmap rejected. Issues: ${critique.issues.length}. Retrying...`);
+        const revisionPrompt = prompt + `\n\nNOTE: A reviewer evaluated your previous attempt and found the following issues:\n${critique.revisionNotes}\n\nPlease revise the roadmap to address these issues.`;
+        
+        roadmapData = await callAI(revisionPrompt, { schema }) ?? roadmapData;
+        reviewMeta = { revised: true, issuesFound: critique.issues.length };
+      } else if (critique) {
+        reviewMeta = { revised: false, issuesFound: critique.issues.length };
+      }
+    }
+    
+    if (roadmapData) {
+      (roadmapData as any)._reviewMeta = reviewMeta;
+    }
+    // --------------------
 
     res.json({ roadmap: roadmapData });
   } catch (error: any) {
@@ -705,11 +746,50 @@ Produce a graph with 20-35 total nodes and 25-40 edges.`
 
   try {
     const userKey = req.headers["x-user-key"] as string | undefined;
-    const data = await callAI(prompt, { schema, apiKey: userKey })
+    let data = await callAI(prompt, { schema, apiKey: userKey })
     if (!data) {
       res.status(500).json({ error: "Generation failed" })
       return
     }
+
+    // --- CRITIC AGENT ---
+    let reviewMeta = { revised: false, issuesFound: 0 };
+    const criticSchema = z.object({
+      approved: z.boolean(),
+      issues: z.array(z.object({
+        severity: z.enum(["minor", "major"]),
+        location: z.string(),
+        problem: z.string(),
+        suggestion: z.string(),
+      })),
+      revisionNotes: z.string().optional(),
+    });
+
+    const criticPrompt = `You are an expert curriculum reviewer. Review the following generated visual roadmap graph against these criteria:
+- Logical lesson ordering and prerequisites
+- Appropriate difficulty progression
+- No duplicate or overlapping lessons
+- Realistic time estimates
+- Valid graph structure: single start/end node, no orphaned nodes, edges reference real node ids.
+
+Visual Roadmap to review:
+${JSON.stringify(data)}
+`;
+    const critique = await callAI(criticPrompt, { schema: criticSchema, apiKey: userKey });
+    
+    if (critique && !critique.approved && critique.revisionNotes) {
+      console.log(`[Critic Agent] Visual Roadmap rejected. Issues: ${critique.issues.length}. Retrying...`);
+      const revisionPrompt = prompt + `\n\nNOTE: A reviewer evaluated your previous attempt and found the following issues:\n${critique.revisionNotes}\n\nPlease revise the visual roadmap graph to address these issues.`;
+      
+      data = await callAI(revisionPrompt, { schema, apiKey: userKey }) ?? data;
+      reviewMeta = { revised: true, issuesFound: critique.issues.length };
+    } else if (critique) {
+      reviewMeta = { revised: false, issuesFound: critique.issues.length };
+    }
+    
+    (data as any)._reviewMeta = reviewMeta;
+    // --------------------
+
     res.json({ roadmap: data })
   } catch (err: any) {
     res.status(500).json({ error: err.message })
@@ -749,8 +829,45 @@ Format in Markdown with sections:
 
 Be thorough, friendly, and practical.`;
 
-    const contentText = await callAI(prompt)
+    let contentText = await callAI(prompt)
       ?? getLocalFallbackLesson(lessonTitle, concepts);
+
+    const judgeSchema = z.object({
+      clarityScore: z.number().min(1).max(10),
+      accuracyScore: z.number().min(1).max(10),
+      depthScore: z.number().min(1).max(10),
+      engagementScore: z.number().min(1).max(10),
+      overallScore: z.number().min(1).max(10),
+      issues: z.array(z.string()),
+      verdict: z.enum(["pass", "needs_revision", "fail"]),
+      feedback: z.string(),
+    });
+
+    const evaluateLesson = async (contentToEvaluate: string) => {
+      const judgePrompt = `You are an expert educational reviewer. Evaluate the following generated lesson against these criteria:
+- Clarity: Is the explanation easy to understand?
+- Accuracy: Are the technical concepts correct?
+- Depth: Does it go deep enough, or is it too superficial?
+- Engagement: Is the tone engaging (uses analogies, formatting well)?
+
+Lesson Title: "${lessonTitle}"
+Concepts: ${JSON.stringify(concepts || [])}
+
+Generated Content:
+${contentToEvaluate}
+`;
+      return await callAI(judgePrompt, { schema: judgeSchema });
+    };
+
+    let evaluation = await evaluateLesson(contentText);
+
+    if (evaluation && (evaluation.verdict === "needs_revision" || evaluation.verdict === "fail")) {
+      console.log(`[Judge Agent] Lesson "${lessonTitle}" failed evaluation. Retrying...`);
+      const revisionPrompt = prompt + `\n\nNOTE: A reviewer evaluated your previous attempt and found the following issues:\n${evaluation.feedback}\n\nPlease revise the lesson to address these issues. Ensure all previous constraints are met.`;
+      
+      contentText = await callAI(revisionPrompt) ?? contentText; // Fallback to old if it fails completely
+      evaluation = await evaluateLesson(contentText); // Re-evaluate
+    }
 
     // Fire and forget — don't block the response
     const user = (req as any).user;
@@ -768,7 +885,11 @@ Be thorough, friendly, and practical.`;
       });
     }
 
-    res.json({ content: contentText });
+    res.json({ 
+      content: contentText, 
+      qualityScore: evaluation?.overallScore,
+      evaluationData: evaluation 
+    });
   } catch (error: any) {
     console.error("Error generating lesson content:", error);
     res.status(500).json({ error: error.message || "Failed to generate lesson content" });

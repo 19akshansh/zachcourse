@@ -134,12 +134,14 @@ model CourseMessage {
 }
 
 model LessonContent {
-  id        String   @id @default(cuid())
-  courseId  String
-  lessonId  String
-  content   String
-  createdAt DateTime @default(now())
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  courseId       String
+  lessonId       String
+  content        String
+  qualityScore   Int?
+  evaluationData Json?
+  createdAt      DateTime @default(now())
+  course         Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, lessonId])
   @@map("lesson_content")

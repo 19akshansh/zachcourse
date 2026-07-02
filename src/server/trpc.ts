@@ -254,7 +254,13 @@ export const appRouter = router({
     }),
 
   saveLessonContent: protectedProcedure
-    .input(z.object({ courseId: z.string(), lessonId: z.string(), content: z.string() }))
+    .input(z.object({ 
+      courseId: z.string(), 
+      lessonId: z.string(), 
+      content: z.string(),
+      qualityScore: z.number().optional(),
+      evaluationData: z.any().optional()
+    }))
     .mutation(async ({ ctx, input }) => {
       const course = await ctx.prisma.course.findUnique({
         where: { id: input.courseId, userId: ctx.user.id },
@@ -265,11 +271,17 @@ export const appRouter = router({
         where: {
           courseId_lessonId: { courseId: input.courseId, lessonId: input.lessonId }
         },
-        update: { content: input.content },
+        update: { 
+          content: input.content,
+          ...(input.qualityScore !== undefined ? { qualityScore: input.qualityScore } : {}),
+          ...(input.evaluationData !== undefined ? { evaluationData: input.evaluationData } : {})
+        },
         create: {
           courseId: input.courseId,
           lessonId: input.lessonId,
-          content: input.content
+          content: input.content,
+          qualityScore: input.qualityScore,
+          evaluationData: input.evaluationData || {}
         }
       });
     }),

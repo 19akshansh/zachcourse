@@ -367,6 +367,8 @@ export default function App() {
   const [generatingLesson, setGeneratingLesson] = useState<boolean>(false);
   const [lessonContent, setLessonContent] = useState<string>("");
   const [lessonModuleTitle, setLessonModuleTitle] = useState<string>("");
+  const [lessonQualityScore, setLessonQualityScore] = useState<number | null>(null);
+  const [lessonEvaluationData, setLessonEvaluationData] = useState<any>(null);
 
   // Quiz states
   const [generatingQuiz, setGeneratingQuiz] = useState<boolean>(false);
@@ -580,6 +582,8 @@ Rules:
 
         if (savedContent && savedContent.content) {
           setLessonContent(savedContent.content);
+          setLessonQualityScore(savedContent.qualityScore ?? null);
+          setLessonEvaluationData(savedContent.evaluationData ?? null);
           setGeneratingLesson(false);
           return;
         }
@@ -587,6 +591,8 @@ Rules:
 
       const userKey = localStorage.getItem("zc_user_key");
       let content: string;
+      let qScore: number | null = null;
+      let evalData: any = null;
 
       if (userKey) {
         const systemPrompt = `You are a supportive, warm, and elite educational companion. Your job is to write a highly engaging, structured, and deep study guide for the specified lesson using beautiful Markdown formatting.
@@ -625,17 +631,22 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
         if (!response.ok) throw new Error("Oops, we couldn't load your study guide. Let's try again! 🙈");
         const data = await response.json();
         content = data.content;
-
+        qScore = data.qualityScore ?? null;
+        evalData = data.evaluationData ?? null;
       }
 
       setLessonContent(content);
+      setLessonQualityScore(qScore);
+      setLessonEvaluationData(evalData);
 
       if (activeCourseId) {
         // Save the newly generated content to DB
         await trpc.saveLessonContent.mutate({
           courseId: activeCourseId,
           lessonId: lesson.id,
-          content: content
+          content: content,
+          qualityScore: qScore ?? undefined,
+          evaluationData: evalData ?? undefined
         }).catch(err => {
           console.error("Failed to save lesson content:", err);
         });
@@ -1647,19 +1658,48 @@ ${lessonContent}`;
                       <div className="text-base text-[#CECADF] leading-relaxed space-y-6">
                         
                         {/* Interactive concept pills */}
-                        <div className="flex flex-wrap items-center gap-2 bg-[#121021] p-3.5 rounded-2xl border border-[#2A2443]">
-                          <span className="text-sm font-bold text-[#8E88AB]">Key terms we'll cover:</span>
-                          {selectedLesson.concepts.map((concept, idx) => (
-                            <span 
-                              key={idx}
-                              className="text-sm bg-indigo-950/40 text-[#818CF8] border border-indigo-500/20 px-3 py-1 rounded-full font-semibold"
-                            >
-                              {concept}
-                            </span>
-                          ))}
+                        <div className="flex flex-col gap-3 bg-[#121021] p-3.5 rounded-2xl border border-[#2A2443]">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-bold text-[#8E88AB]">Key terms we'll cover:</span>
+                            {selectedLesson.concepts.map((concept, idx) => (
+                              <span 
+                                key={idx}
+                                className="text-sm bg-indigo-950/40 text-[#818CF8] border border-indigo-500/20 px-3 py-1 rounded-full font-semibold"
+                              >
+                                {concept}
+                              </span>
+                            ))}
+                          </div>
+                          
+                          {lessonQualityScore !== null && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-sm font-bold text-[#8E88AB]">AI Judge Quality Score:</span>
+                              <div className="relative group">
+                                <span className={`text-sm px-2 py-0.5 rounded-full font-bold ${
+                                  lessonQualityScore >= 8 ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-500/30' :
+                                  lessonQualityScore >= 6 ? 'bg-amber-950/50 text-amber-400 border border-amber-500/30' :
+                                  'bg-red-950/50 text-red-400 border border-red-500/30'
+                                }`}>
+                                  {lessonQualityScore}/10
+                                </span>
+                                {lessonEvaluationData?.feedback && (
+                                  <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 bg-[#1E1A33] border border-[#2A2443] rounded-lg p-3 shadow-xl z-10 text-xs text-[#CECADF]">
+                                    <p className="font-bold mb-1">Judge Feedback:</p>
+                                    <p>{lessonEvaluationData.feedback}</p>
+                                    <ul className="mt-2 list-disc pl-4 space-y-1 text-[#8E88AB]">
+                                      <li>Clarity: {lessonEvaluationData.clarityScore}/10</li>
+                                      <li>Accuracy: {lessonEvaluationData.accuracyScore}/10</li>
+                                      <li>Depth: {lessonEvaluationData.depthScore}/10</li>
+                                      <li>Engagement: {lessonEvaluationData.engagementScore}/10</li>
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="markdown-body text-base space-y-4">
+                        <div className="markdown-body text-base space-y-4 mt-6">
                           <Markdown
                             remarkPlugins={[remarkMath]}
                             rehypePlugins={[rehypeKatex]}

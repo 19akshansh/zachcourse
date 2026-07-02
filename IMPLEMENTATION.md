@@ -284,3 +284,16 @@ The honest assessment: vibe coding is fastest when you know exactly what you wan
 **Visual roadmap generation is slow.** 20–35 nodes with resources takes 15–25 seconds to generate. The prompt is large and the schema is complex. Pre-generation on course creation (rather than on-demand) would fix the perceived latency.
 
 **Guest mode is one query.** The 1-query guest limit exists to protect the server-side Gemini key. A better UX would be a 3-query trial with a clear upgrade path rather than a hard wall after one message.
+
+---
+
+## 14. Why the Judge and Critic Agents
+
+Early on, the generative agents (Roadmap, Visual Roadmap, and Lesson) would occasionally output logically flawed or superficially written content. If a lesson was too brief or missed the mark, or if a visual roadmap had a broken graph structure (e.g., disconnected nodes), the user was stuck with a bad experience.
+
+To solve this, we introduced the **Judge Agent** and **Critic Agent** as automated quality control steps in the pipeline:
+
+- **Judge Agent (Lessons):** Evaluates generated lessons for clarity, accuracy, depth, and engagement. If a lesson receives a `needs_revision` or `fail` verdict, the agent automatically re-prompts the Lesson Agent with the specific feedback to improve it before the user ever sees it. The scores and feedback are persisted in the database so we can track quality over time.
+- **Critic Agent (Roadmaps):** Acts synchronously during roadmap generation (both standard and visual). It reviews the output for logical ordering, duplicate lessons, unrealistic time estimates, and structural integrity (for the node graph). If it finds major issues, it rejects the initial generation and triggers a targeted revision.
+
+This multi-agent "maker/checker" pattern significantly improves the floor of content quality. While it adds some latency to the generation process (which is acceptable for asynchronous tasks like generating a full roadmap), it guarantees that the content meets a baseline standard before reaching the user.
