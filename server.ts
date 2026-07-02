@@ -4,8 +4,10 @@ import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import path from "path";
+import multer from "multer";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
-import { generateText, generateObject, tool, isStepCount } from "ai";
+import { generateText, generateObject, tool, isStepCount, streamText } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { toNodeHandler } from "better-auth/node";
@@ -13,6 +15,9 @@ import { auth } from "./src/lib/auth";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter, createContext } from "./src/server/trpc";
 import { prisma } from "./src/lib/db";
+const db = prisma;
+import { extractTextFromBuffer, detectPromptInjection } from "./src/lib/document-processor";
+import { retrieveRelevantMemories, storeMentorExchange } from "./src/lib/memory";
 
 const app = express();
 
@@ -202,7 +207,7 @@ async function callAI(
 }
 
 // Local fallback content generator for roadmaps
-function getLocalFallbackRoadmap(topic: string, sourceUrl?: string, textContent?: string): Roadmap {
+function getLocalFallbackRoadmap(topic: string, sourceUrl?: string, textContent?: string): any {
   const cleanTopic = (topic || "Personalized Skills").trim();
   return {
     title: `Mastering ${cleanTopic}`,
@@ -422,9 +427,113 @@ To help me give you the best guidance, tell me a little more:
 I'm super excited to keep learning together! What's on your mind? 💫`;
 }
 
+// Memory storage only — never touch disk
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024,  // 10MB per file
+    files: 3,
+  },
+  fileFilter: (req, file, cb) => {
+    const allowed = [
+      "application/pdf",
+      "text/plain",
+      "text/markdown",
+    ];
+    const allowedExts = [".pdf", ".txt", ".md"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    
+    if (allowed.includes(file.mimetype) || 
+        allowedExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("INVALID_FILE_TYPE"));
+    }
+  },
+});
+
+const uploadRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,   // 1 hour
+  max: 5,
+  message: { error: "Too many uploads. Try again in an hour." }
+});
+
+app.post(
+  "/api/process-documents",
+  uploadRateLimit,
+  requireAuth,
+  upload.array("files", 3),
+  async (req, res) => {
+    const files = req.files as Express.Multer.File[];
+    
+    if (!files || files.length === 0) {
+      res.status(400).json({ error: "No files provided" });
+      return;
+    }
+
+    const results: string[] = [];
+    const warnings: string[] = [];
+
+    for (const file of files) {
+      const { text, pages, error } = await extractTextFromBuffer(
+        file.buffer,
+        file.mimetype,
+        file.originalname
+      );
+
+      if (error === "INJECTION_DETECTED") {
+        res.status(400).json({
+          error: "This document contains content that cannot be safely processed.",
+          file: file.originalname,
+        });
+        return;
+      }
+
+      if (error === "UNSUPPORTED_TYPE") {
+        warnings.push(`${file.originalname}: unsupported type`);
+        continue;
+      }
+
+      if (error === "PARSE_FAILED" || !text) {
+        warnings.push(`${file.originalname}: could not parse`);
+        continue;
+      }
+
+      const pageInfo = pages ? ` (${pages} pages)` : "";
+      results.push(`--- Document: ${file.originalname}${pageInfo} ---\n${text}`);
+    }
+
+    if (results.length === 0) {
+      res.status(422).json({
+        error: "No readable content found in uploaded files",
+        warnings,
+      });
+      return;
+    }
+
+    // Combine all documents, enforce total cap
+    const combined = results.join("\n\n").slice(0, 50_000);
+
+    // Final injection check on combined output
+    if (detectPromptInjection(combined)) {
+      res.status(400).json({
+        error: "Document content failed safety validation."
+      });
+      return;
+    }
+
+    res.json({
+      extractedText: combined,
+      fileCount: results.length,
+      warnings,
+      charCount: combined.length,
+    });
+  }
+);
+
 // 1. API: Generate Roadmap
 app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
-  const { topic, sourceUrl, textContent } = req.body;
+  const { topic, sourceUrl, textContent, documentContext } = req.body;
   if (topic && topic.length > 500) {
     res.status(400).json({ error: "Topic too long. Max 500 characters." });
     return;
@@ -464,6 +573,11 @@ app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
       }))
     });
 
+    // Validate documentContext
+    const safeDocContext = typeof documentContext === "string"
+      ? documentContext.slice(0, 40_000)
+      : "";
+
     const prompt = `You are an expert curriculum designer.
 Create a personalized learning roadmap for:
 Topic: ${topic}
@@ -471,6 +585,15 @@ Experience level: ${experienceLevel}
 Hours per week: ${weeklyHours}
 ${sourceUrl ? "Reference URL: " + sourceUrl : ""}
 ${textContent ? "Syllabus excerpt: " + textContent.slice(0, 3000) : ""}
+${safeDocContext ? `
+Reference Document Content (use this as primary source):
+<document_context>
+${safeDocContext}
+</document_context>
+Prioritise this document content over general knowledge 
+when creating the roadmap. Extract real module names, 
+topics, and structure from it where possible.
+` : ""}
 
 Rules:
 - 3-5 modules, each with 3-5 lessons
@@ -490,7 +613,12 @@ Rules:
 });
 
 app.post("/api/generate-visual-roadmap", aiRateLimit, async (req, res) => {
-  const { topic, experienceLevel, weeklyHours, sourceUrl } = req.body
+  const { topic, experienceLevel, weeklyHours, sourceUrl, documentContext } = req.body
+  
+  // Validate documentContext
+  const safeDocContext = typeof documentContext === "string"
+    ? documentContext.slice(0, 40_000)
+    : "";
 
   const schema = z.object({
     title: z.string(),
@@ -537,6 +665,15 @@ Topic: "${topic}"
 Experience level: ${experienceLevel || "beginner"}
 Hours per week: ${weeklyHours || 5}
 ${sourceUrl ? "Reference: " + sourceUrl : ""}
+${safeDocContext ? `
+Reference Document Content (use this as primary source):
+<document_context>
+${safeDocContext}
+</document_context>
+Prioritise this document content over general knowledge 
+when creating the roadmap. Extract real module names, 
+topics, and structure from it where possible.
+` : ""}
 
 GRAPH STRUCTURE RULES:
 1. Start with exactly ONE "start" node (id: "start")
@@ -581,17 +718,28 @@ Produce a graph with 20-35 total nodes and 25-40 edges.`
 
 // 2. API: Generate Study Guide Content
 app.post("/api/generate-lesson", requireAuth, async (req, res) => {
-  const { roadmapKey, moduleId, lessonId, lessonTitle, concepts } = req.body;
+  const { roadmapKey, moduleId, lessonId, lessonTitle, concepts, courseContext, documentContext, courseId } = req.body;
   try {
     if (!lessonTitle) {
       res.status(400).json({ error: "Missing lessonTitle" });
       return;
     }
 
+    const safeDocContext = typeof documentContext === "string"
+      ? documentContext.slice(0, 20_000)
+      : "";
+
     const prompt = `You are an expert tutor. Write a complete, 
 engaging study guide for:
 Lesson: "${lessonTitle}"
 Concepts: ${JSON.stringify(concepts || [])}
+${safeDocContext ? `
+Relevant source material for this lesson:
+<document_context>
+${safeDocContext}
+</document_context>
+Draw examples and explanations from this material 
+where relevant.` : ""}
 
 Format in Markdown with sections:
 1. Introduction (with real-world analogy)
@@ -603,6 +751,22 @@ Be thorough, friendly, and practical.`;
 
     const contentText = await callAI(prompt)
       ?? getLocalFallbackLesson(lessonTitle, concepts);
+
+    // Fire and forget — don't block the response
+    const user = (req as any).user;
+    if (user) {
+      import("./src/lib/memory").then(({ storeLessonMemory }) => {
+        storeLessonMemory({
+          userId: user.id,
+          courseId: courseId || "unknown",
+          lessonId: lessonId || lessonTitle,
+          lessonTitle: lessonTitle,
+          content: contentText,
+        }).catch(err => 
+          console.error("[memory] lesson store failed:", err)
+        );
+      });
+    }
 
     res.json({ content: contentText });
   } catch (error: any) {
@@ -657,7 +821,9 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
       message, 
       history, 
       currentCourseTitle, 
-      currentLessonTitle 
+      currentLessonTitle,
+      courseId,
+      currentLessonId
     } = req.body;
 
     if (!message || typeof message !== "string") {
@@ -673,289 +839,171 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
       return;
     }
 
+    const session = (req as any).user;
+    if (!session) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+
+    if (courseId) {
+      await db.courseMessage.create({ data: { courseId, role: "user", content: message } });
+    }
+
+    // Retrieve semantically relevant past context
+    const relevantMemories = await retrieveRelevantMemories({
+      userId: session.id,
+      courseId: courseId || "general",
+      query: message,
+      limit: 4,
+    });
+
+    const memoryContext = relevantMemories.length > 0
+      ? `\nRelevant past learning context (from earlier sessions):\n${
+          relevantMemories
+            .map((m, i) => `[Memory ${i+1}]: ${m}`)
+            .join("\n")
+        }\n`
+      : "";
+
     // Check if user passed their own key
     const userKey = req.headers["x-user-key"] as string | undefined;
-    const googleClient = userKey ? createGoogleGenerativeAI({ apiKey: userKey }) : serverGoogle;
-    const models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
-    let text: string | undefined;
+    const googleClient = userKey ? createGoogleGenerativeAI({ apiKey: userKey }) : createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+    const model = googleClient("gemini-2.5-flash");
 
-    for (const modelId of models) {
-      try {
-        const model = googleClient(modelId);
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
 
-        const result = await generateText({
-          model,
-          
-          system: `You are ZachCourse Assistant — a brilliant, warm, highly knowledgeable AI mentor.
+    const systemPrompt = `You are ZachCourse Assistant — a brilliant, warm, highly knowledgeable AI mentor.
 
 PRIMARY FOCUS: Help the student with "${currentCourseTitle || 'General Learning'}"
 ${currentLessonTitle ? `Current lesson: "${currentLessonTitle}"` : ""}
+${memoryContext}
 
-TOOLS AVAILABLE:
-- fetchUrl: Call this EVERY TIME the user shares any URL (http:// or https://). Never skip this.
-- searchWeb: Call this for anything current, recent, or version-specific.
+CRITICAL INSTRUCTIONS FOR TOOLS:
+1. Only use tools (fetchUrl, searchWeb) if the student's question explicitly asks for external information, a specific URL, or current events.
+2. If you use a tool, you MUST provide a final text response answering the user based on the tool's results.
+3. If a tool fails, or if you don't need tools, answer using your own knowledge. ALWAYS output a final text response.
+`;
 
-STRICT RULES — NEVER BREAK THESE:
-1. User shares a URL → call fetchUrl immediately, no exceptions.
-2. fetchUrl returns success:false → tell the user the page blocked access, then answer from your training knowledge about that topic.
-3. fetchUrl returns success:true → summarize the content clearly and relate it to the course.
-4. You MUST always produce a helpful text response. Never return empty output.
-5. If every tool fails → acknowledge it briefly, then answer from what you know.
-6. Never say "I couldn't generate a response" — that is a forbidden output.
+    const formattedMessages = [
+      ...(history || []).slice(-8).map((m: any) => ({
+        role: m.role === "assistant" ? "assistant" : "user" as const,
+        content: m.content || m.text || "",
+      })),
+      { role: "user" as const, content: message }
+    ];
 
-TEACHING STYLE:
-- For concepts: definition → analogy → example
-- For errors: diagnose → fix steps → 💡 pro tip
-- Use markdown formatting with headers and code blocks`,
+    const fetchUrlTool = tool({
+      description: "Fetch and read the content of any URL.",
+      inputSchema: z.object({
+        url: z.string().url(),
+        reason: z.string(),
+      }),
+      execute: async ({ url, reason }: { url: string, reason: string }) => {
+        try {
+          const parsedUrl = new URL(url);
+          const blockedHosts = [
+            "169.254.169.254", "metadata.google.internal", "localhost", "127.0.0.1", "0.0.0.0", "::1",
+          ];
+          const isPrivateIp = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(parsedUrl.hostname);
+          if (blockedHosts.includes(parsedUrl.hostname) || isPrivateIp) {
+            throw new Error("Access to internal/private hosts is forbidden.");
+          }
+          if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+            throw new Error("Only HTTP/HTTPS protocols are supported.");
+          }
+          const abort = new AbortController();
+          const timer = setTimeout(() => abort.abort(), 8000);
+          const response = await fetch(url, { signal: abort.signal, headers: { "User-Agent": "ZachCourse-MentorBot/1.0" } });
+          clearTimeout(timer);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          let html = await response.text();
+          let clean = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+                          .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
+                          .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, "")
+                          .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, "")
+                          .replace(/<[^>]+>/g, " ")
+                          .replace(/\s+/g, " ")
+                          .trim();
+          if (clean.length > 8000) clean = clean.slice(0, 8000) + "... (truncated)";
+          return { success: true, content: clean, url };
+        } catch (err: any) {
+          return { success: false, error: String(err.message), content: "", url };
+        }
+      }
+    });
 
-      messages: [
-        ...(history || []).slice(-8).map((m: any) => ({
-          role: m.role === "assistant" ? "assistant" : "user" as const,
-          content: m.content || m.text || "",
-        })),
-        { role: "user" as const, content: message }
-      ],
+    const searchWebTool = tool({
+      description: "Search the web for current information.",
+      inputSchema: z.object({ query: z.string() }),
+      execute: async ({ query }: { query: string }) => {
+        try {
+          const encoded = encodeURIComponent(query);
+          const res = await fetch(`https://api.duckduckgo.com/?q=${encoded}&format=json&no_html=1&skip_disambig=1`, { signal: AbortSignal.timeout(5000) });
+          const data = await res.json();
+          const results = [
+            data.AbstractText && `Summary: ${String(data.AbstractText)}`,
+            ...(data.RelatedTopics || []).slice(0, 4).map((t: any) => String(t.Text)).filter(Boolean)
+          ].filter(Boolean).join("\n\n");
+          return { query, results: results || "No results found", source: String(data.AbstractURL || "DuckDuckGo") };
+        } catch (err: any) {
+          return { query, results: "Search failed: " + String(err.message), source: "" };
+        }
+      }
+    });
 
-      tools: {
-        fetchUrl: tool({
-          description: "Fetch and read the content of any URL. " +
-            "Use this whenever the user shares a link or asks " +
-            "about a specific webpage, documentation, competition, " +
-            "article, or any online resource. Always use this " +
-            "before answering questions about URLs.",
-          inputSchema: z.object({
-            url: z.string().url().describe(
-              "The full URL to fetch including https://"
-            ),
-            reason: z.string().describe(
-              "Why you are fetching this URL"
-            ),
-          }),
-          execute: async ({ url, reason }: { url: string, reason: string }) => {
-            try {
-              // Block internal/private network requests (SSRF protection)
-              const parsedUrl = new URL(url);
-              const blockedHosts = [
-                "169.254.169.254", // AWS/GCP metadata
-                "metadata.google.internal",
-                "localhost",
-                "127.0.0.1",
-                "0.0.0.0",
-                "::1",
-              ];
-              const isPrivateIp = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(parsedUrl.hostname);
-              if (blockedHosts.includes(parsedUrl.hostname) || isPrivateIp) {
-                return {
-                  success: false,
-                  error: "Blocked: internal network access not allowed",
-                  content: "",
-                  title: "",
-                  url,
-                };
-              }
-              if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-                return {
-                  success: false,
-                  error: "Blocked: only http/https URLs allowed",
-                  content: "",
-                  title: "",
-                  url,
-                };
-              }
-
-              const response = await fetch(url, {
-                headers: {
-                  "User-Agent": "Mozilla/5.0 (compatible; ZachCourse/1.0)",
-                  "Accept": "text/html,text/plain",
-                },
-                signal: AbortSignal.timeout(8000),
-              })
-
-              if (!response.ok) {
-                return { 
-                  success: false, 
-                  error: `HTTP ${response.status}`,
-                  content: "",
-                  title: "",
-                  url 
-                }
-              }
-
-              const raw = await response.text()
-              
-              // Clean HTML to readable text
-              const clean = raw
-                .replace(/<script[\s\S]*?<\/script>/gi, "")
-                .replace(/<style[\s\S]*?<\/style>/gi, "")
-                .replace(/<nav[\s\S]*?<\/nav>/gi, "")
-                .replace(/<footer[\s\S]*?<\/footer>/gi, "")
-                .replace(/<[^>]+>/g, " ")
-                .replace(/&amp;/g, "&")
-                .replace(/&lt;/g, "<")
-                .replace(/&gt;/g, ">")
-                .replace(/&nbsp;/g, " ")
-                .replace(/&#39;/g, "'")
-                .replace(/&quot;/g, '"')
-                .replace(/\s{3,}/g, "\n\n")
-                .trim()
-                .slice(0, 8000) // Limit context size
-
-              const titleMatch = raw.match(/<title[^>]*>(.*?)<\/title>/i)
-              const title = titleMatch?.[1]?.replace(/<[^>]+>/g, "").trim() || ""
-
-              return { 
-                success: true, 
-                title,
-                content: clean,
-                url,
-                error: ""
-              }
-            } catch (err: any) {
-              return { 
-                success: false, 
-                error: String(err.message),
-                content: "",
-                title: "",
-                url 
-              }
-            }
-          },
-        }),
-
-        searchWeb: tool({
-          description: "Search the web for current information, " +
-            "recent news, latest documentation, or anything that " +
-            "might have changed recently. Use when the user asks " +
-            "about current events, latest versions, or recent updates.",
-          inputSchema: z.object({
-            query: z.string().describe("The search query"),
-          }),
-          execute: async ({ query }: { query: string }) => {
-            // Use DuckDuckGo instant answer API (free, no key needed)
-            try {
-              const encoded = encodeURIComponent(query)
-              const res = await fetch(
-                `https://api.duckduckgo.com/?q=${encoded}&format=json&no_html=1&skip_disambig=1`,
-                { signal: AbortSignal.timeout(5000) }
-              )
-              const data = await res.json()
-              
-              const results = [
-                data.AbstractText && `Summary: ${String(data.AbstractText)}`,
-                ...(data.RelatedTopics || [])
-                  .slice(0, 4)
-                  .map((t: any) => String(t.Text))
-                  .filter(Boolean)
-              ].filter(Boolean).join("\n\n")
-
-              return { 
-                query,
-                results: results || "No results found",
-                source: String(data.AbstractURL || "DuckDuckGo")
-              }
-            } catch (err: any) {
-              return { 
-                query, 
-                results: "Search failed: " + String(err.message),
-                source: ""
-              }
-            }
-          },
-        }),
-      },
-
-      // Let the agent loop up to 5 times 
-      // (fetch URL → read result → answer)
+    const result = streamText({
+      model,
+      system: systemPrompt,
+      messages: formattedMessages,
+      tools: { fetchUrl: fetchUrlTool, searchWeb: searchWebTool },
       stopWhen: isStepCount(5),
     });
 
-        text = result.text;
-        break; // Success
-      } catch (err: any) {
-        const msg = err?.message || "";
-        const isRetryable = 
-          msg.includes("503") || 
-          msg.includes("429") || 
-          msg.includes("overloaded") ||
-          msg.includes("quota") ||
-          msg.includes("high demand") ||
-          msg.includes("unavailable");
-        
-        console.error(`Model ${modelId} failed in mentor chat:`, msg);
-        if (!isRetryable) {
-          throw err;
-        }
-        await sleep(1500); // Wait before trying next model
+    let fullText = "";
+    for await (const chunk of result.textStream) {
+      fullText += chunk;
+      res.write(`data: ${JSON.stringify({ token: chunk })}\n\n`);
+    }
+
+    if (fullText.trim() === "") {
+      fullText = "I'm sorry, I couldn't generate a proper response to that.";
+      res.write(`data: ${JSON.stringify({ token: fullText })}\n\n`);
+      
+      // Temporary logging for empty responses
+      try {
+        console.warn("[MentorChat] Empty fullText. Steps:", await result.steps);
+      } catch (e) {
+        console.error("Failed to log steps", e);
       }
     }
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    res.end();
 
-    if (text === undefined) {
-      throw new Error("All AI models are currently experiencing very high demand. Please try again in a few moments.");
+    if (fullText.length > 50) {
+      storeMentorExchange({
+        userId: session.id,
+        courseId: courseId || "general",
+        lessonId: currentLessonId || "general",
+        lessonTitle: currentLessonTitle || "General",
+        question: message,
+        answer: fullText,
+      }).catch(console.error);
     }
 
-    const reply = text?.trim();
-    res.json({
-      reply: reply ||
-        "I ran into an issue processing that. Try rephrasing, or paste the page content directly into chat and I'll work with it.",
-    });
-
+    if (courseId) {
+      db.courseMessage.create({ data: { courseId, role: "assistant", content: fullText } }).catch(console.error);
+    }
   } catch (err: any) {
-    console.error("[mentor-chat] error:", err)
-    const msg = err.message || "";
-    
-    // If it's a model overloading or quota error, return a friendly message directly as the reply.
-    if (msg.includes("high demand") || msg.includes("overloaded") || msg.includes("quota") || msg.includes("429") || msg.includes("503")) {
-      return res.json({
-        reply: "The AI is currently experiencing very high demand. Spikes in demand are usually temporary, please try again in a few moments."
-      });
-    }
-    
-    res.status(500).json({ 
-      error: err.message || "Mentor failed to respond" 
-    })
-  }
-});
-
-// Express API for GitHub Star verification
-app.get("/api/verify-star", async (req, res) => {
-  try {
-    const session = await auth.api.getSession({
-      headers: req.headers as any
-    });
-
-    if (!session || !session.user) {
-      res.status(401).json({ error: "UNAUTHORIZED", message: "Please sign in first." });
-      return;
-    }
-
-    const account = await prisma.account.findFirst({
-      where: {
-        userId: session.user.id,
-        providerId: "github"
-      }
-    });
-
-    if (!account || !account.accessToken) {
-      res.status(400).json({ error: "NO_GITHUB_ACCOUNT", message: "No connected GitHub account found." });
-      return;
-    }
-
-    const githubRes = await fetch("https://api.github.com/user/starred/19akshansh/zachcourse", {
-      headers: {
-        Authorization: `Bearer ${account.accessToken}`,
-        Accept: "application/vnd.github+json",
-        "User-Agent": "ZachCourse-App"
-      }
-    });
-
-    if (githubRes.status === 204) {
-      res.json({ starred: true });
+    if (res.headersSent) {
+      res.write(`data: ${JSON.stringify({ error: err.message || "Stream failed" })}\n\n`);
+      res.end();
     } else {
-      res.json({ starred: false, status: githubRes.status });
+      res.status(500).json({ error: err.message });
     }
-  } catch (error: any) {
-    console.error("Error in verify-star API:", error);
-    res.status(500).json({ error: error.message || "Internal server error" });
   }
 });
 
@@ -988,17 +1036,93 @@ app.post("/api/ai", aiRateLimit, async (req, res) => {
 
 // Start dev server / static server
 async function startServer() {
+  // oEmbed endpoint for rich Discord/social embeds
+  app.get('/oembed.json', (req, res) => {
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers.host;
+    const baseUrl = `${protocol}://${host}`;
+    
+    res.json({
+      type: "link", 
+      version: "1.0",
+      title: "ZachCourse",
+      author_name: "ZachCourse",
+      author_url: baseUrl,
+      author_icon: `${baseUrl}/favicon.svg`,
+      icon_url: `${baseUrl}/favicon.svg`,
+      thumbnail_url: `${baseUrl}/thumbnail.png`,
+      thumbnail_width: 1200,
+      thumbnail_height: 630
+    });
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
+    // Transform index.html in dev mode
+    app.use('*', async (req, res, next) => {
+      if (req.originalUrl === '/' || req.originalUrl === '/index.html' || req.originalUrl.startsWith('/dashboard') || req.originalUrl.startsWith('/course')) {
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+        const host = req.headers.host;
+        const baseUrl = `${protocol}://${host}`;
+        try {
+          let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+          template = await vite.transformIndexHtml(req.originalUrl, template);
+          template = template.replace(/content="\/thumbnail\.svg"/g, `content="${baseUrl}/thumbnail.png"`);
+          template = template.replace(/https:\/\/zachcourse\.com\//g, `${baseUrl}/`);
+          if (!template.includes('application/json+oembed')) {
+            template = template.replace('</title>', `</title>\n    <link rel="alternate" type="application/json+oembed" href="${baseUrl}/oembed.json" title="ZachCourse" />`);
+          }
+          if (!template.includes('theme-color')) {
+            template = template.replace('</title>', `</title>\n    <meta name="theme-color" content="#6366F1" />`);
+          }
+          if (!template.includes('twitter:creator')) {
+            template = template.replace('</title>', `</title>\n    <meta name="twitter:creator" content="@ZachCourse" />`);
+          }
+          res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+          return;
+        } catch (e) {
+          vite.ssrFixStacktrace(e as Error);
+          next(e);
+          return;
+        }
+      }
+      next();
+    });
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+    
+    app.use(express.static(distPath, { index: false }));
+    
+    // Serve index.html dynamically to inject absolute URLs
+    app.get('*', (req, res, next) => {
+      if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/assets')) return next();
+      if (!req.accepts('html')) return next();
+      
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+      
+      fs.readFile(path.join(distPath, 'index.html'), 'utf8', (err: any, data: string) => {
+        if (err) return next(err);
+        
+        let html = data;
+        html = html.replace(/content="\/thumbnail\.svg"/g, `content="${baseUrl}/thumbnail.png"`);
+        html = html.replace(/https:\/\/zachcourse\.com\//g, `${baseUrl}/`);
+        if (!html.includes('application/json+oembed')) {
+          html = html.replace('</title>', `</title>\n    <link rel="alternate" type="application/json+oembed" href="${baseUrl}/oembed.json" title="ZachCourse" />`);
+        }
+        if (!html.includes('theme-color')) {
+          html = html.replace('</title>', `</title>\n    <meta name="theme-color" content="#6366F1" />`);
+        }
+        if (!html.includes('twitter:creator')) {
+          html = html.replace('</title>', `</title>\n    <meta name="twitter:creator" content="@ZachCourse" />`);
+        }
+        res.send(html);
+      });
     });
   }
 

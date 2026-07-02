@@ -1,7 +1,7 @@
 import { createAuthClient } from "better-auth/react"
 
 export const authClient = createAuthClient({
-  baseURL: import.meta.env.VITE_APP_URL || window.location.origin,
+  baseURL: (import.meta as any).env.VITE_APP_URL || window.location.origin,
   fetchOptions: {
     auth: {
       type: "Bearer",

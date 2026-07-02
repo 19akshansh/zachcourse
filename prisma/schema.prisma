@@ -1,11 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector]
 }
 
 model User {
@@ -21,6 +23,7 @@ model User {
   visualRoadmaps VisualRoadmap[]
   sessions      Session[]
   userProgress  UserProgress?
+  lessonMemories LessonMemory[]
 
   @@map("user")
 }
@@ -112,6 +115,7 @@ model Course {
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages         CourseMessage[]
   lessonContents   LessonContent[]
+  lessonMemories   LessonMemory[]
 
   @@map("course")
 }
@@ -123,6 +127,7 @@ model CourseMessage {
   content   String
   metadata  Json?
   createdAt DateTime @default(now())
+  sequence  Int      @default(autoincrement())
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@map("course_message")
@@ -158,4 +163,20 @@ model VisualRoadmap {
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("visual_roadmap")
+}
+
+model LessonMemory {
+  id          String                  @id @default(cuid())
+  userId      String
+  courseId    String
+  lessonId    String
+  lessonTitle String
+  chunk       String                  @db.Text
+  embedding   Unsupported("vector(768)")
+  createdAt   DateTime                @default(now())
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course      Course                  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@index([userId, courseId])
+  @@map("lesson_memory")
 }

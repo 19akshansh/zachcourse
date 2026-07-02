@@ -115,7 +115,7 @@ export const appRouter = router({
         include: {
           messages: {
             take: 50,
-            orderBy: { createdAt: "desc" },
+            orderBy: { sequence: "desc" },
           }
         }
       });
@@ -189,6 +189,52 @@ export const appRouter = router({
       return await ctx.prisma.courseMessage.create({
         data: input
       });
+    }),
+
+  clearChatMemory: protectedProcedure
+    .input(z.object({ courseId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const course = await ctx.prisma.course.findUnique({
+        where: { id: input.courseId, userId: ctx.user.id }
+      });
+      if (!course) throw new TRPCError({ code: "UNAUTHORIZED" });
+      await ctx.prisma.courseMessage.deleteMany({
+        where: { courseId: input.courseId }
+      });
+      return { success: true };
+    }),
+
+  clearLessonMemory: protectedProcedure
+    .input(z.object({ courseId: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        if (input.courseId) {
+          await ctx.prisma.lessonMemory.deleteMany({
+            where: { 
+              userId: ctx.user.id,
+              courseId: input.courseId 
+            }
+          });
+        } else {
+          await ctx.prisma.lessonMemory.deleteMany({
+            where: { userId: ctx.user.id }
+          });
+        }
+        return { success: true };
+      } catch (err: any) {
+        // Table doesn't exist yet (pgvector not set up)
+        // Return success silently — nothing to clear
+        const msg = err?.message || ""
+        if (
+          msg.includes("does not exist") ||
+          msg.includes("relation") ||
+          msg.includes("P2021")
+        ) {
+          console.warn("[clearLessonMemory] table not ready:", msg)
+          return { success: true }
+        }
+        throw err
+      }
     }),
 
   getLessonContent: protectedProcedure

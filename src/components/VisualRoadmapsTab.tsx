@@ -3,6 +3,7 @@ import { trpc } from "../lib/trpc-client";
 import { Map, ArrowRight, Star, Trash2, Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import VisualRoadmapGraph from "./VisualRoadmapGraph";
+import { DocumentUpload } from "./DocumentUpload";
 import { apiFetch } from "../lib/api";
 
 
@@ -32,6 +33,8 @@ export default function VisualRoadmapsTab({
   const [experienceLevel, setExperienceLevel] = useState("beginner");
   const [weeklyHours, setWeeklyHours] = useState(5);
   const [sourceUrl, setSourceUrl] = useState("");
+  const [documentContext, setDocumentContext] = useState("");
+  const [uploadedFileNames, setUploadedFileNames] = useState<string[]>([]);
   const [showForm, setShowForm] = useState(roadmaps.length === 0);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -51,7 +54,7 @@ export default function VisualRoadmapsTab({
           "Content-Type": "application/json",
           "x-user-key": userKey 
         },
-        body: JSON.stringify({ topic, experienceLevel, weeklyHours, sourceUrl }),
+        body: JSON.stringify({ topic, experienceLevel, weeklyHours, sourceUrl, documentContext }),
       });
       const data = await res.json();
       
@@ -192,6 +195,18 @@ export default function VisualRoadmapsTab({
                 onChange={(e) => setSourceUrl(e.target.value)}
                 placeholder="https://... (Docs, syllabus, or course link)"
                 className="w-full bg-[#0F0D19] border border-[#2A2443] focus:border-[#6366F1] rounded-xl px-4 py-3 text-white transition-colors placeholder:text-[#3F395B] outline-none"
+              />
+
+              <DocumentUpload
+                onExtracted={(text, names) => {
+                  setDocumentContext(text);
+                  setUploadedFileNames(names);
+                }}
+                onClear={() => {
+                  setDocumentContext("");
+                  setUploadedFileNames([]);
+                }}
+                hasDocument={!!documentContext}
               />
             </div>
 

@@ -16,6 +16,7 @@ import { apiFetch } from "./lib/api";
 import { ApiKeyOnboarding } from "./components/ApiKeyOnboarding";
 import RoadmapGraph from "./components/RoadmapGraph";
 import VisualRoadmapsTab from "./components/VisualRoadmapsTab";
+import { DocumentUpload } from "./components/DocumentUpload";
 import { toast, Toaster } from "sonner";
 import { 
   BookOpen, 
@@ -355,6 +356,8 @@ export default function App() {
   const [topicInput, setTopicInput] = useState<string>("");
   const [sourceUrlInput, setSourceUrlInput] = useState<string>("");
   const [textContentInput, setTextContentInput] = useState<string>("");
+  const [documentContext, setDocumentContext] = useState<string>("");
+  const [uploadedFileNames, setUploadedFileNames] = useState<string[]>([]);
   const [experienceLevel, setExperienceLevel] = useState<string>("beginner");
   const [weeklyHours, setWeeklyHours] = useState<number>(5);
   const [generatingRoadmap, setGeneratingRoadmap] = useState<boolean>(false);
@@ -495,6 +498,7 @@ Rules:
             topic: activeTopic || "Personalized Technology Fundamentals",
             sourceUrl: sourceUrlInput,
             textContent: textContentInput,
+            documentContext,
             experienceLevel,
             weeklyHours
           })
@@ -593,7 +597,7 @@ Include:
 Keep the style friendly and inspiring. Use rich emojis and well-spaced headers.`;
 
         const prompt = `Please generate a comprehensive study guide for:
-Course Title: "${currentRoadmap.title}"
+Course Title: "${currentRoadmap?.title}"
 Lesson Title: "${lesson.title}"
 Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
 
@@ -604,9 +608,11 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             roadmapKey: activeCourseId || "guest_roadmap",
+            courseId: activeCourseId || "guest_roadmap",
             lessonId: lesson.id,
             lessonTitle: lesson.title,
-            concepts: lesson.concepts
+            concepts: lesson.concepts,
+            documentContext
           })
         });
 
@@ -868,90 +874,111 @@ ${lessonContent}`;
 
     const userMsgObj = { 
       id: Date.now().toString(), 
-      role: "user", 
+      role: "user" as const, 
       content: userMessage, 
       createdAt: new Date(),
       courseId: activeCourseId 
     };
     
-    // Optimistic UI
+    // Add empty assistant message that we'll stream into
+    const assistantMsgId = Date.now().toString() + "_ai";
+    const assistantMsgObj = {
+      id: assistantMsgId,
+      role: "assistant" as const,
+      content: "",   // starts empty
+      createdAt: new Date(),
+      courseId: activeCourseId 
+    };
+
     setActiveCourse(prev => {
         if (!prev) return prev;
-        return { ...prev, messages: [...prev.messages, userMsgObj] };
+        return { ...prev, messages: [...prev.messages, userMsgObj, assistantMsgObj] };
     });
 
     try {
-      // Just send the message — server handles URL fetching
-      // and web search via tool calling automatically
       const userKey = localStorage.getItem("zc_user_key");
       const headers: any = { "Content-Type": "application/json" };
-      if (userKey) {
-        headers["x-user-key"] = userKey;
-      }
+      if (userKey) headers["x-user-key"] = userKey;
       
-      const response = await apiFetch("/api/mentor-chat", {
+      const response = await fetch("/api/mentor-chat", {
         method: "POST",
         headers,
         body: JSON.stringify({
           message: userMessage,
+          courseId: activeCourseId,
+          currentLessonId: selectedLesson?.id,
+          currentLessonTitle: selectedLesson?.title,
+          currentCourseTitle: activeCourse?.title,
           history: mentorMessages.slice(-10).map(m => ({
             role: m.role,
             content: m.content.slice(0, 1000)
-          })),
-          currentCourseTitle: activeCourse?.title,
-          currentLessonTitle: selectedLesson?.title
-        })
+          }))
+        }),
       });
 
-      if (response.status === 403) {
-        window.dispatchEvent(new CustomEvent("zc-quota-exceeded"));
-        setMentorLoading(false);
-        return;
-      }
-
-      if (!response.ok) throw new Error("Mentor connection issue.");
-      const data = await response.json();
-      const replyText = data.reply;
-
-      // Save to DB
-      if (sessionData?.user) {
-        await trpc.addCourseMessage.mutate({
-          courseId: activeCourseId,
-          role: "user",
-          content: userMessage,
-        });
-        await trpc.addCourseMessage.mutate({
-          courseId: activeCourseId,
-          role: "assistant",
-          content: replyText,
-        });
+      if (!response.ok) {
+        if (response.status === 403) {
+          window.dispatchEvent(new CustomEvent("zc-quota-exceeded"));
+          setMentorLoading(false);
+          return;
+        }
+        throw new Error("Mentor request failed");
       }
       
-      const assistantMessageObj = { 
-        id: Date.now().toString() + "_ai", 
-        role: "assistant", 
-        content: replyText, 
-        createdAt: new Date(),
-        courseId: activeCourseId 
-      };
-      
+      if (!response.body) throw new Error("No stream body");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullText = "";
+
+      // Hide the spinner since we are streaming now
+      setMentorLoading(false);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const json = JSON.parse(line.slice(6));
+            
+            if (json.done) break;
+            if (json.error) throw new Error(json.error);
+            
+            if (json.token) {
+              fullText += json.token;
+              setActiveCourse(prev => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  messages: prev.messages.map(m =>
+                    m.id === assistantMsgId
+                      ? { ...m, content: fullText }
+                      : m
+                  )
+                };
+              });
+            }
+          } catch (err) {
+             // ignore parse error for chunks
+          }
+        }
+      }
+    } catch (err: any) {
       setActiveCourse(prev => {
         if (!prev) return prev;
-        return { ...prev, messages: [...prev.messages, assistantMessageObj] };
+        return {
+          ...prev,
+          messages: prev.messages.filter(m => m.id !== assistantMsgId)
+        }
       });
-    } catch (err) {
-      console.error(err);
-      toast.error("Connection issue — please try again");
-      setActiveCourse(prev => {
-        if (!prev) return prev;
-        return { ...prev, messages: [...prev.messages, {
-          id: Date.now().toString() + "_error",
-          role: "assistant",
-          content: "I'm so sorry, my communication channel was briefly interrupted! 🥺 Let's try that again. What were you saying about your goals?",
-          createdAt: new Date(),
-          courseId: activeCourseId 
-        }] };
-      });
+      toast.error(err.message || "Mentor failed to respond");
     } finally {
       setMentorLoading(false);
     }
@@ -1376,6 +1403,18 @@ ${lessonContent}`;
                     )}
                   </div>
 
+                  <DocumentUpload
+                    onExtracted={(text, names) => {
+                      setDocumentContext(text);
+                      setUploadedFileNames(names);
+                    }}
+                    onClear={() => {
+                      setDocumentContext("");
+                      setUploadedFileNames([]);
+                    }}
+                    hasDocument={!!documentContext}
+                  />
+
                   <button
                     type="submit"
                     disabled={generatingRoadmap}
@@ -1426,7 +1465,7 @@ ${lessonContent}`;
                         {currentRoadmap.modules?.length || 0} modules setup
                       </span>
                     </div>
-                    <h3 className="font-sans font-bold text-[#FAF9FD] text-xl tracking-tight">{currentRoadmap.title}</h3>
+                    <h3 className="font-sans font-bold text-[#FAF9FD] text-xl tracking-tight">{currentRoadmap?.title}</h3>
                     <p className="text-base text-[#8E88AB] leading-relaxed mt-2">{currentRoadmap.description}</p>
                   </div>
                   
@@ -1728,7 +1767,7 @@ ${lessonContent}`;
               <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl">
                 <h4 className="text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-2">Active Context</h4>
                 <div className="space-y-2">
-                  <p className="text-base font-semibold text-[#FAF9FD] truncate">📚 {currentRoadmap.title}</p>
+                  <p className="text-base font-semibold text-[#FAF9FD] truncate">📚 {currentRoadmap?.title}</p>
                   {selectedLesson ? (
                     <p className="text-sm text-[#818CF8] font-medium">🎯 Selected Topic: {selectedLesson.title}</p>
                   ) : (
@@ -1742,13 +1781,26 @@ ${lessonContent}`;
             <div className="lg:col-span-8 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col h-[400px] md:h-[500px] lg:h-[600px]">
               <div className="flex items-center gap-3 border-b border-[#2A2443] pb-4 mb-4">
                 <span className="text-3xl select-none">🧑‍🏫</span>
-                <div>
+                <div className="flex-1">
                   <h3 className="text-xl font-bold text-[#FAF9FD]">Your Friendly Learning Tutor</h3>
                   <p className="text-sm text-[#10B981] font-medium flex items-center gap-1">
                     <span className="w-2.5 h-2.5 bg-[#10B981] rounded-full animate-pulse"></span>
                     Ready to chat and help you understand!
                   </p>
                 </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      await trpc.clearChatMemory.mutate({ courseId: activeCourseId });
+                      toast.success("Memory cleared for this course"); setActiveCourse(prev => prev ? { ...prev, messages: [] } : prev);
+                    } catch (e) {
+                      toast.error("Failed to clear memory");
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-[#121021] hover:bg-[#151227] border border-[#2A2443] rounded-lg text-sm text-[#8E88AB] transition-colors"
+                >
+                  🧠 Clear memory
+                </button>
               </div>
 
               {/* Message List */}
@@ -2078,7 +2130,7 @@ ${lessonContent}`;
                              <div key={lessonId} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#121021] px-3 py-2 rounded-xl gap-2">
                                <span className="text-xs text-[#CECADF] truncate w-full sm:max-w-[150px]" title={lessonTitle}>{lessonTitle}</span>
                                <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap self-start sm:self-auto ${Number(score) >= 60 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                                 {score}% Correct
+                                 {String(score)}% Correct
                                </span>
                              </div>
                            );
