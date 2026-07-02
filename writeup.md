@@ -202,14 +202,6 @@ Testing focused on functional correctness and edge case robustness:
 
 ---
 
-## Future Work
-
-- Automated evaluation pipeline using AI-as-judge for generated lesson quality
-- Collaborative multi-agent lesson review — a Critic agent challenges the Roadmap Agent's output before it reaches the learner
-- Agent Node in the visual roadmap — allow users to insert custom AI steps into their learning path
-
----
-
 ## Conclusion
 
 ZachCourse proves that putting agents at the center of a learning platform — rather than bolting AI onto an existing content library — produces something qualitatively different. The Mentor doesn't just retrieve stored answers; it reasons, fetches, searches, and responds to the learner's actual context in real time. The Roadmap Agent doesn't serve pre-built courses; it architects a curriculum from scratch for your specific goal and schedule.
