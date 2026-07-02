@@ -204,9 +204,6 @@ Testing focused on functional correctness and edge case robustness:
 
 ## Future Work
 
-- Retrieval-augmented generation for user-uploaded PDFs and documents
-- Semantic long-term memory using vector embeddings of past lesson interactions
-- Streaming responses in the mentor chat (currently buffered)
 - Automated evaluation pipeline using AI-as-judge for generated lesson quality
 - Collaborative multi-agent lesson review — a Critic agent challenges the Roadmap Agent's output before it reaches the learner
 - Agent Node in the visual roadmap — allow users to insert custom AI steps into their learning path
