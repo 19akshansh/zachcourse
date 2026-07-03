@@ -110,7 +110,7 @@ ZachCourse is powered by a team of specialized AI agents working together:
 │   ├── eval-lessons.ts
 │   └── setup-db.sh
 ├── src
-│   ├── app/                # Next.js App Router folders
+│   ├── app/                # Reactjs App Router folders
 │   │   ├── (auth)/
 │   │   ├── api/
 │   │   ├── layout.tsx
