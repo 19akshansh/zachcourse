@@ -124,7 +124,7 @@ export default function ResetPasswordPage() {
   }, [success]);
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-center p-6 font-sans">
+    <main className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-center p-6 font-sans">
       <div className="w-full max-w-md bg-[#111118] border border-[#1E1E2E] rounded-3xl p-8 shadow-2xl relative overflow-hidden"
            style={{ boxShadow: "0 0 40px rgba(99,102,241,0.15)" }}>
         {/* Glow Effect Accent */}
@@ -255,6 +255,6 @@ export default function ResetPasswordPage() {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

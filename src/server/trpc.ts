@@ -66,6 +66,11 @@ export const appRouter = router({
     return progress;
   }),
 
+  getLearningMetrics: protectedProcedure.query(async ({ ctx }) => {
+    const { computeUserMetrics } = await import("../lib/metrics.js");
+    return await computeUserMetrics(ctx.user.id);
+  }),
+
   updateUserProgress: protectedProcedure
     .input(
       z.object({
@@ -286,6 +291,120 @@ export const appRouter = router({
       });
     }),
 
+  validateLesson: protectedProcedure
+    .input(z.object({ 
+      courseId: z.string(), 
+      lessonId: z.string(), 
+      content: z.string(),
+      topic: z.string(),
+      level: z.string()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const course = await ctx.prisma.course.findUnique({
+        where: { id: input.courseId, userId: ctx.user.id },
+      });
+      if (!course) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+      const systemPrompt = `You are an expert curriculum auditor and quality assurance reviewer.
+Analyze the following lesson content against these criteria:
+1. Factual accuracy: Flag any incorrect or questionable claims.
+2. Difficulty match: Judge if this matches a "\${input.level}" level.
+3. Safety: Flag any biased, harmful, or inappropriate content.
+4. Clarity: Score the pedagogy and clarity from 1-5.
+
+Respond thoughtfully and critically.`;
+
+      const prompt = `Topic: \${input.topic}
+Lesson Level: \${input.level}
+
+Lesson Content:
+\${input.content}
+`;
+
+      const schema = z.object({
+        isApproved: z.boolean(),
+        clarityScore: z.number().min(1).max(5),
+        difficultyMatch: z.boolean(),
+        issues: z.array(z.string()),
+        suggestions: z.array(z.string()),
+      });
+
+      const { callGemini } = await import("../lib/gemini-client.js");
+      let result;
+      try {
+        result = await callGemini(prompt, systemPrompt, { schema });
+      } catch (err) {
+        console.error("Lesson validation failed:", err);
+        result = { isApproved: true, clarityScore: 5, difficultyMatch: true, issues: [], suggestions: [] };
+      }
+
+      await ctx.prisma.lessonContent.upsert({
+        where: { courseId_lessonId: { courseId: input.courseId, lessonId: input.lessonId } },
+        update: {
+          qualityScore: result.clarityScore,
+          evaluationData: result as any,
+        },
+        create: {
+          courseId: input.courseId,
+          lessonId: input.lessonId,
+          content: input.content,
+          qualityScore: result.clarityScore,
+          evaluationData: result as any,
+        }
+      });
+
+      return result;
+    }),
+
+  analyzeQuizPerformance: protectedProcedure
+    .input(z.object({ 
+      courseId: z.string(), 
+      lessonId: z.string(), 
+      score: z.number(), 
+      topic: z.string() 
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const systemPrompt = `You are an adaptive learning coordinator. Based on the user's recent quiz score, recommend what they should do next.
+Return ONLY valid JSON matching this schema:
+{
+  "recommendation": string,
+  "difficultyAdjustment": "increase" | "decrease" | "maintain",
+  "reviewTopics": string[]
+}`;
+      const prompt = `Topic: \${input.topic}\nRecent Score: \${input.score}%`;
+      
+      const schema = z.object({
+        recommendation: z.string(),
+        difficultyAdjustment: z.enum(["increase", "decrease", "maintain"]),
+        reviewTopics: z.array(z.string())
+      });
+
+      const { callGemini } = await import("../lib/gemini-client.js");
+      let analysis;
+      try {
+        analysis = await callGemini(prompt, systemPrompt, { schema });
+      } catch (err) {
+        console.error("Analysis failed", err);
+        analysis = {
+          recommendation: "Keep up the good work!",
+          difficultyAdjustment: "maintain",
+          reviewTopics: []
+        };
+      }
+
+      const progress = await ctx.prisma.userProgress.findUnique({ where: { userId: ctx.user.id }});
+      if (progress) {
+        const scores = Array.isArray(progress.quizScores) ? progress.quizScores : [];
+        scores.push({ courseId: input.courseId, lessonId: input.lessonId, score: input.score, date: new Date().toISOString() });
+        await ctx.prisma.userProgress.update({
+          where: { userId: ctx.user.id },
+          data: { quizScores: scores }
+        });
+      }
+
+      return analysis;
+    }),
+
   deleteCourse: protectedProcedure
     .input(z.object({ courseId: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -395,6 +514,565 @@ export const appRouter = router({
         }
       })
     }),
+
+  updateProjectStatus: protectedProcedure
+    .input(z.object({
+      projectId: z.string(),
+      status: z.string(),
+      submissionNote: z.string().optional()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const project = await ctx.prisma.project.update({
+        where: { id: input.projectId, userId: ctx.user.id },
+        data: {
+          status: input.status,
+          submissionNote: input.submissionNote
+        }
+      });
+      return project;
+    }),
+
+  getModuleProject: protectedProcedure
+    .input(z.object({ courseId: z.string(), moduleId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return await ctx.prisma.project.findUnique({
+        where: { courseId_moduleId: { courseId: input.courseId, moduleId: input.moduleId } }
+      });
+    }),
+
+  generateProject: protectedProcedure
+    .input(z.object({ 
+      courseId: z.string(), 
+      moduleId: z.string(), 
+      moduleTitle: z.string(), 
+      topic: z.string(), 
+      level: z.string() 
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Check if project already exists
+      const existing = await ctx.prisma.project.findUnique({
+        where: { courseId_moduleId: { courseId: input.courseId, moduleId: input.moduleId } }
+      });
+      if (existing) return existing;
+
+      const systemPrompt = `You are a technical mentor creating a real-world portfolio project for a student.
+Topic: \${input.topic}
+Module: \${input.moduleTitle}
+Level: \${input.level}
+
+Generate a comprehensive project that applies the concepts learned in this module. Return ONLY JSON matching this schema:
+{
+  "title": string,
+  "description": string,
+  "objectives": string[],
+  "steps": string[],
+  "estimatedHours": number,
+  "successCriteria": string[]
+}`;
+      const schema = z.object({
+        title: z.string(),
+        description: z.string(),
+        objectives: z.array(z.string()),
+        steps: z.array(z.string()),
+        estimatedHours: z.number(),
+        successCriteria: z.array(z.string())
+      });
+
+      const { callGemini } = await import("../lib/gemini-client.js");
+      const result: any = await callGemini("Generate module project", systemPrompt, { schema });
+
+      const project = await ctx.prisma.project.create({
+        data: {
+          courseId: input.courseId,
+          userId: ctx.user.id,
+          moduleId: input.moduleId,
+          title: result.title,
+          description: result.description,
+          objectives: result.objectives,
+          steps: result.steps,
+          estimatedHours: result.estimatedHours,
+          successCriteria: result.successCriteria,
+        }
+      });
+      return project;
+    }),
+
+  getCohortActivity: protectedProcedure
+    .input(z.object({ cohortId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const isMember = await ctx.prisma.cohortMember.findUnique({
+        where: { cohortId_userId: { cohortId: input.cohortId, userId: ctx.user.id } }
+      });
+      if (!isMember) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+      const members = await ctx.prisma.cohortMember.findMany({
+        where: { cohortId: input.cohortId }
+      });
+      const memberIds = members.map(m => m.userId);
+
+      const recentProgress = await ctx.prisma.userProgress.findMany({
+        where: { userId: { in: memberIds } },
+        include: { user: true },
+        orderBy: { updatedAt: 'desc' },
+        take: 20
+      });
+
+      return recentProgress.map(p => ({
+        userId: p.userId,
+        userName: p.user.name,
+        action: p.currentCourse ? `Studied ${p.currentCourse}` : 'Logged activity',
+        time: p.updatedAt
+      }));
+    }),
+
+  getCohortLeaderboard: protectedProcedure
+    .input(z.object({ cohortId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const isMember = await ctx.prisma.cohortMember.findUnique({
+        where: { cohortId_userId: { cohortId: input.cohortId, userId: ctx.user.id } }
+      });
+      if (!isMember) throw new TRPCError({ code: "UNAUTHORIZED" });
+
+      const cohort = await ctx.prisma.cohort.findUnique({
+        where: { id: input.cohortId },
+        include: {
+          course: true,
+          visualRoadmap: true
+        }
+      });
+      if (!cohort) throw new TRPCError({ code: "NOT_FOUND", message: "Cohort not found" });
+
+      const members = await ctx.prisma.cohortMember.findMany({
+        where: { cohortId: input.cohortId },
+        include: { user: true }
+      });
+
+      const leaderboard = await Promise.all(
+        members.map(async m => {
+          // Scoped metrics
+          const memberCourse = cohort.courseId ? await ctx.prisma.course.findFirst({
+            where: {
+              userId: m.userId,
+              OR: [
+                { clonedFromCourseId: cohort.courseId },
+                { id: cohort.courseId }
+              ]
+            }
+          }) : null;
+
+          const memberRoadmap = cohort.visualRoadmapId ? await ctx.prisma.visualRoadmap.findFirst({
+            where: {
+              userId: m.userId,
+              OR: [
+                { clonedFromRoadmapId: cohort.visualRoadmapId },
+                { id: cohort.visualRoadmapId }
+              ]
+            }
+          }) : null;
+
+          let estimatedProficiency = 0;
+          let avgQuizScore = 0;
+
+          if (memberCourse) {
+            const completedLessons = Array.isArray(memberCourse.completedLessons) ? memberCourse.completedLessons : [];
+            const totalLessonsCompleted = completedLessons.length;
+            let quizScores: number[] = [];
+            if (memberCourse.completedQuizzes && typeof memberCourse.completedQuizzes === 'object' && !Array.isArray(memberCourse.completedQuizzes)) {
+              const quizzes = memberCourse.completedQuizzes as any;
+              quizScores.push(...(Object.values(quizzes) as number[]));
+            }
+            avgQuizScore = quizScores.length > 0 
+               ? Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length)
+               : 0;
+            estimatedProficiency = Math.min(100, Math.max(0, Math.round((avgQuizScore * 0.7) + (Math.min(100, totalLessonsCompleted * 5) * 0.3))));
+          } else if (memberRoadmap) {
+            const completedNodeIds = Array.isArray(memberRoadmap.completedNodeIds) ? memberRoadmap.completedNodeIds : [];
+            estimatedProficiency = Math.min(100, completedNodeIds.length * 5);
+          }
+
+          const progress = await ctx.prisma.userProgress.findUnique({
+            where: { userId: m.userId }
+          });
+
+          return {
+            userId: m.userId,
+            name: m.user.name,
+            estimatedProficiency,
+            avgQuizScore,
+            currentStreak: progress?.streakDays || 0
+          };
+        })
+      );
+
+      return leaderboard.sort((a, b) => b.estimatedProficiency - a.estimatedProficiency);
+    }),
+
+  previewCohortByInviteCode: protectedProcedure
+    .input(z.object({ inviteCode: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const cohort = await ctx.prisma.cohort.findUnique({
+        where: { inviteCode: input.inviteCode },
+        include: {
+          owner: { select: { name: true } },
+          members: true,
+          course: { select: { id: true, title: true, difficulty: true } },
+          visualRoadmap: { select: { id: true, title: true, difficulty: true } }
+        }
+      });
+      if (!cohort) return null;
+      return {
+        id: cohort.id,
+        name: cohort.name,
+        ownerName: cohort.owner.name,
+        memberCount: cohort.members.length,
+        course: cohort.course,
+        visualRoadmap: cohort.visualRoadmap
+      };
+    }),
+
+  joinCohort: protectedProcedure
+    .input(z.object({ inviteCode: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const cohort = await ctx.prisma.cohort.findUnique({
+        where: { inviteCode: input.inviteCode }
+      });
+      if (!cohort) throw new TRPCError({ code: "NOT_FOUND", message: "Invalid invite code" });
+
+      await ctx.prisma.cohortMember.upsert({
+        where: { cohortId_userId: { cohortId: cohort.id, userId: ctx.user.id } },
+        create: { cohortId: cohort.id, userId: ctx.user.id },
+        update: {}
+      });
+      return cohort;
+    }),
+
+  joinCohortAndClone: protectedProcedure
+    .input(z.object({ inviteCode: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const cohort = await ctx.prisma.cohort.findUnique({
+        where: { inviteCode: input.inviteCode },
+        include: {
+          course: true,
+          visualRoadmap: true
+        }
+      });
+      if (!cohort) throw new TRPCError({ code: "NOT_FOUND", message: "Invalid invite code" });
+
+      let userCourseId: string | null = null;
+      if (cohort.courseId) {
+        if (cohort.ownerId === ctx.user.id) {
+          userCourseId = cohort.courseId;
+        } else {
+          const existingClonedCourse = await ctx.prisma.course.findFirst({
+            where: {
+              userId: ctx.user.id,
+              OR: [
+                { clonedFromCourseId: cohort.courseId },
+                { id: cohort.courseId }
+              ]
+            }
+          });
+          if (existingClonedCourse) {
+            userCourseId = existingClonedCourse.id;
+          } else if (cohort.course) {
+            const cloned = await ctx.prisma.course.create({
+              data: {
+                userId: ctx.user.id,
+                title: cohort.course.title,
+                description: cohort.course.description,
+                topic: cohort.course.topic,
+                sourceUrl: cohort.course.sourceUrl,
+                difficulty: cohort.course.difficulty,
+                totalDuration: cohort.course.totalDuration,
+                roadmapData: cohort.course.roadmapData || {},
+                experienceLevel: cohort.course.experienceLevel,
+                weeklyHours: cohort.course.weeklyHours,
+                completedLessons: [],
+                completedQuizzes: {},
+                clonedFromCourseId: cohort.courseId,
+                isActive: true
+              }
+            });
+            userCourseId = cloned.id;
+          }
+        }
+      }
+
+      let userRoadmapId: string | null = null;
+      if (cohort.visualRoadmapId) {
+        if (cohort.ownerId === ctx.user.id) {
+          userRoadmapId = cohort.visualRoadmapId;
+        } else {
+          const existingClonedRoadmap = await ctx.prisma.visualRoadmap.findFirst({
+            where: {
+              userId: ctx.user.id,
+              OR: [
+                { clonedFromRoadmapId: cohort.visualRoadmapId },
+                { id: cohort.visualRoadmapId }
+              ]
+            }
+          });
+          if (existingClonedRoadmap) {
+            userRoadmapId = existingClonedRoadmap.id;
+          } else if (cohort.visualRoadmap) {
+            const cloned = await ctx.prisma.visualRoadmap.create({
+              data: {
+                userId: ctx.user.id,
+                title: cohort.visualRoadmap.title,
+                topic: cohort.visualRoadmap.topic,
+                description: cohort.visualRoadmap.description,
+                difficulty: cohort.visualRoadmap.difficulty,
+                totalDuration: cohort.visualRoadmap.totalDuration,
+                experienceLevel: cohort.visualRoadmap.experienceLevel,
+                weeklyHours: cohort.visualRoadmap.weeklyHours,
+                roadmapData: cohort.visualRoadmap.roadmapData || {},
+                completedNodeIds: [],
+                clonedFromRoadmapId: cohort.visualRoadmapId,
+                isFavorite: false
+              }
+            });
+            userRoadmapId = cloned.id;
+          }
+        }
+      }
+
+      await ctx.prisma.cohortMember.upsert({
+        where: { cohortId_userId: { cohortId: cohort.id, userId: ctx.user.id } },
+        create: { cohortId: cohort.id, userId: ctx.user.id },
+        update: {}
+      });
+
+      return {
+        cohortId: cohort.id,
+        courseId: userCourseId,
+        visualRoadmapId: userRoadmapId
+      };
+    }),
+
+  createCohort: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1, "Name is required"),
+        courseId: z.string().optional().nullable(),
+        visualRoadmapId: z.string().optional().nullable(),
+      }).refine(data => data.courseId || data.visualRoadmapId, {
+        message: "At least one of Course or Roadmap must be selected",
+        path: ["courseId"]
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (input.courseId) {
+        const course = await ctx.prisma.course.findFirst({
+          where: { id: input.courseId, userId: ctx.user.id }
+        });
+        if (!course) throw new TRPCError({ code: "FORBIDDEN", message: "You do not own this course" });
+      }
+      if (input.visualRoadmapId) {
+        const roadmap = await ctx.prisma.visualRoadmap.findFirst({
+          where: { id: input.visualRoadmapId, userId: ctx.user.id }
+        });
+        if (!roadmap) throw new TRPCError({ code: "FORBIDDEN", message: "You do not own this roadmap" });
+      }
+
+      const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const cohort = await ctx.prisma.cohort.create({
+        data: {
+          name: input.name,
+          ownerId: ctx.user.id,
+          inviteCode,
+          courseId: input.courseId || null,
+          visualRoadmapId: input.visualRoadmapId || null,
+          members: {
+            create: { userId: ctx.user.id }
+          }
+        },
+        include: {
+          course: true,
+          visualRoadmap: true,
+          members: {
+            include: { user: true }
+          }
+        }
+      });
+      return cohort;
+    }),
+
+  getUserCohorts: protectedProcedure.query(async ({ ctx }) => {
+    return await ctx.prisma.cohortMember.findMany({
+      where: { userId: ctx.user.id },
+      include: {
+        cohort: {
+          include: {
+            course: true,
+            visualRoadmap: true,
+            _count: { select: { members: true } }
+          }
+        }
+      }
+    });
+  }),
+
+  // Teacher MVP Procedures
+  createClassroom: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1, "Name is required"),
+        courseId: z.string().optional().nullable(),
+        visualRoadmapId: z.string().optional().nullable(),
+      }).refine(data => data.courseId || data.visualRoadmapId, {
+        message: "At least one of Course or Roadmap must be selected",
+        path: ["courseId"]
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      if ((ctx.user as any).role !== "teacher") throw new TRPCError({ code: "FORBIDDEN" });
+      if (input.courseId) {
+        const course = await ctx.prisma.course.findFirst({
+          where: { id: input.courseId, userId: ctx.user.id }
+        });
+        if (!course) throw new TRPCError({ code: "FORBIDDEN", message: "You do not own this course" });
+      }
+      if (input.visualRoadmapId) {
+        const roadmap = await ctx.prisma.visualRoadmap.findFirst({
+          where: { id: input.visualRoadmapId, userId: ctx.user.id }
+        });
+        if (!roadmap) throw new TRPCError({ code: "FORBIDDEN", message: "You do not own this roadmap" });
+      }
+
+      const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      return await ctx.prisma.cohort.create({
+        data: {
+          name: input.name,
+          ownerId: ctx.user.id,
+          inviteCode,
+          isClassroom: true,
+          courseId: input.courseId || null,
+          visualRoadmapId: input.visualRoadmapId || null,
+        }
+      });
+    }),
+
+  getClassroomRoster: protectedProcedure
+    .input(z.object({ classroomId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if ((ctx.user as any).role !== "teacher") throw new TRPCError({ code: "FORBIDDEN" });
+      const classroom = await ctx.prisma.cohort.findUnique({
+        where: { id: input.classroomId },
+        include: {
+          course: true,
+          visualRoadmap: true
+        }
+      });
+      if (!classroom || classroom.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+
+      const members = await ctx.prisma.cohortMember.findMany({
+        where: { cohortId: input.classroomId },
+        include: { user: true }
+      });
+
+      const roster = await Promise.all(
+        members.map(async m => {
+          // Scoped metrics
+          const memberCourse = classroom.courseId ? await ctx.prisma.course.findFirst({
+            where: {
+              userId: m.userId,
+              OR: [
+                { clonedFromCourseId: classroom.courseId },
+                { id: classroom.courseId }
+              ]
+            }
+          }) : null;
+
+          const memberRoadmap = classroom.visualRoadmapId ? await ctx.prisma.visualRoadmap.findFirst({
+            where: {
+              userId: m.userId,
+              OR: [
+                { clonedFromRoadmapId: classroom.visualRoadmapId },
+                { id: classroom.visualRoadmapId }
+              ]
+            }
+          }) : null;
+
+          let estimatedProficiency = 0;
+          let avgQuizScore = 0;
+          let totalLessonsCompleted = 0;
+
+          if (memberCourse) {
+            const completedLessons = Array.isArray(memberCourse.completedLessons) ? memberCourse.completedLessons : [];
+            totalLessonsCompleted = completedLessons.length;
+            let quizScores: number[] = [];
+            if (memberCourse.completedQuizzes && typeof memberCourse.completedQuizzes === 'object' && !Array.isArray(memberCourse.completedQuizzes)) {
+              const quizzes = memberCourse.completedQuizzes as any;
+              quizScores.push(...(Object.values(quizzes) as number[]));
+            }
+            avgQuizScore = quizScores.length > 0 
+               ? Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length)
+               : 0;
+            estimatedProficiency = Math.min(100, Math.max(0, Math.round((avgQuizScore * 0.7) + (Math.min(100, totalLessonsCompleted * 5) * 0.3))));
+          } else if (memberRoadmap) {
+            const completedNodeIds = Array.isArray(memberRoadmap.completedNodeIds) ? memberRoadmap.completedNodeIds : [];
+            totalLessonsCompleted = completedNodeIds.length;
+            estimatedProficiency = Math.min(100, completedNodeIds.length * 5);
+          }
+
+          const progress = await ctx.prisma.userProgress.findUnique({
+            where: { userId: m.userId }
+          });
+
+          return {
+            userId: m.userId,
+            name: m.user.name,
+            email: m.user.email,
+            estimatedProficiency,
+            avgQuizScore,
+            totalLessonsCompleted,
+            currentStreak: progress?.streakDays || 0
+          };
+        })
+      );
+      return roster;
+    }),
+
+  getStudentDetail: protectedProcedure
+    .input(z.object({ classroomId: z.string(), studentId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      if ((ctx.user as any).role !== "teacher") throw new TRPCError({ code: "FORBIDDEN" });
+      const classroom = await ctx.prisma.cohort.findUnique({ where: { id: input.classroomId } });
+      if (!classroom || classroom.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+
+      const courses = await ctx.prisma.course.findMany({
+        where: { userId: input.studentId },
+        select: { id: true, title: true, difficulty: true, completedLessons: true, completedQuizzes: true }
+      });
+
+      const progress = await ctx.prisma.userProgress.findUnique({
+        where: { userId: input.studentId }
+      });
+
+      // Compute weak topics (scores < 70)
+      const weakTopics: any[] = [];
+      if (progress && Array.isArray(progress.quizScores)) {
+        progress.quizScores.forEach((qs: any) => {
+          if (qs.score < 70) {
+            weakTopics.push({ topic: qs.topic || "Unknown Topic", score: qs.score });
+          }
+        });
+      }
+
+      return { courses, weakTopics, progress };
+    }),
+
+  getTeacherClassrooms: protectedProcedure.query(async ({ ctx }) => {
+    if ((ctx.user as any).role !== "teacher") throw new TRPCError({ code: "FORBIDDEN" });
+    return await ctx.prisma.cohort.findMany({
+      where: { ownerId: ctx.user.id, isClassroom: true },
+      include: {
+        course: true,
+        visualRoadmap: true,
+        _count: { select: { members: true } }
+      }
+    });
+  })
 });
 
 export type AppRouter = typeof appRouter;

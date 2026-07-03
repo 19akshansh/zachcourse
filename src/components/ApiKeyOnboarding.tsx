@@ -46,7 +46,7 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
   };
 
   return (
-    <div className="min-h-screen bg-[#0F0D19] flex items-center justify-center p-4 font-sans text-white">
+    <main className="min-h-screen bg-[#0F0D19] flex items-center justify-center p-4 font-sans text-white">
       <div className="bg-[#111118] border border-[#1E1E2E] rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative">
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#6366F1] via-[#8B5CF6] to-[#EC4899] z-10 rounded-t-3xl"></div>
         
@@ -136,6 +136,6 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
           </div>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

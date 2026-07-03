@@ -16,6 +16,7 @@ model User {
   email         String        @unique
   emailVerified Boolean       @default(false)
   image         String?
+  role          String        @default("student")
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   accounts      Account[]
@@ -24,6 +25,9 @@ model User {
   sessions      Session[]
   userProgress  UserProgress?
   lessonMemories LessonMemory[]
+  cohortsOwned  Cohort[]      @relation("CohortOwner")
+  cohortMemberships CohortMember[]
+  projects      Project[]
 
   @@map("user")
 }
@@ -116,6 +120,9 @@ model Course {
   messages         CourseMessage[]
   lessonContents   LessonContent[]
   lessonMemories   LessonMemory[]
+  projects         Project[]
+  clonedFromCourseId String?
+  cohorts            Cohort[]
 
   @@map("course")
 }
@@ -163,6 +170,8 @@ model VisualRoadmap {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clonedFromRoadmapId String?
+  cohorts              Cohort[]
 
   @@map("visual_roadmap")
 }
@@ -181,4 +190,56 @@ model LessonMemory {
   
   @@index([userId, courseId])
   @@map("lesson_memory")
+}
+
+model Cohort {
+  id              String         @id @default(cuid())
+  name            String
+  ownerId         String
+  inviteCode      String         @unique
+  isClassroom     Boolean        @default(false)
+  courseId        String?
+  visualRoadmapId String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  owner           User           @relation("CohortOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  course          Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  visualRoadmap   VisualRoadmap? @relation(fields: [visualRoadmapId], references: [id], onDelete: SetNull)
+  members         CohortMember[]
+
+  @@map("cohort")
+}
+
+model CohortMember {
+  id        String   @id @default(cuid())
+  cohortId  String
+  userId    String
+  joinedAt  DateTime @default(now())
+  cohort    Cohort   @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cohortId, userId])
+  @@map("cohort_member")
+}
+
+model Project {
+  id              String   @id @default(cuid())
+  courseId        String
+  userId          String
+  moduleId        String
+  title           String
+  description     String
+  objectives      Json
+  steps           Json
+  estimatedHours  Int
+  successCriteria Json
+  status          String   @default("not_started") // "not_started", "in_progress", "completed"
+  submissionNote  String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, moduleId])
+  @@map("project")
 }

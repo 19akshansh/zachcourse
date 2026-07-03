@@ -1,10 +1,11 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
-import { generateText } from "ai"
+import { generateText, generateObject } from "ai"
 import { 
   getStarBonusRemaining, 
   decrementStarBonus 
 } from "./usage"
 import { apiFetch } from "./api"
+import { z } from "zod"
 
 export function hasUserKey(): boolean {
   return !!(
@@ -13,33 +14,68 @@ export function hasUserKey(): boolean {
   )
 }
 
-export async function callGemini(
+export async function callGemini<T = any>(
   prompt: string, 
-  systemPrompt?: string
-): Promise<string> {
-  const userKey = typeof window !== "undefined" 
-    ? localStorage.getItem("zc_user_key") 
-    : null
+  systemPrompt?: string,
+  options?: { schema?: z.ZodType<T> }
+): Promise<string | T> {
+  const isServer = typeof window === "undefined"
+
+  if (isServer) {
+    const key = process.env.GEMINI_API_KEY
+    if (!key) throw new Error("GEMINI_API_KEY not configured on server")
+    const google = createGoogleGenerativeAI({ apiKey: key })
+    const model = google("gemini-2.5-flash")
+
+    if (options?.schema) {
+      const { object } = await generateObject({
+        model,
+        system: systemPrompt,
+        messages: [{ role: 'user' as const, content: prompt }],
+        schema: options.schema as any,
+      } as any)
+      return object as any
+    } else {
+      const { text } = await generateText({
+        model,
+        system: systemPrompt,
+        messages: [{ role: 'user' as const, content: prompt }],
+      })
+      if (!text) throw new Error("Empty response from Gemini")
+      return text
+    }
+  }
+
+  const userKey = localStorage.getItem("zc_user_key")
 
   if (userKey) {
     try {
-      // Create a client with the user's own key
       const google = createGoogleGenerativeAI({ 
         apiKey: userKey 
       })
+      const model = google("gemini-2.5-flash")
       
-      const { text } = await generateText({
-        model: google("gemini-2.5-flash"),
-        system: systemPrompt || undefined,
-        prompt,
-      })
-      
-      if (!text) throw new Error("Empty response from Gemini")
-      return text
+      if (options?.schema) {
+        const { object } = await generateObject({
+          model,
+          system: systemPrompt,
+          messages: [{ role: 'user' as const, content: prompt }],
+          schema: options.schema as any,
+        } as any)
+        return object as any
+      } else {
+        const { text } = await generateText({
+          model,
+          system: systemPrompt,
+          messages: [{ role: 'user' as const, content: prompt }],
+        })
+        
+        if (!text) throw new Error("Empty response from Gemini")
+        return text
+      }
       
     } catch (err: any) {
       console.error("[callGemini] user key error:", err)
-      // If quota exceeded on user's key, tell them clearly
       if (err?.message?.includes("429") || 
           err?.message?.includes("quota")) {
         throw new Error(
@@ -50,6 +86,10 @@ export async function callGemini(
       }
       throw err
     }
+  }
+
+  if (options?.schema) {
+    throw new Error("Structured output with proxy not supported on client without user key")
   }
 
   // No user key — use server proxy with quota check

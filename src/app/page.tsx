@@ -118,6 +118,7 @@ export default function LandingPage() {
         </div>
       </header>
 
+      <main>
       {/* HERO SECTION */}
       <section className="relative pt-20 pb-24 px-6 max-w-7xl mx-auto flex flex-col items-center text-center">
         {/* Badge */}
@@ -459,6 +460,7 @@ export default function LandingPage() {
           </p>
         </div>
       </section>
+      </main>
 
       {/* FOOTER */}
       <footer className="border-t border-[#1E1E2E] bg-[#0A0A0F] py-12 px-6">

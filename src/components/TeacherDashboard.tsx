@@ -1,0 +1,339 @@
+import React, { useState, useEffect } from "react";
+import { trpc } from "../lib/trpc-client";
+import { BookOpen, Users, Download, TrendingUp, ChevronLeft, Map } from "lucide-react";
+import { toast } from "sonner";
+
+export default function TeacherDashboard() {
+  const [classrooms, setClassrooms] = useState<any[]>([]);
+  const [activeClassroom, setActiveClassroom] = useState<any | null>(null);
+  const [roster, setRoster] = useState<any[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  const [studentDetails, setStudentDetails] = useState<any | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [newClassroomName, setNewClassroomName] = useState("");
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [selectedVisualRoadmapId, setSelectedVisualRoadmapId] = useState("");
+
+  const [courses, setCourses] = useState<any[]>([]);
+  const [roadmaps, setRoadmaps] = useState<any[]>([]);
+
+  const loadClassrooms = async () => {
+    try {
+      const data = await trpc.getTeacherClassrooms.query();
+      setClassrooms(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTeacherContent = async () => {
+    try {
+      const [coursesRes, roadmapsRes] = await Promise.all([
+        trpc.getCourses.query(),
+        trpc.getVisualRoadmaps.query()
+      ]);
+      setCourses(coursesRes || []);
+      setRoadmaps(roadmapsRes || []);
+    } catch (e) {
+      console.error("Failed to load content for classroom selection", e);
+    }
+  };
+
+  useEffect(() => {
+    loadClassrooms();
+    loadTeacherContent();
+  }, []);
+
+  const handleCreateClassroom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClassroomName.trim()) return;
+    if (!selectedCourseId && !selectedVisualRoadmapId) {
+      toast.error("Please select a Course or a Roadmap");
+      return;
+    }
+    try {
+      await trpc.createClassroom.mutate({
+        name: newClassroomName,
+        courseId: selectedCourseId || null,
+        visualRoadmapId: selectedVisualRoadmapId || null
+      });
+      setNewClassroomName("");
+      setSelectedCourseId("");
+      setSelectedVisualRoadmapId("");
+      toast.success("Classroom created!");
+      loadClassrooms();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create classroom");
+    }
+  };
+
+  const loadRoster = async (classroom: any) => {
+    setActiveClassroom(classroom);
+    setSelectedStudent(null);
+    try {
+      const data = await trpc.getClassroomRoster.query({ classroomId: classroom.id });
+      setRoster(data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load roster");
+    }
+  };
+
+  const loadStudentDetail = async (studentId: string, studentName: string) => {
+    setSelectedStudent({ id: studentId, name: studentName });
+    try {
+      const data = await trpc.getStudentDetail.query({ classroomId: activeClassroom.id, studentId });
+      setStudentDetails(data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load student details");
+    }
+  };
+
+  const exportCSV = () => {
+    if (!roster.length) return toast.error("No students to export");
+    const headers = ["Name,Email,Proficiency,Avg Score,Lessons Completed,Streak"];
+    const rows = roster.map(r => 
+      `${r.name || "Unknown"},${r.email || ""},${r.estimatedProficiency}%,${r.avgQuizScore || 0}%,${r.totalLessonsCompleted},${r.currentStreak}`
+    );
+    const csvContent = "data:text/csv;charset=utf-8," + headers.concat(rows).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `${activeClassroom.name.replace(/\s+/g, '_')}_roster.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  if (loading) {
+    return <div className="p-8 text-[#CECADF]">Loading dashboard...</div>;
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto w-full space-y-8 fade-in">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-[#2A2443] pb-6">
+        <div className="bg-indigo-950/40 p-3 rounded-2xl">
+          <BookOpen className="w-8 h-8 text-[#818CF8]" />
+        </div>
+        <div>
+          <h2 className="text-3xl font-bold text-[#FAF9FD] tracking-tight">Teacher Dashboard</h2>
+          <p className="text-[#8E88AB] mt-1">Manage classrooms, monitor student progress, and identify learning gaps.</p>
+        </div>
+      </div>
+
+      {!activeClassroom ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+          <div className="md:col-span-1 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl space-y-4">
+            <h3 className="text-lg font-bold text-[#FAF9FD]">Create Classroom</h3>
+            <form onSubmit={handleCreateClassroom} className="flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-[#8E88AB] mb-1.5 uppercase tracking-wider">Classroom Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. CS101 Autumn 2026"
+                  value={newClassroomName}
+                  onChange={e => setNewClassroomName(e.target.value)}
+                  className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#8E88AB] mb-1.5 uppercase tracking-wider">Select Course</label>
+                <select
+                  value={selectedCourseId}
+                  onChange={e => setSelectedCourseId(e.target.value)}
+                  className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
+                >
+                  <option value="">-- None Selected --</option>
+                  {courses.map(c => (
+                    <option key={c.id} value={c.id}>{c.title} ({c.difficulty})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#8E88AB] mb-1.5 uppercase tracking-wider">Select Roadmap</label>
+                <select
+                  value={selectedVisualRoadmapId}
+                  onChange={e => setSelectedVisualRoadmapId(e.target.value)}
+                  className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
+                >
+                  <option value="">-- None Selected --</option>
+                  {roadmaps.map(r => (
+                    <option key={r.id} value={r.id}>{r.title} ({r.difficulty})</option>
+                  ))}
+                </select>
+              </div>
+
+              <p className="text-[11px] text-[#8E88AB] leading-relaxed">
+                * At least one Course or Roadmap must be selected. Enrolled students will automatically clone and study this content.
+              </p>
+
+              <button
+                type="submit"
+                disabled={!newClassroomName.trim() || (!selectedCourseId && !selectedVisualRoadmapId)}
+                className="bg-[#6366F1] hover:bg-[#5053e3] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition cursor-pointer"
+              >
+                Create Classroom
+              </button>
+            </form>
+          </div>
+
+          <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {classrooms.map(cls => (
+              <div key={cls.id} className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl flex flex-col justify-between hover:border-indigo-500/50 transition">
+                <div>
+                  <h3 className="text-xl font-bold text-[#FAF9FD]">{cls.name}</h3>
+                  <div className="flex items-center gap-2 text-[#8E88AB] mt-2">
+                    <Users className="w-4 h-4" />
+                    <span className="text-sm font-medium">{cls._count.members} students enrolled</span>
+                  </div>
+
+                  <div className="space-y-1.5 mt-3 pt-3 border-t border-[#121021]">
+                    {cls.course && (
+                      <div className="flex items-center gap-1.5 text-xs text-[#8E88AB]">
+                        <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <span className="truncate">Course: <strong className="text-white">{cls.course.title}</strong></span>
+                      </div>
+                    )}
+                    {cls.visualRoadmap && (
+                      <div className="flex items-center gap-1.5 text-xs text-[#8E88AB]">
+                        <Map className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="truncate">Roadmap: <strong className="text-white">{cls.visualRoadmap.title}</strong></span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-6 flex items-center justify-between">
+                  <div className="bg-[#121021] border border-[#2A2443] px-3 py-1.5 rounded-lg text-xs font-mono text-[#FAF9FD]">
+                    Code: <span className="font-bold text-emerald-400 tracking-wider">{cls.inviteCode}</span>
+                  </div>
+                  <button
+                    onClick={() => loadRoster(cls)}
+                    className="text-[#818CF8] hover:text-[#A5B4FC] font-semibold text-sm transition"
+                  >
+                    View Roster →
+                  </button>
+                </div>
+              </div>
+            ))}
+            {classrooms.length === 0 && (
+              <div className="sm:col-span-2 py-12 text-center text-[#8E88AB]">
+                No classrooms created yet. Create one to get an invite code for your students.
+              </div>
+            )}
+          </div>
+        </div>
+      ) : !selectedStudent ? (
+        <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl shadow-xl overflow-hidden">
+          <div className="p-6 border-b border-[#2A2443] flex items-center justify-between bg-[#151221]">
+            <div className="flex items-center gap-4">
+              <button onClick={() => setActiveClassroom(null)} className="text-[#8E88AB] hover:text-[#FAF9FD] transition">
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+              <h3 className="text-xl font-bold text-[#FAF9FD]">{activeClassroom.name} Roster</h3>
+            </div>
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-2 bg-[#2A2443] hover:bg-[#322B4D] text-[#FAF9FD] px-4 py-2 rounded-xl text-sm font-semibold transition"
+            >
+              <Download className="w-4 h-4" /> Export CSV
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-[#121021]/50 border-b border-[#2A2443]">
+                <tr>
+                  <th className="p-4 text-xs font-bold text-[#8E88AB] uppercase tracking-wider">Student Name</th>
+                  <th className="p-4 text-xs font-bold text-[#8E88AB] uppercase tracking-wider text-center">Avg Quiz</th>
+                  <th className="p-4 text-xs font-bold text-[#8E88AB] uppercase tracking-wider text-center">Lessons</th>
+                  <th className="p-4 text-xs font-bold text-[#8E88AB] uppercase tracking-wider text-center">Proficiency</th>
+                  <th className="p-4"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#2A2443]">
+                {roster.map(student => (
+                  <tr key={student.userId} className="hover:bg-[#151221] transition">
+                    <td className="p-4">
+                      <div className="font-semibold text-[#FAF9FD]">{student.name || "Student"}</div>
+                      <div className="text-xs text-[#8E88AB]">{student.email}</div>
+                    </td>
+                    <td className="p-4 text-center text-[#FAF9FD] font-mono">{Math.round(student.avgQuizScore || 0)}%</td>
+                    <td className="p-4 text-center text-[#CECADF]">{student.totalLessonsCompleted}</td>
+                    <td className="p-4 text-center">
+                      <span className="text-sm font-bold text-indigo-400">
+                        {student.estimatedProficiency}%
+                      </span>
+                    </td>
+                    <td className="p-4 text-right">
+                      <button 
+                        onClick={() => loadStudentDetail(student.userId, student.name)}
+                        className="text-sm font-semibold text-[#818CF8] hover:text-indigo-400 transition"
+                      >
+                        Details
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {roster.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="p-8 text-center text-[#8E88AB]">No students have joined this classroom yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 border-b border-[#2A2443] pb-4">
+            <button onClick={() => setSelectedStudent(null)} className="text-[#8E88AB] hover:text-[#FAF9FD] transition">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <h3 className="text-xl font-bold text-[#FAF9FD]">{selectedStudent.name}'s Profile</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl">
+              <h4 className="text-lg font-bold text-[#FAF9FD] mb-4 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-indigo-400" /> Active Courses
+              </h4>
+              <div className="space-y-3">
+                {studentDetails?.courses?.map((c: any) => (
+                  <div key={c.id} className="bg-[#121021] border border-[#2A2443] p-4 rounded-xl">
+                    <div className="font-semibold text-[#CECADF]">{c.title}</div>
+                    <div className="text-xs text-[#8E88AB] mt-1">{c.completedLessons.length} lessons completed</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl">
+              <h4 className="text-lg font-bold text-[#FAF9FD] mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-rose-400" /> Areas for Review (Score &lt; 70)
+              </h4>
+              <div className="space-y-2">
+                {studentDetails?.weakTopics?.map((wt: any, idx: number) => (
+                  <div key={idx} className="flex justify-between items-center bg-[#121021] border border-[#2A2443] p-3 rounded-xl">
+                    <span className="text-sm text-[#CECADF] truncate max-w-[200px]" title={wt.topic}>{wt.topic}</span>
+                    <span className="text-xs font-mono bg-rose-950/40 text-rose-400 border border-rose-500/30 px-2 py-1 rounded">
+                      {wt.score}%
+                    </span>
+                  </div>
+                ))}
+                {!studentDetails?.weakTopics?.length && (
+                  <div className="text-sm text-[#8E88AB]">No weak topics identified yet.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

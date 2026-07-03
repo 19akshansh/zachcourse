@@ -378,8 +378,42 @@ z.object({
 | `saveLessonContent` | mutation | Upserts generated lesson content |
 | `saveVisualRoadmap` | mutation | Persists a visual roadmap |
 | `updateVisualRoadmapProgress` | mutation | Updates completed node IDs in graph |
+| `createCohort` | mutation | Creates a new learning cohort tied to a Course and/or VisualRoadmap |
+| `previewCohortByInviteCode` | query | Fetches details of a cohort by code before joining |
+| `joinCohortAndClone` | mutation | Enrolls user in a cohort and clones its assigned course/roadmap structure |
+| `getUserCohorts` | query | Gets cohorts the user has joined with progress details |
+| `getCohortLeaderboard` | query | Computes leaderboard rankings scoped strictly to the cohort's content |
+| `getCohortActivity` | query | Lists recent learning actions of members within the cohort |
+| `createClassroom` | mutation | Creates a teacher classroom linked to specific curriculum |
+| `getTeacherClassrooms` | query | Lists classrooms managed by the current teacher |
+| `getClassroomRoster` | query | Returns all student members in a classroom with scoped progress metrics |
+| `getStudentDetail` | query | Returns a detailed breakdown of courses and weak topics for a student |
 
 **Auth:** All procedures use `protectedProcedure` — throws `UNAUTHORIZED` if no active session.
+
+---
+
+## Cohort & Classroom Architecture
+
+To prevent clutter and ensure that progress metrics remain highly contextual and fair, every **Cohort** and **Classroom (Cohort as a Class)** is strictly tied to a specific `Course` and/or `VisualRoadmap`.
+
+```
+Cohort / Classroom (Owner/Teacher-controlled)
+         │
+         ├── linked Course ──► [Sourced from Owner/Teacher]
+         └── linked VisualRoadmap ──► [Sourced from Owner/Teacher]
+         
+         Joining/Enrolling Students (Learner View)
+         │
+         ├── Clones Course (with clean progress: completedLessons: [], completedQuizzes: {})
+         └── Clones VisualRoadmap (with clean progress: completedNodeIds: [])
+```
+
+### Key Architectural Rules:
+1. **At Least One Content Resource:** A cohort must specify either a valid Course ID or a VisualRoadmap ID owned by the creator.
+2. **Clone-on-Join Flow:** When a user joins via an invite code, they preview the content first. Upon confirmation, the system clones the course/roadmap skeleton into their private profile (`clonedFromCourseId`/`clonedFromRoadmapId` references). This ensures each learner tracks their own progress starting at 0% while sharing the exact same curriculum structure.
+3. **No Lesson-Text Sharing:** To respect individual learning styles and levels, generated `LessonContent` is never shared or pre-copied. Each user triggers their own Lesson Agent on demand.
+4. **Scoped Leaderboard & Metrics:** Leaderboards and classroom rosters dynamically calculate member proficiency, average quiz scores, and streak counts *strictly scoped* to the cloned copies belonging to that cohort’s assigned course or roadmap. Overall platform-wide statistics are filtered out.
 
 ---
 

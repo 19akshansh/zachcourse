@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Map, MessageSquare, FileText, TrendingUp, LogOut, Plus, MoreVertical, Trash2, Edit2, GitBranch } from "lucide-react";
+import { Map, MessageSquare, FileText, TrendingUp, LogOut, Plus, MoreVertical, Trash2, Edit2, GitBranch, BarChart2, Users } from "lucide-react";
 import type { Course } from "@prisma/client";
 
 export interface CourseListItem {
@@ -126,6 +126,7 @@ export default function AppSidebar({
   return (
     <aside
       id="app-sidebar"
+      aria-label="Sidebar Navigation"
       className={`fixed top-0 left-0 h-full z-40 bg-[#111118] border-r border-[#1E1E2E] flex flex-col justify-between transition-all duration-300 ease-in-out
         ${isOpen ? "translate-x-0" : "-translate-x-full"} 
         md:translate-x-0 
@@ -159,7 +160,7 @@ export default function AppSidebar({
               setActiveTab("visual-roadmaps");
               if (window.innerWidth < 768) onClose();
             }}
-            className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer
+            className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer mb-1
               ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
               ${activeTab === "visual-roadmaps"
                 ? "bg-indigo-600/15 text-[#818CF8]" 
@@ -179,6 +180,82 @@ export default function AppSidebar({
               </div>
             )}
           </button>
+          
+          <button
+            onClick={() => {
+              setActiveCourseId(null);
+              setActiveTab("cohorts");
+              if (window.innerWidth < 768) onClose();
+            }}
+            className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer mb-1
+              ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
+              ${activeTab === "cohorts"
+                ? "bg-indigo-600/15 text-[#818CF8]" 
+                : "text-[#8E88AB] hover:bg-white/5 hover:text-[#FAF9FD]"
+              }
+            `}
+          >
+            <Users className="w-4 h-4 shrink-0" />
+            {!effectivelyCollapsed && (
+              <div className="flex items-center justify-between w-full ml-3">
+                <span className="text-xs font-semibold truncate transition-opacity duration-200">
+                  Learning Cohorts
+                </span>
+              </div>
+            )}
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveCourseId(null);
+              setActiveTab("analytics");
+              if (window.innerWidth < 768) onClose();
+            }}
+            className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer
+              ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
+              ${activeTab === "analytics"
+                ? "bg-indigo-600/15 text-[#818CF8]" 
+                : "text-[#8E88AB] hover:bg-white/5 hover:text-[#FAF9FD]"
+              }
+            `}
+          >
+            <BarChart2 className="w-4 h-4 shrink-0" />
+            {!effectivelyCollapsed && (
+              <div className="flex items-center justify-between w-full ml-3">
+                <span className="text-xs font-semibold truncate transition-opacity duration-200">
+                  Learning Analytics
+                </span>
+              </div>
+            )}
+          </button>
+
+          {(session?.user as any)?.role === "teacher" && (
+            <button
+              onClick={() => {
+                setActiveCourseId(null);
+                setActiveTab("teacher");
+                if (window.innerWidth < 768) onClose();
+              }}
+              className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer
+                ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
+                ${activeTab === "teacher"
+                  ? "bg-amber-600/15 text-amber-400" 
+                  : "text-amber-400/70 hover:bg-white/5 hover:text-amber-400"
+                }
+              `}
+            >
+              <div className="flex items-center justify-center relative w-4 h-4 shrink-0">
+                <span className="text-[10px]">🍎</span>
+              </div>
+              {!effectivelyCollapsed && (
+                <div className="flex items-center justify-between w-full ml-3">
+                  <span className="text-xs font-semibold truncate transition-opacity duration-200">
+                    Teacher Tools
+                  </span>
+                </div>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Divider */}

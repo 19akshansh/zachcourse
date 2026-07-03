@@ -16,6 +16,9 @@ import { apiFetch } from "./lib/api";
 import { ApiKeyOnboarding } from "./components/ApiKeyOnboarding";
 import RoadmapGraph from "./components/RoadmapGraph";
 import VisualRoadmapsTab from "./components/VisualRoadmapsTab";
+import AnalyticsDashboard from "./components/AnalyticsDashboard";
+import CohortsDashboard from "./components/CohortsDashboard";
+import TeacherDashboard from "./components/TeacherDashboard";
 import { DocumentUpload } from "./components/DocumentUpload";
 import { toast, Toaster } from "sonner";
 import { 
@@ -42,7 +45,8 @@ import {
   Star,
   Compass,
   Trophy,
-  Smile
+  Smile,
+  FileText
 } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkMath from "remark-math";
@@ -287,14 +291,36 @@ export default function App() {
       return;
     }
     setIsLoadingCourse(true);
-    trpc.getCourse.query({ courseId: activeCourseId }).then(course => {
-      setActiveCourse(course);
-      setIsLoadingCourse(false);
-      setActiveTab("roadmap");
-      setSelectedLesson(null);
-      setQuizData(null);
-      setLessonContent("");
-    });
+    
+    const loadCourse = async () => {
+      try {
+        if (!navigator.onLine) throw new Error("Offline");
+        const course = await trpc.getCourse.query({ courseId: activeCourseId });
+        setActiveCourse(course);
+        setIsLoadingCourse(false);
+        setActiveTab("roadmap");
+        setSelectedLesson(null);
+        setQuizData(null);
+        setLessonContent("");
+        
+        // Cache for offline
+        const localforage = (await import('localforage')).default;
+        await localforage.setItem(`course-${activeCourseId}`, course);
+      } catch (err) {
+        // Fallback to cache
+        const localforage = (await import('localforage')).default;
+        const cached = await localforage.getItem(`course-${activeCourseId}`);
+        if (cached) {
+          setActiveCourse(cached as any);
+          toast.success("Loaded offline version 📶");
+        } else {
+          toast.error("You are offline and this course is not cached.");
+        }
+        setIsLoadingCourse(false);
+      }
+    };
+    
+    loadCourse();
   }, [activeCourseId]);
 
   // Load user progress
@@ -364,6 +390,8 @@ export default function App() {
 
   // Study states
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [generatingLesson, setGeneratingLesson] = useState<boolean>(false);
   const [lessonContent, setLessonContent] = useState<string>("");
   const [lessonModuleTitle, setLessonModuleTitle] = useState<string>("");
@@ -377,6 +405,7 @@ export default function App() {
   const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
   const [quizDifficulty, setQuizDifficulty] = useState<string>("Medium");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(3);
+  const [quizAnalysis, setQuizAnalysis] = useState<any>(null);
 
   // Chat Mentor states
   const [mentorInput, setMentorInput] = useState<string>("");
@@ -398,6 +427,35 @@ export default function App() {
     return () => window.removeEventListener("zc-key-status-changed", handleKeyChange);
   }, []);
 
+  // Process offline sync queue
+  useEffect(() => {
+    const processQueue = async () => {
+      if (!navigator.onLine) return;
+      const localforage = (await import('localforage')).default;
+      let queue: any[] = (await localforage.getItem('sync-queue')) || [];
+      if (queue.length === 0) return;
+
+      let remainingQueue: any[] = [];
+      for (const item of queue) {
+        if (item.type === 'progress') {
+          try {
+            await trpc.updateCourseProgress.mutate(item.data);
+            toast.success("Offline progress synced successfully! ☁️");
+          } catch (err) {
+            console.error("Failed to sync item", item, err);
+            remainingQueue.push(item);
+          }
+        }
+      }
+      await localforage.setItem('sync-queue', remainingQueue);
+    };
+
+    window.addEventListener('online', processQueue);
+    processQueue();
+
+    return () => window.removeEventListener('online', processQueue);
+  }, []);
+
   // Rotate a motivational quote daily / or manually
   useEffect(() => {
     const today = new Date().getDate();
@@ -417,10 +475,10 @@ export default function App() {
   // Auth early returns
   if (isSessionPending) {
     return (
-      <div className="min-h-screen bg-[#0F0D19] flex flex-col items-center justify-center">
+      <main className="min-h-screen bg-[#0F0D19] flex flex-col items-center justify-center">
         <Loader2 className="w-10 h-10 text-[#6366F1] animate-spin mb-4" />
-        <p className="text-[#8E88AB] font-medium animate-pulse">Warming up your space...</p>
-      </div>
+        <p className="text-[#A59ECA] font-medium">Warming up your space...</p>
+      </main>
     );
   }
 
@@ -564,7 +622,48 @@ Rules:
   };
 
   // Fetch / Generate Study Guide Content
+  const handleSelectProject = async (moduleId: string, moduleTitle: string) => {
+    setSelectedLesson(null);
+    setSelectedProject(null);
+    setSelectedModuleId(moduleId);
+    setLessonModuleTitle(moduleTitle);
+    setGeneratingLesson(true);
+    setQuizData(null);
+    setQuizSubmitted(false);
+    setSelectedAnswers({});
+    setActiveTab("roadmap");
+
+    try {
+      if (activeCourseId && currentRoadmap) {
+        const project = await trpc.getModuleProject.query({ courseId: activeCourseId, moduleId });
+        if (project) {
+          setSelectedProject(project);
+          setGeneratingLesson(false);
+          return;
+        }
+
+        // Generate
+        const newProj = await trpc.generateProject.mutate({
+          courseId: activeCourseId,
+          moduleId,
+          moduleTitle,
+          topic: currentRoadmap.title,
+          level: currentRoadmap.difficulty || "Beginner"
+        });
+        setSelectedProject(newProj);
+        toast.success(`Project generated for ${moduleTitle}!`);
+      }
+    } catch (err: any) {
+      console.error("Project error", err);
+      toast.error(err.message || "Failed to load project");
+    } finally {
+      setGeneratingLesson(false);
+    }
+  };
+
   const handleSelectLesson = async (moduleTitle: string, lesson: Lesson) => {
+    setSelectedProject(null);
+    setSelectedModuleId(null);
     setSelectedLesson(lesson);
     setLessonModuleTitle(moduleTitle);
     setGeneratingLesson(true);
@@ -573,12 +672,28 @@ Rules:
     setSelectedAnswers({});
 
     try {
+      const localforage = (await import('localforage')).default;
       if (activeCourseId) {
-        // Check if content already exists in DB
-        const savedContent = await trpc.getLessonContent.query({
-          courseId: activeCourseId,
-          lessonId: lesson.id
-        });
+        let savedContent = null;
+        try {
+          if (!navigator.onLine) throw new Error("Offline");
+          savedContent = await trpc.getLessonContent.query({
+            courseId: activeCourseId,
+            lessonId: lesson.id
+          });
+          // Cache it if found
+          if (savedContent && savedContent.content) {
+            await localforage.setItem(`lesson-${activeCourseId}-${lesson.id}`, savedContent);
+          }
+        } catch (err) {
+          // If offline, check cache
+          savedContent = await localforage.getItem(`lesson-${activeCourseId}-${lesson.id}`);
+          if (savedContent) {
+            toast.success("Loaded cached lesson 📶");
+          } else if (!navigator.onLine) {
+            throw new Error("You are offline and this lesson is not cached.");
+          }
+        }
 
         if (savedContent && savedContent.content) {
           setLessonContent(savedContent.content);
@@ -587,6 +702,10 @@ Rules:
           setGeneratingLesson(false);
           return;
         }
+      }
+
+      if (!navigator.onLine) {
+        throw new Error("You are offline and this lesson is not cached.");
       }
 
       const userKey = localStorage.getItem("zc_user_key");
@@ -650,6 +769,27 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
         }).catch(err => {
           console.error("Failed to save lesson content:", err);
         });
+
+        const localforage = (await import('localforage')).default;
+        await localforage.setItem(`lesson-${activeCourseId}-${lesson.id}`, {
+          content,
+          qualityScore: qScore,
+          evaluationData: evalData
+        });
+
+        // Trigger validation if not evaluated
+        trpc.validateLesson.mutate({
+          courseId: activeCourseId,
+          lessonId: lesson.id,
+          content: content,
+          topic: currentRoadmap?.title || "",
+          level: currentRoadmap?.difficulty || "Beginner"
+        }).then(evalResult => {
+          setLessonQualityScore(evalResult.clarityScore);
+          setLessonEvaluationData(evalResult);
+        }).catch(err => {
+          console.error("Failed to validate lesson:", err);
+        });
       }
 
     } catch (err) {
@@ -658,6 +798,24 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
       setLessonContent(`### Study Guide: ${lesson.title} 📚\n\n*Oops! We couldn't fetch a live guide, but here is your tutor's handy study reference:*\n\n- **Main Goal**: Master these key ideas: ${lesson.concepts.join(", ")}\n\n- **Intuitive Analogy**: Think of this concept like reading a map before starting a hike—it ensures you don't take a wrong turn with variables!\n\n### Core Lessons:\n${lesson.concepts.map(c => `#### 🌟 ${c}\nThis is a beautiful foundational block. When we structure this nicely, our programs run smoothly and securely.`).join("\n\n")}`);
     } finally {
       setGeneratingLesson(false);
+    }
+  };
+
+  const handleRevalidate = async () => {
+    if (!selectedLesson || !activeCourseId) return;
+    try {
+      const evalResult = await trpc.validateLesson.mutate({
+        courseId: activeCourseId,
+        lessonId: selectedLesson.id,
+        content: lessonContent,
+        topic: currentRoadmap?.title || "",
+        level: currentRoadmap?.difficulty || "Beginner"
+      });
+      setLessonQualityScore(evalResult.clarityScore);
+      setLessonEvaluationData(evalResult);
+      toast.success("Lesson re-validated!");
+    } catch (err) {
+      toast.error("Failed to re-validate lesson");
     }
   };
 
@@ -684,6 +842,28 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
           courseId: activeCourseId,
           completedLessons: updatedLessons,
         });
+
+        // Check if module was just completed
+        if (currentRoadmap && updatedLessons.includes(lessonId)) {
+          const mod = currentRoadmap.modules.find((m: any) => m.lessons.some((l: any) => l.id === lessonId));
+          if (mod) {
+            const allLessonsInMod = mod.lessons.map((l: any) => l.id);
+            const isModComplete = allLessonsInMod.every((id: string) => updatedLessons.includes(id));
+            if (isModComplete) {
+              trpc.generateProject.mutate({
+                courseId: activeCourseId,
+                moduleId: mod.id,
+                moduleTitle: mod.title,
+                topic: currentRoadmap.title,
+                level: currentRoadmap.difficulty || "Beginner"
+              }).then(() => {
+                toast.success(`Project generated for module: ${mod.title}!`);
+              }).catch(err => {
+                console.error("Failed to auto-generate project", err);
+              });
+            }
+          }
+        }
       } catch (err) {
         console.error("Error saving complete lesson state:", err);
         toast.error("Connection issue — please try again");
@@ -702,6 +882,7 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
     setQuizData(null);
     setQuizSubmitted(false);
     setSelectedAnswers({});
+    setQuizAnalysis(null);
     setActiveTab("quiz");
   };
 
@@ -712,6 +893,7 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
     setQuizData(null);
     setQuizSubmitted(false);
     setSelectedAnswers({});
+    setQuizAnalysis(null);
 
     try {
       const userKey = localStorage.getItem("zc_user_key");
@@ -861,14 +1043,36 @@ ${lessonContent}`;
 
       if (sessionData?.user) {
         try {
+          if (!navigator.onLine) {
+            throw new Error("Offline");
+          }
           await trpc.updateCourseProgress.mutate({
             courseId: activeCourseId,
             completedQuizzes: updatedScores,
             completedLessons: updatedLessons,
           });
+
+          const analysis = await trpc.analyzeQuizPerformance.mutate({
+            courseId: activeCourseId,
+            lessonId: selectedLesson.id,
+            score: scorePct,
+            topic: selectedLesson.title,
+          });
+          setQuizAnalysis(analysis);
         } catch (err) {
           console.error("Error saving quiz progress:", err);
-          toast.error("Connection issue — please try again");
+          const localforage = (await import('localforage')).default;
+          let queue: any[] = (await localforage.getItem('sync-queue')) || [];
+          queue.push({
+            type: 'progress',
+            data: {
+              courseId: activeCourseId,
+              completedQuizzes: updatedScores,
+              completedLessons: updatedLessons,
+            }
+          });
+          await localforage.setItem('sync-queue', queue);
+          toast.info("Offline — progress saved locally. Will sync when online! 🔄");
         }
       }
     }
@@ -1129,11 +1333,11 @@ ${lessonContent}`;
 
   if (isSessionPending) {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-center text-[#FAF9FD] p-6 text-center">
+      <main className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-center text-[#FAF9FD] p-6 text-center">
         <Loader2 className="w-12 h-12 text-[#6366F1] animate-spin mb-4" />
         <h2 className="text-xl font-bold tracking-tight">Syncing with companion core...</h2>
         <p className="text-sm text-[#8E88AB] mt-1 font-medium">Please wait while we establish your secure study connection.</p>
-      </div>
+      </main>
     );
   }
 
@@ -1230,6 +1434,21 @@ ${lessonContent}`;
           
           <div className="p-4 md:p-6 lg:p-8">
             
+            {/* TAB: TEACHER */}
+            {activeTab === "teacher" && (
+              <TeacherDashboard />
+            )}
+
+            {/* TAB: ANALYTICS */}
+            {activeTab === "analytics" && (
+              <AnalyticsDashboard />
+            )}
+
+            {/* TAB: COHORTS */}
+            {activeTab === "cohorts" && (
+              <CohortsDashboard />
+            )}
+
             {/* TAB 0: VISUAL ROADMAPS */}
             {activeTab === "visual-roadmaps" && (
               <VisualRoadmapsTab
@@ -1579,6 +1798,23 @@ ${lessonContent}`;
                           );
                         })}
                       </div>
+
+                      <div className="mt-4 pt-4 border-t border-[#2A2443]">
+                        <button
+                          onClick={() => handleSelectProject(mod.id, mod.title)}
+                          className={`w-full flex items-center justify-between p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                            selectedModuleId === mod.id && selectedProject
+                              ? "bg-amber-950/40 border-amber-500/30 shadow-md text-amber-400"
+                              : "bg-[#121021]/60 hover:bg-[#121021] border-[#2A2443]/40 text-[#CECADF]"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <FileText className={`w-5 h-5 ${selectedModuleId === mod.id && selectedProject ? "text-amber-400" : "text-[#8E88AB]"}`} />
+                            <span className="font-semibold">Module Project</span>
+                          </div>
+                          <ChevronRight className={`w-5 h-5 transition-transform ${selectedModuleId === mod.id && selectedProject ? "translate-x-1" : ""}`} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1672,29 +1908,76 @@ ${lessonContent}`;
                           </div>
                           
                           {lessonQualityScore !== null && (
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="text-sm font-bold text-[#8E88AB]">AI Judge Quality Score:</span>
-                              <div className="relative group">
-                                <span className={`text-sm px-2 py-0.5 rounded-full font-bold ${
-                                  lessonQualityScore >= 8 ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-500/30' :
-                                  lessonQualityScore >= 6 ? 'bg-amber-950/50 text-amber-400 border border-amber-500/30' :
-                                  'bg-red-950/50 text-red-400 border border-red-500/30'
-                                }`}>
-                                  {lessonQualityScore}/10
-                                </span>
-                                {lessonEvaluationData?.feedback && (
-                                  <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-64 bg-[#1E1A33] border border-[#2A2443] rounded-lg p-3 shadow-xl z-10 text-xs text-[#CECADF]">
-                                    <p className="font-bold mb-1">Judge Feedback:</p>
-                                    <p>{lessonEvaluationData.feedback}</p>
-                                    <ul className="mt-2 list-disc pl-4 space-y-1 text-[#8E88AB]">
-                                      <li>Clarity: {lessonEvaluationData.clarityScore}/10</li>
-                                      <li>Accuracy: {lessonEvaluationData.accuracyScore}/10</li>
-                                      <li>Depth: {lessonEvaluationData.depthScore}/10</li>
-                                      <li>Engagement: {lessonEvaluationData.engagementScore}/10</li>
-                                    </ul>
+                            <div className="flex flex-col gap-2 mt-1 border-t border-[#2A2443] pt-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold text-[#8E88AB]">Content Quality QA:</span>
+                                  <div className="relative group">
+                                    <span className={`text-sm px-2 py-0.5 rounded-full font-bold cursor-default ${
+                                      lessonEvaluationData?.isApproved ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-500/30' :
+                                      'bg-red-950/50 text-red-400 border border-red-500/30'
+                                    }`}>
+                                      {lessonEvaluationData?.isApproved ? "Approved ✓" : "Flagged ⚠"}
+                                    </span>
+                                    {lessonEvaluationData && (
+                                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-72 bg-[#1E1A33] border border-[#2A2443] rounded-lg p-3 shadow-xl z-10 text-xs text-[#CECADF]">
+                                        <div className="grid grid-cols-2 gap-2 mb-2 pb-2 border-b border-[#2A2443]">
+                                          <div>
+                                            <p className="text-[#8E88AB] font-semibold">Clarity Score</p>
+                                            <p className="font-bold">{lessonQualityScore}/5</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-[#8E88AB] font-semibold">Difficulty Match</p>
+                                            <p className="font-bold">{lessonEvaluationData.difficultyMatch ? "Yes" : "No"}</p>
+                                          </div>
+                                        </div>
+                                        {lessonEvaluationData.issues?.length > 0 && (
+                                          <div className="mb-2">
+                                            <p className="font-bold text-red-400 mb-1">Issues Identified:</p>
+                                            <ul className="list-disc pl-4 space-y-1 text-red-300">
+                                              {lessonEvaluationData.issues.map((issue: string, i: number) => (
+                                                <li key={i}>{issue}</li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )}
+                                        {lessonEvaluationData.suggestions?.length > 0 && (
+                                          <div>
+                                            <p className="font-bold text-emerald-400 mb-1">Suggestions:</p>
+                                            <ul className="list-disc pl-4 space-y-1 text-emerald-300">
+                                              {lessonEvaluationData.suggestions.map((sug: string, i: number) => (
+                                                <li key={i}>{sug}</li>
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
-                                )}
+                                </div>
+                                <button
+                                  onClick={handleRevalidate}
+                                  className="text-xs flex items-center gap-1 bg-[#1E1A33] hover:bg-[#2A2443] text-[#8E88AB] transition px-2 py-1 rounded"
+                                >
+                                  <RefreshCw className="w-3 h-3" />
+                                  <span>Re-validate</span>
+                                </button>
                               </div>
+                              
+                              {lessonEvaluationData?.isApproved === false && (
+                                <div className="bg-red-950/20 border border-red-900/50 rounded-lg p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-1">
+                                  <div className="flex items-center gap-2 text-sm text-red-300">
+                                    <span className="font-bold text-red-400">⚠️ Warning:</span> 
+                                    {lessonEvaluationData.issues?.[0] || "Content did not pass quality checks."}
+                                  </div>
+                                  <button
+                                    onClick={() => handleSelectLesson(lessonModuleTitle, selectedLesson)}
+                                    className="shrink-0 text-xs font-bold bg-red-900/50 hover:bg-red-900/80 text-red-200 px-3 py-1.5 rounded transition"
+                                  >
+                                    Regenerate Lesson
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1744,7 +2027,93 @@ ${lessonContent}`;
                     )}
 
                   </div>
+                </div>
+              ) : selectedProject ? (
+                <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 md:p-8 shadow-xl flex flex-col gap-6 min-h-[500px]">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#2A2443] pb-5 gap-4">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-xs font-bold text-amber-400 uppercase tracking-wider bg-amber-950/40 border border-amber-500/20 px-2.5 py-1 rounded-full">Module Project</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                        <span className="text-sm font-medium text-[#8E88AB]">~{selectedProject.estimatedHours} hours</span>
+                      </div>
+                      <h2 className="text-2xl font-bold text-[#FAF9FD] tracking-tight">{selectedProject.title}</h2>
+                    </div>
+                    
+                    <div className="shrink-0 flex items-center gap-3">
+                      <select
+                        value={selectedProject.status}
+                        onChange={(e) => {
+                          const status = e.target.value;
+                          trpc.updateProjectStatus.mutate({ projectId: selectedProject.id, status })
+                            .then(() => setSelectedProject(prev => ({ ...prev, status })))
+                            .catch(err => toast.error("Failed to update status"));
+                        }}
+                        className={`text-sm font-bold rounded-xl px-4 py-2.5 focus:outline-none transition-colors border ${
+                          selectedProject.status === 'completed' ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' :
+                          selectedProject.status === 'in_progress' ? 'bg-amber-950/40 border-amber-500/30 text-amber-400' :
+                          'bg-[#121021] border-[#2A2443] text-[#CECADF]'
+                        }`}
+                      >
+                        <option value="not_started">Not Started</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed ✓</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div className="text-[#CECADF] space-y-6">
+                    <p className="text-lg text-[#FAF9FD] font-medium">{selectedProject.description}</p>
+                    
+                    <div>
+                      <h3 className="text-lg font-bold text-[#FAF9FD] mb-3">Objectives</h3>
+                      <ul className="list-disc pl-5 space-y-2">
+                        {Array.isArray(selectedProject.objectives) && selectedProject.objectives.map((obj: string, i: number) => (
+                          <li key={i}>{obj}</li>
+                        ))}
+                      </ul>
+                    </div>
 
+                    <div>
+                      <h3 className="text-lg font-bold text-[#FAF9FD] mb-3">Step-by-Step Guide</h3>
+                      <ol className="list-decimal pl-5 space-y-3">
+                        {Array.isArray(selectedProject.steps) && selectedProject.steps.map((step: string, i: number) => (
+                          <li key={i} className="pl-1 leading-relaxed">{step}</li>
+                        ))}
+                      </ol>
+                    </div>
+
+                    <div className="bg-[#121021] border border-[#2A2443] p-5 rounded-2xl">
+                      <h3 className="text-lg font-bold text-[#FAF9FD] mb-3 flex items-center gap-2">
+                        <CheckCircle className="w-5 h-5 text-emerald-400" /> Success Criteria
+                      </h3>
+                      <ul className="space-y-2">
+                        {Array.isArray(selectedProject.successCriteria) && selectedProject.successCriteria.map((crit: string, i: number) => (
+                          <li key={i} className="flex items-start gap-2 text-sm">
+                            <span className="text-emerald-500 mt-0.5">•</span>
+                            <span>{crit}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div className="border-t border-[#2A2443] pt-6">
+                      <label className="block text-sm font-bold text-[#CECADF] mb-2">Submission Notes (Optional)</label>
+                      <textarea
+                        value={selectedProject.submissionNote || ""}
+                        onChange={(e) => setSelectedProject(prev => ({ ...prev, submissionNote: e.target.value }))}
+                        onBlur={(e) => {
+                          trpc.updateProjectStatus.mutate({ 
+                            projectId: selectedProject.id, 
+                            status: selectedProject.status,
+                            submissionNote: e.target.value 
+                          });
+                        }}
+                        placeholder="Link to your repo, live demo, or thoughts on the project..."
+                        className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 min-h-[100px]"
+                      />
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-12 shadow-xl flex flex-col items-center justify-center text-center gap-6 min-h-[500px]">
@@ -2012,19 +2381,52 @@ ${lessonContent}`;
                     Submit Quiz Answers
                   </button>
                 ) : (
-                  <div className="flex flex-col sm:flex-row items-center justify-between bg-emerald-950/40 border border-emerald-500/30 p-5 rounded-2xl gap-4">
-                    <div>
-                      <p className="text-lg font-bold text-emerald-400">Quiz completed! 🏆</p>
-                      <p className="text-sm text-emerald-300/80 font-medium mt-0.5">
-                        Your performance score of {Math.round((quizData.questions.filter((q, idx) => selectedAnswers[idx] === q.correctIndex).length / quizData.questions.length) * 100)}% has been logged to your progress stats!
-                      </p>
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between bg-emerald-950/40 border border-emerald-500/30 p-5 rounded-2xl gap-4">
+                      <div>
+                        <p className="text-lg font-bold text-emerald-400">Quiz completed! 🏆</p>
+                        <p className="text-sm text-emerald-300/80 font-medium mt-0.5">
+                          Your performance score of {Math.round((quizData.questions.filter((q, idx) => selectedAnswers[idx] === q.correctIndex).length / quizData.questions.length) * 100)}% has been logged to your progress stats!
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab("roadmap")}
+                        className="bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer hover:-translate-y-0.5 shrink-0"
+                      >
+                        Back to Roadmap Tab
+                      </button>
                     </div>
-                    <button
-                      onClick={() => setActiveTab("roadmap")}
-                      className="bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer hover:-translate-y-0.5 shrink-0 animate-pulse"
-                    >
-                      Back to Roadmap Tab
-                    </button>
+
+                    {quizAnalysis && (
+                      <div className="bg-[#121021] border border-[#2A2443] p-5 rounded-2xl">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="w-5 h-5 text-indigo-400" />
+                          <h4 className="text-base font-bold text-[#FAF9FD]">AI Adaptive Feedback</h4>
+                        </div>
+                        <p className="text-[#CECADF] text-sm mb-4 leading-relaxed">{quizAnalysis.recommendation}</p>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="bg-[#0A0A0F] border border-[#2A2443] rounded-xl p-3">
+                            <span className="text-xs font-bold text-[#8E88AB] uppercase tracking-wider block mb-1">Recommended Adjust</span>
+                            <div className="flex items-center gap-1 text-sm font-semibold text-[#818CF8]">
+                              {quizAnalysis.difficultyAdjustment === 'increase' ? 'Level Up Difficulty 📈' :
+                               quizAnalysis.difficultyAdjustment === 'decrease' ? 'Review Basics 📉' : 'Maintain Current Pace 🎯'}
+                            </div>
+                          </div>
+                          
+                          {quizAnalysis.reviewTopics?.length > 0 && (
+                            <div className="bg-[#0A0A0F] border border-[#2A2443] rounded-xl p-3">
+                              <span className="text-xs font-bold text-[#8E88AB] uppercase tracking-wider block mb-1">Topics to Review</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {quizAnalysis.reviewTopics.map((t: string, i: number) => (
+                                  <span key={i} className="text-xs bg-indigo-900/30 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/20">{t}</span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

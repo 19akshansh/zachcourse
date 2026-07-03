@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   if (isPending) {
     return (
-      <div className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-center text-[#F8FAFC] p-6 text-center select-none relative overflow-hidden font-sans">
+      <main className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-center text-[#F8FAFC] p-6 text-center select-none relative overflow-hidden font-sans">
         {/* Subtle blur background effects */}
         <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-gradient-to-tr from-[#6366F1]/10 to-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-gradient-to-bl from-[#8B5CF6]/10 to-[#6366F1]/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             Please wait while we establish your secure study connection.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
