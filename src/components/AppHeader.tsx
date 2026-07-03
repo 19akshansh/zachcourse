@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight, LogOut, HelpCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, HelpCircle, GraduationCap, Loader2 } from "lucide-react";
 import KeyStatusBadge from "./KeyStatusBadge";
+import { trpc } from "../lib/trpc-client";
+import { toast } from "sonner";
 
 interface AppHeaderProps {
   onMenuClick: () => void;
@@ -27,6 +29,25 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
   }, []);
 
   const user = session?.user;
+  const [isUpdating, setIsUpdating] = useState(false);
+  const currentRole = (user as any)?.role || "student";
+
+  const handleToggleRole = async () => {
+    const nextRole = currentRole === "teacher" ? "student" : "teacher";
+    setIsUpdating(true);
+    try {
+      await trpc.setUserRole.mutate({ role: nextRole });
+      toast.success(`Role switched to ${nextRole}! Refreshing...`);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update role");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const displayName = user?.name || "Guest Account";
   const displayEmail = user?.email || "Temporary Trial";
   const initials = user?.name
@@ -95,6 +116,24 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                 <p className="text-xs font-bold text-[#FAF9FD] truncate leading-tight">{displayName}</p>
                 <p className="text-[10px] text-[#8E88AB] truncate leading-none mt-1">{displayEmail}</p>
               </div>
+
+              <button
+                onClick={handleToggleRole}
+                disabled={isUpdating}
+                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#8E88AB] hover:text-[#FAF9FD] hover:bg-[#1E1E2E]/50 rounded-lg transition cursor-pointer text-left disabled:opacity-50"
+              >
+                <div className="flex items-center gap-2.5">
+                  <GraduationCap className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>Role: <span className="capitalize text-amber-400 font-bold">{currentRole}</span></span>
+                </div>
+                {isUpdating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8E88AB] shrink-0" />
+                ) : (
+                  <span className="text-[10px] text-amber-500/80 underline font-normal hover:text-amber-400">Switch</span>
+                )}
+              </button>
+
+              <div className="h-px bg-[#1E1E2E] my-1.5" />
 
               <button
                 onClick={() => {

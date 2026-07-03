@@ -381,6 +381,8 @@ z.object({
 | `createCohort` | mutation | Creates a new learning cohort tied to a Course and/or VisualRoadmap |
 | `previewCohortByInviteCode` | query | Fetches details of a cohort by code before joining |
 | `joinCohortAndClone` | mutation | Enrolls user in a cohort and clones its assigned course/roadmap structure |
+| `deleteCohort` | mutation | Deletes a cohort permanently if requested by the owner |
+| `leaveCohort` | mutation | Leaves a joined cohort (for normal users/non-owners) |
 | `getUserCohorts` | query | Gets cohorts the user has joined with progress details |
 | `getCohortLeaderboard` | query | Computes leaderboard rankings scoped strictly to the cohort's content |
 | `getCohortActivity` | query | Lists recent learning actions of members within the cohort |

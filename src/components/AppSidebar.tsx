@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Map, MessageSquare, FileText, TrendingUp, LogOut, Plus, MoreVertical, Trash2, Edit2, GitBranch, BarChart2, Users } from "lucide-react";
+import { Map, MessageSquare, FileText, TrendingUp, LogOut, Plus, MoreVertical, Trash2, Edit2, GitBranch, BarChart2, Users, GraduationCap, Loader2 } from "lucide-react";
 import type { Course } from "@prisma/client";
+import { trpc } from "../lib/trpc-client";
+import { toast } from "sonner";
 
 export interface CourseListItem {
   id: string;
@@ -51,9 +53,28 @@ export default function AppSidebar({
   const [contextMenuCourseId, setContextMenuCourseId] = useState<string | null>(null);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [courseToDelete, setCourseToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [isDeletingCourse, setIsDeletingCourse] = useState(false);
 
   const [isMobile, setIsMobile] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const currentRole = (session?.user as any)?.role || "student";
+
+  const handleToggleRole = async () => {
+    const nextRole = currentRole === "teacher" ? "student" : "teacher";
+    setIsUpdating(true);
+    try {
+      await trpc.setUserRole.mutate({ role: nextRole });
+      toast.success(`Role switched to ${nextRole}! Refreshing...`);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update role");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -65,14 +86,10 @@ export default function AppSidebar({
   const effectivelyCollapsed = isCollapsed && !isMobile;
 
   useEffect(() => {
-    if (!contextMenuCourseId) {
-      setConfirmDeleteId(null); // Reset confirm state when menu closes
-      return;
-    }
+    if (!contextMenuCourseId) return;
     const handler = (e: MouseEvent) => {
       if (!(e.target as Element).closest("[data-context-menu]")) {
         setContextMenuCourseId(null);
-        setConfirmDeleteId(null);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -123,16 +140,30 @@ export default function AppSidebar({
     if (window.innerWidth < 768) onClose();
   };
 
+  const handleExecuteDeleteCourse = async () => {
+    if (!courseToDelete) return;
+    setIsDeletingCourse(true);
+    try {
+      await onDeleteCourse(courseToDelete.id);
+      setCourseToDelete(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete course");
+    } finally {
+      setIsDeletingCourse(false);
+    }
+  };
+
   return (
-    <aside
-      id="app-sidebar"
-      aria-label="Sidebar Navigation"
-      className={`fixed top-0 left-0 h-full z-40 bg-[#111118] border-r border-[#1E1E2E] flex flex-col justify-between transition-all duration-300 ease-in-out
-        ${isOpen ? "translate-x-0" : "-translate-x-full"} 
-        md:translate-x-0 
-        w-64 ${isCollapsed ? "md:w-16" : "md:w-64"}
-      `}
-    >
+    <>
+      <aside
+        id="app-sidebar"
+        aria-label="Sidebar Navigation"
+        className={`fixed top-0 left-0 h-full z-40 bg-[#111118] border-r border-[#1E1E2E] flex flex-col justify-between transition-all duration-300 ease-in-out
+          ${isOpen ? "translate-x-0" : "-translate-x-full"} 
+          md:translate-x-0 
+          w-64 ${isCollapsed ? "md:w-16" : "md:w-64"}
+        `}
+      >
       {/* SIDEBAR HEADER */}
       <div className="flex items-center justify-between p-4 border-b border-[#1E1E2E] h-14 shrink-0">
         <div className={`flex-col min-w-0 ${effectivelyCollapsed ? 'flex md:hidden' : 'flex'}`}>
@@ -385,31 +416,17 @@ export default function AppSidebar({
                           <Edit2 className="w-3.5 h-3.5" />
                           Rename
                         </button>
-                        {confirmDeleteId === course.id ? (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteCourse(course.id);
-                              setContextMenuCourseId(null);
-                              setConfirmDeleteId(null);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 transition text-left"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Confirm
-                          </button>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setConfirmDeleteId(course.id);
-                            }}
-                            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 transition text-left"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Delete
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCourseToDelete({ id: course.id, title: course.title });
+                            setContextMenuCourseId(null);
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 transition text-left cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Delete
+                        </button>
                       </div>
                     )}
                   </div>
@@ -478,8 +495,22 @@ export default function AppSidebar({
               </div>
             )}
             <div className="text-left min-w-0">
-              <p className="text-xs font-bold text-[#FAF9FD] truncate leading-tight">{displayName}</p>
-              <p className="text-[10px] text-[#8E88AB] truncate leading-none mt-0.5">{displayEmail}</p>
+              <div className="flex items-center gap-1.5 min-w-0">
+                <p className="text-xs font-bold text-[#FAF9FD] truncate leading-tight">{displayName}</p>
+                <button
+                  onClick={handleToggleRole}
+                  disabled={isUpdating}
+                  className="px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/25 rounded text-[9px] text-amber-400 font-extrabold hover:bg-amber-500/20 transition cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
+                  title={`Current: ${currentRole}. Click to Switch!`}
+                >
+                  {isUpdating ? (
+                    <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                  ) : (
+                    <span>{currentRole}</span>
+                  )}
+                </button>
+              </div>
+              <p className="text-[10px] text-[#8E88AB] truncate leading-none mt-1">{displayEmail}</p>
             </div>
           </div>
           <button
@@ -507,9 +538,21 @@ export default function AppSidebar({
             )}
             {/* Tooltip */}
             <div className="absolute left-12 top-1/2 -translate-y-1/2 bg-[#111118] border border-[#1E1E2E] text-white text-xs font-semibold rounded-lg px-2 py-1 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-              {displayName}
+              {displayName} ({currentRole})
             </div>
           </div>
+          <button
+            onClick={handleToggleRole}
+            disabled={isUpdating}
+            className="w-8 h-8 rounded-lg hover:bg-amber-500/15 hover:text-amber-400 text-[#8E88AB] flex items-center justify-center transition cursor-pointer"
+            title={`Role: ${currentRole}. Click to Switch!`}
+          >
+            {isUpdating ? (
+              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+            ) : (
+              <GraduationCap className="w-4 h-4 text-amber-500 hover:text-amber-400" />
+            )}
+          </button>
           <button
             onClick={onSignOut}
             className="w-8 h-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-400 text-[#8E88AB] flex items-center justify-center transition cursor-pointer"
@@ -521,5 +564,49 @@ export default function AppSidebar({
       </div>
       
     </aside>
+
+      {courseToDelete && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121021] border border-red-500/30 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-[#FAF9FD]">Delete Course?</h3>
+                <p className="text-sm text-[#CECADF] mt-2 leading-relaxed">
+                  Are you sure you want to permanently delete <span className="font-bold text-red-400">{courseToDelete.title}</span>? This action is absolute and irreversible. All study guides, saved messages, and quiz history for this course will be permanently removed.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setCourseToDelete(null)}
+                className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer"
+                disabled={isDeletingCourse}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteDeleteCourse}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition font-bold text-xs flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                disabled={isDeletingCourse}
+              >
+                {isDeletingCourse ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Yes, Delete Course"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

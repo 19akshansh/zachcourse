@@ -36,7 +36,8 @@ export default function VisualRoadmapsTab({
   const [documentContext, setDocumentContext] = useState("");
   const [uploadedFileNames, setUploadedFileNames] = useState<string[]>([]);
   const [showForm, setShowForm] = useState(roadmaps.length === 0);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [roadmapToDelete, setRoadmapToDelete] = useState<{ id: string; topic: string } | null>(null);
+  const [isDeletingRoadmap, setIsDeletingRoadmap] = useState(false);
 
   const activeRoadmap = roadmaps.find((r) => r.id === activeVRoadmapId);
   const completedNodeIds = (activeRoadmap?.completedNodeIds as string[]) || [];
@@ -68,6 +69,19 @@ export default function VisualRoadmapsTab({
       toast.error(err.message || "Failed to generate roadmap");
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleExecuteDeleteRoadmap = async () => {
+    if (!roadmapToDelete) return;
+    setIsDeletingRoadmap(true);
+    try {
+      await onDelete(roadmapToDelete.id);
+      setRoadmapToDelete(null);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete roadmap");
+    } finally {
+      setIsDeletingRoadmap(false);
     }
   };
 
@@ -258,7 +272,8 @@ export default function VisualRoadmapsTab({
   }
 
   return (
-    <div className="h-full flex flex-col space-y-6">
+    <>
+      <div className="h-full flex flex-col space-y-6">
       <div className="flex justify-between items-center shrink-0">
         <div>
           <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
@@ -296,30 +311,16 @@ export default function VisualRoadmapsTab({
                     >
                       <Star className={`w-4 h-4 ${r.isFavorite ? 'fill-[#EAB308] text-[#EAB308]' : 'text-[#8E88AB]'}`} />
                     </button>
-                    {confirmDeleteId === r.id ? (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(r.id);
-                          setConfirmDeleteId(null);
-                        }}
-                        className="p-1.5 bg-rose-500 hover:bg-rose-600 rounded-lg transition-colors text-white"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={(e) => { 
-                          e.stopPropagation(); 
-                          setConfirmDeleteId(r.id);
-                          // Reset after 3 seconds
-                          setTimeout(() => setConfirmDeleteId(null), 3000);
-                        }}
-                        className="p-1.5 hover:bg-rose-500/10 rounded-lg transition-colors text-[#8E88AB] hover:text-rose-400"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setRoadmapToDelete({ id: r.id, topic: r.topic });
+                      }}
+                      className="p-1.5 hover:bg-rose-500/10 rounded-lg transition-colors text-[#8E88AB] hover:text-rose-400 cursor-pointer"
+                      title="Delete Roadmap"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
                 <h3 className="font-bold text-white mb-1 line-clamp-1">{r.topic}</h3>
@@ -367,5 +368,49 @@ export default function VisualRoadmapsTab({
         </div>
       </div>
     </div>
+
+      {roadmapToDelete && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121021] border border-red-500/30 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-[#FAF9FD]">Delete Visual Roadmap?</h3>
+                <p className="text-sm text-[#CECADF] mt-2 leading-relaxed">
+                  Are you sure you want to permanently delete <span className="font-bold text-red-400">{roadmapToDelete.topic}</span>? This action is absolute and irreversible. All nodes, edges, milestones, and completed node progress indicators will be permanently lost.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setRoadmapToDelete(null)}
+                className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer"
+                disabled={isDeletingRoadmap}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteDeleteRoadmap}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition font-bold text-xs flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                disabled={isDeletingRoadmap}
+              >
+                {isDeletingRoadmap ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Yes, Delete Roadmap"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { trpc } from "../lib/trpc-client";
-import { Users, Plus, Hash, Trophy, Activity, ArrowRight, Loader2, BookOpen, Map, Check } from "lucide-react";
+import { Users, Plus, Hash, Trophy, Activity, ArrowRight, Loader2, BookOpen, Map, Check, Trash2, LogOut } from "lucide-react";
 import { toast } from "sonner";
+import { useSession } from "../lib/auth-client";
 
 export default function CohortsDashboard() {
+  const { data: sessionData } = useSession();
+  const userId = sessionData?.user?.id;
+
   const [memberships, setMemberships] = useState<any[] | null>(null);
   const [activeCohortId, setActiveCohortId] = useState<string | null>(null);
 
@@ -120,6 +124,7 @@ export default function CohortsDashboard() {
   }
 
   const activeMembership = memberships.find(m => m.cohort.id === activeCohortId);
+  const isOwner = userId && activeMembership?.cohort?.ownerId === userId;
 
   if (activeCohortId) {
     return (
@@ -130,6 +135,9 @@ export default function CohortsDashboard() {
         inviteCode={activeMembership?.cohort.inviteCode}
         courseTitle={activeMembership?.cohort.course?.title}
         roadmapTitle={activeMembership?.cohort.visualRoadmap?.title}
+        isOwner={!!isOwner}
+        onDeleted={loadCohorts}
+        onLeft={loadCohorts}
       />
     );
   }
@@ -257,6 +265,13 @@ export default function CohortsDashboard() {
                 <Users className="w-6 h-6 text-emerald-400" />
                 Cohort Invitation Found!
               </h3>
+
+              {previewCohort.isAlreadyMember && (
+                <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2">
+                  <Check className="w-5 h-5 shrink-0" />
+                  <span>You are already a member of this cohort!</span>
+                </div>
+              )}
               
               <div className="bg-[#1E1A33] border border-[#2A2443] rounded-xl p-5 space-y-3">
                 <div>
@@ -309,11 +324,20 @@ export default function CohortsDashboard() {
                 <button 
                   type="button" 
                   onClick={handleJoinAndClone}
-                  disabled={isJoinLoading}
-                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl flex items-center gap-2 transition disabled:opacity-50"
+                  disabled={isJoinLoading || previewCohort.isAlreadyMember}
+                  className={`px-6 py-3 font-bold rounded-xl flex items-center gap-2 transition ${
+                    previewCohort.isAlreadyMember 
+                      ? "bg-slate-700 text-slate-400 cursor-not-allowed border border-slate-600" 
+                      : "bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 shadow-lg shadow-emerald-900/20"
+                  }`}
                 >
                   {isJoinLoading ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : previewCohort.isAlreadyMember ? (
+                    <>
+                      <Check className="w-5 h-5 text-emerald-400" />
+                      Already Joined in Cohort
+                    </>
                   ) : (
                     <>
                       <Check className="w-5 h-5" />
@@ -382,17 +406,27 @@ function CohortDetail({
   cohortName, 
   inviteCode,
   courseTitle,
-  roadmapTitle
+  roadmapTitle,
+  isOwner,
+  onDeleted,
+  onLeft
 }: { 
   cohortId: string, 
   onBack: () => void, 
   cohortName: string, 
   inviteCode?: string,
   courseTitle?: string,
-  roadmapTitle?: string
+  roadmapTitle?: string,
+  isOwner: boolean,
+  onDeleted?: () => void,
+  onLeft?: () => void
 }) {
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
   const [activity, setActivity] = useState<any[] | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   useEffect(() => {
     trpc.getCohortLeaderboard.query({ cohortId })
@@ -403,6 +437,48 @@ function CohortDetail({
       .then(res => setActivity(res))
       .catch(err => console.error("Failed to load activity", err));
   }, [cohortId]);
+
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const handleLeave = () => {
+    setShowLeaveConfirm(true);
+  };
+
+  const executeDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await trpc.deleteCohort.mutate({ cohortId });
+      toast.success("Cohort deleted successfully");
+      setShowDeleteConfirm(false);
+      onBack();
+      if (onDeleted) {
+        onDeleted();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete cohort");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const executeLeave = async () => {
+    setIsLeaving(true);
+    try {
+      await trpc.leaveCohort.mutate({ cohortId });
+      toast.success("Successfully left the cohort");
+      setShowLeaveConfirm(false);
+      onBack();
+      if (onLeft) {
+        onLeft();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to leave cohort");
+    } finally {
+      setIsLeaving(false);
+    }
+  };
 
   return (
     <div className="p-6 md:p-10 max-w-5xl mx-auto w-full space-y-8 fade-in">
@@ -432,6 +508,36 @@ function CohortDetail({
             </div>
           </div>
         </div>
+
+        {isOwner && (
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/30 hover:border-red-500/50 rounded-xl font-medium transition flex items-center gap-2 self-start sm:self-center disabled:opacity-50"
+          >
+            {isDeleting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+            Delete Cohort
+          </button>
+        )}
+
+        {!isOwner && (
+          <button
+            onClick={handleLeave}
+            disabled={isLeaving}
+            className="px-4 py-2.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:border-amber-500/50 rounded-xl font-medium transition flex items-center gap-2 self-start sm:self-center disabled:opacity-50"
+          >
+            {isLeaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <LogOut className="w-4 h-4" />
+            )}
+            Leave Cohort
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -513,6 +619,92 @@ function CohortDetail({
           </div>
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121021] border border-red-500/30 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-[#FAF9FD]">Delete Cohort?</h3>
+                <p className="text-sm text-[#CECADF] mt-2 leading-relaxed">
+                  Are you sure you want to permanently delete <span className="font-bold text-red-400">{cohortName}</span>? This action is absolute and irreversible. All student progress metrics within this cohort will be deleted.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeDelete}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition font-bold text-xs flex items-center gap-2 disabled:opacity-50"
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Yes, Delete Cohort"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121021] border border-amber-500/30 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center">
+                <LogOut className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-[#FAF9FD]">Leave Cohort?</h3>
+                <p className="text-sm text-[#CECADF] mt-2 leading-relaxed">
+                  Are you sure you want to leave <span className="font-bold text-amber-400">{cohortName}</span>? Your scoped leaderboard rank will be removed, though your cloned courses and roadmaps will remain intact in your profile.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLeaveConfirm(false)}
+                className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs"
+                disabled={isLeaving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeLeave}
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition font-bold text-xs flex items-center gap-2 disabled:opacity-50"
+                disabled={isLeaving}
+              >
+                {isLeaving ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Leaving...
+                  </>
+                ) : (
+                  "Yes, Leave"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

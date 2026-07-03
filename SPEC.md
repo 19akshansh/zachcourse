@@ -311,8 +311,10 @@ All procedures are protected by `requireAuth` checking for an active Better Auth
 
 - **Cohort Systems:**
   - `createCohort({ name, courseId, visualRoadmapId })` -> Sets up a learning cohort bound to a curriculum.
-  - `previewCohortByInviteCode({ inviteCode })` -> Fetches name, member count, and curriculum details without committing enrollment.
-  - `joinCohortAndClone({ inviteCode })` -> Adds member to cohort and clones target course/roadmap to clean student state.
+  - `previewCohortByInviteCode({ inviteCode })` -> Fetches name, member count, curriculum details, and an `isAlreadyMember` flag without committing enrollment.
+  - `joinCohortAndClone({ inviteCode })` -> Checks if already joined (throwing `CONFLICT` on duplicate attempts), then adds member to cohort and clones target course/roadmap to clean student state.
+  - `deleteCohort({ cohortId })` -> Deletes a cohort permanently if the requester is verified as the creator/owner.
+  - `leaveCohort({ cohortId })` -> Removes a member from the cohort, while keeping their cloned course/roadmap.
   - `getCohortLeaderboard({ cohortId })` -> Rank members strictly by proficiency calculated from their cohort-linked cloned copies.
   - `getCohortActivity({ cohortId })` -> Streams activity feeds.
 

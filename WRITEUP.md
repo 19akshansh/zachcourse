@@ -6,7 +6,7 @@
 
 > **Live Demo:** https://zachcourse-955328668699.asia-southeast1.run.app
 
-> **Video:** https://youtu.be/fVWvpGBCMc8
+> **Video:** https://youtu.be/sBsXeVhbKHE
 
 ---
 

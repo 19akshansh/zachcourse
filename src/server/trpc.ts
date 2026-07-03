@@ -93,6 +93,16 @@ export const appRouter = router({
       });
     }),
 
+  setUserRole: protectedProcedure
+    .input(z.object({ role: z.enum(["student", "teacher"]) }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.prisma.user.update({
+        where: { id: ctx.user.id },
+        data: { role: input.role }
+      });
+      return { success: true };
+    }),
+
   getCourses: protectedProcedure.query(async ({ ctx }) => {
     return await ctx.prisma.course.findMany({
       where: { userId: ctx.user.id },
@@ -726,7 +736,8 @@ Generate a comprehensive project that applies the concepts learned in this modul
         ownerName: cohort.owner.name,
         memberCount: cohort.members.length,
         course: cohort.course,
-        visualRoadmap: cohort.visualRoadmap
+        visualRoadmap: cohort.visualRoadmap,
+        isAlreadyMember: cohort.members.some(m => m.userId === ctx.user.id)
       };
     }),
 
@@ -757,6 +768,18 @@ Generate a comprehensive project that applies the concepts learned in this modul
         }
       });
       if (!cohort) throw new TRPCError({ code: "NOT_FOUND", message: "Invalid invite code" });
+
+      const existingMember = await ctx.prisma.cohortMember.findUnique({
+        where: {
+          cohortId_userId: {
+            cohortId: cohort.id,
+            userId: ctx.user.id
+          }
+        }
+      });
+      if (existingMember) {
+        throw new TRPCError({ code: "CONFLICT", message: "You have already joined this cohort." });
+      }
 
       let userCourseId: string | null = null;
       if (cohort.courseId) {
@@ -911,6 +934,47 @@ Generate a comprehensive project that applies the concepts learned in this modul
       }
     });
   }),
+
+  deleteCohort: protectedProcedure
+    .input(z.object({ cohortId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const cohort = await ctx.prisma.cohort.findUnique({
+        where: { id: input.cohortId }
+      });
+      if (!cohort) throw new TRPCError({ code: "NOT_FOUND", message: "Cohort not found" });
+      if (cohort.ownerId !== ctx.user.id) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only the creator of this cohort can delete it" });
+      }
+
+      await ctx.prisma.cohort.delete({
+        where: { id: input.cohortId }
+      });
+
+      return { success: true };
+    }),
+
+  leaveCohort: protectedProcedure
+    .input(z.object({ cohortId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const cohort = await ctx.prisma.cohort.findUnique({
+        where: { id: input.cohortId }
+      });
+      if (!cohort) throw new TRPCError({ code: "NOT_FOUND", message: "Cohort not found" });
+      if (cohort.ownerId === ctx.user.id) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "The owner cannot leave the cohort. You can delete it instead." });
+      }
+
+      await ctx.prisma.cohortMember.delete({
+        where: {
+          cohortId_userId: {
+            cohortId: input.cohortId,
+            userId: ctx.user.id
+          }
+        }
+      });
+
+      return { success: true };
+    }),
 
   // Teacher MVP Procedures
   createClassroom: protectedProcedure

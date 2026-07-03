@@ -11,7 +11,7 @@
   <a href="https://zachcourse-955328668699.asia-southeast1.run.app">
     <img src="https://img.shields.io/badge/Live-Demo-brightgreen.svg" alt="Live Demo" />
   </a>
-  <a href="https://youtu.be/fVWvpGBCMc8">
+  <a href="https://youtu.be/sBsXeVhbKHE">
     <img src="https://img.shields.io/badge/Video-Explanation-red.svg?logo=youtube" alt="Video Explanation" />
   </a>
   <a href="https://www.kaggle.com/competitions/vibecoding-agents-capstone-project/writeups/zachcourse">

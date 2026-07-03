@@ -1,11 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { signOut, useSession } from "../lib/auth-client";
 import { navigate } from "../lib/router";
-import { LogOut, User, Settings, ChevronDown } from "lucide-react";
+import { LogOut, User, Settings, ChevronDown, GraduationCap, Loader2 } from "lucide-react";
+import { trpc } from "../lib/trpc-client";
+import { toast } from "sonner";
 
 export default function UserMenu() {
   const { data: sessionData } = useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,6 +26,8 @@ export default function UserMenu() {
   if (!sessionData?.user) return null;
 
   const { user } = sessionData;
+  const currentRole = (user as any).role || "student";
+
   const initials = user.name
     ? user.name
         .split(" ")
@@ -36,6 +41,22 @@ export default function UserMenu() {
     setIsOpen(false);
     await signOut();
     navigate("/");
+  };
+
+  const handleToggleRole = async () => {
+    const nextRole = currentRole === "teacher" ? "student" : "teacher";
+    setIsUpdating(true);
+    try {
+      await trpc.setUserRole.mutate({ role: nextRole });
+      toast.success(`Role switched to ${nextRole}! Refreshing...`);
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update role");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -84,6 +105,22 @@ export default function UserMenu() {
           >
             <Settings className="w-4 h-4 text-[#8B5CF6]" />
             <span>Settings</span>
+          </button>
+
+          <button
+            onClick={handleToggleRole}
+            disabled={isUpdating}
+            className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1E1E2E]/50 rounded-xl transition cursor-pointer text-left disabled:opacity-50"
+          >
+            <div className="flex items-center gap-2.5">
+              <GraduationCap className="w-4 h-4 text-amber-500" />
+              <span>Role: <span className="capitalize text-amber-400 font-bold">{currentRole}</span></span>
+            </div>
+            {isUpdating ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#94A3B8]" />
+            ) : (
+              <span className="text-[10px] text-amber-500/80 underline font-normal hover:text-amber-400">Switch</span>
+            )}
           </button>
 
           <div className="h-px bg-[#1E1E2E] my-1.5" />

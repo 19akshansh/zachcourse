@@ -30,6 +30,16 @@ export const auth = betterAuth({
   
   account: { accountLinking: { enabled: true, trustedProviders: ['google', 'github'] } },
 
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        required: false,
+        defaultValue: "student",
+      }
+    }
+  },
+
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,

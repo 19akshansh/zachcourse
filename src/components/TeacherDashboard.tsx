@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { trpc } from "../lib/trpc-client";
-import { BookOpen, Users, Download, TrendingUp, ChevronLeft, Map } from "lucide-react";
+import { BookOpen, Users, Download, TrendingUp, ChevronLeft, Map, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function TeacherDashboard() {
@@ -17,6 +17,9 @@ export default function TeacherDashboard() {
 
   const [courses, setCourses] = useState<any[]>([]);
   const [roadmaps, setRoadmaps] = useState<any[]>([]);
+
+  const [classroomToDelete, setClassroomToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeletingClassroom, setIsDeletingClassroom] = useState(false);
 
   const loadClassrooms = async () => {
     try {
@@ -109,13 +112,32 @@ export default function TeacherDashboard() {
     document.body.removeChild(link);
   };
 
+  const handleExecuteDeleteClassroom = async () => {
+    if (!classroomToDelete) return;
+    setIsDeletingClassroom(true);
+    try {
+      await trpc.deleteCohort.mutate({ cohortId: classroomToDelete.id });
+      toast.success("Classroom deleted successfully");
+      setClassroomToDelete(null);
+      if (activeClassroom?.id === classroomToDelete.id) {
+        setActiveClassroom(null);
+      }
+      loadClassrooms();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete classroom");
+    } finally {
+      setIsDeletingClassroom(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-8 text-[#CECADF]">Loading dashboard...</div>;
   }
 
   return (
-    <div className="max-w-6xl mx-auto w-full space-y-8 fade-in">
-      {/* Header */}
+    <>
+      <div className="max-w-6xl mx-auto w-full space-y-8 fade-in">
+        {/* Header */}
       <div className="flex items-center gap-3 border-b border-[#2A2443] pb-6">
         <div className="bg-indigo-950/40 p-3 rounded-2xl">
           <BookOpen className="w-8 h-8 text-[#818CF8]" />
@@ -188,7 +210,19 @@ export default function TeacherDashboard() {
             {classrooms.map(cls => (
               <div key={cls.id} className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl flex flex-col justify-between hover:border-indigo-500/50 transition">
                 <div>
-                  <h3 className="text-xl font-bold text-[#FAF9FD]">{cls.name}</h3>
+                  <div className="flex justify-between items-start gap-4">
+                    <h3 className="text-xl font-bold text-[#FAF9FD]">{cls.name}</h3>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setClassroomToDelete({ id: cls.id, name: cls.name });
+                      }}
+                      className="p-1.5 hover:bg-rose-500/10 rounded-lg transition-colors text-[#8E88AB] hover:text-rose-400 cursor-pointer shrink-0"
+                      title="Delete Classroom"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   <div className="flex items-center gap-2 text-[#8E88AB] mt-2">
                     <Users className="w-4 h-4" />
                     <span className="text-sm font-medium">{cls._count.members} students enrolled</span>
@@ -238,12 +272,21 @@ export default function TeacherDashboard() {
               </button>
               <h3 className="text-xl font-bold text-[#FAF9FD]">{activeClassroom.name} Roster</h3>
             </div>
-            <button
-              onClick={exportCSV}
-              className="flex items-center gap-2 bg-[#2A2443] hover:bg-[#322B4D] text-[#FAF9FD] px-4 py-2 rounded-xl text-sm font-semibold transition"
-            >
-              <Download className="w-4 h-4" /> Export CSV
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={exportCSV}
+                className="flex items-center gap-2 bg-[#2A2443] hover:bg-[#322B4D] text-[#FAF9FD] px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer"
+              >
+                <Download className="w-4 h-4" /> Export CSV
+              </button>
+              <button
+                onClick={() => setClassroomToDelete({ id: activeClassroom.id, name: activeClassroom.name })}
+                className="flex items-center gap-2 bg-rose-950/40 hover:bg-rose-900/60 text-rose-400 border border-rose-500/30 px-4 py-2 rounded-xl text-sm font-semibold transition cursor-pointer"
+                title="Delete Classroom"
+              >
+                <Trash2 className="w-4 h-4" /> Delete Classroom
+              </button>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
@@ -335,5 +378,49 @@ export default function TeacherDashboard() {
         </div>
       )}
     </div>
+
+      {classroomToDelete && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121021] border border-red-500/30 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-[#FAF9FD]">Delete Classroom?</h3>
+                <p className="text-sm text-[#CECADF] mt-2 leading-relaxed">
+                  Are you sure you want to permanently delete the classroom <span className="font-bold text-red-400">{classroomToDelete.name}</span>? This action is absolute and irreversible. All student enrollment records and gradebook metrics within this classroom will be permanently removed.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setClassroomToDelete(null)}
+                className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer"
+                disabled={isDeletingClassroom}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteDeleteClassroom}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition font-bold text-xs flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                disabled={isDeletingClassroom}
+              >
+                {isDeletingClassroom ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Yes, Delete Classroom"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
