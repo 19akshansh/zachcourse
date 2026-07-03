@@ -101,14 +101,30 @@ ZachCourse is powered by a team of specialized AI agents working together:
 ---
 
 ```text
-src
-├── app
-├── components
-├── features
-│   └── auth
-├── lib
-├── server
-└── types
+.
+├── prisma
+│   ├── migrations
+│   └── schema.prisma
+├── public
+├── scripts
+│   ├── archive/            # De-cluttered dev, test & patch scripts
+│   ├── eval-lessons.ts
+│   └── setup-db.sh
+├── src
+│   ├── app/                # Next.js App Router folders
+│   │   ├── (auth)/
+│   │   ├── api/
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   ├── components/         # Reusable React components (Dashboards, Sidebar, Graphs)
+│   ├── features/
+│   │   └── auth/           # Authentication UI flows
+│   ├── lib/                # Shared helpers (tRPC client, auth setup)
+│   ├── server/             # Express server logic & schemas
+│   └── types/              # Common TypeScript type definitions
+├── mcp_server.ts           # Model Context Protocol (MCP) server
+├── server.ts               # Express & Vite unified backend entry point
+└── package.json
 ```
 
 ## 🚀 Getting Started
