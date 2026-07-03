@@ -4,6 +4,17 @@
  * client (Claude Desktop, Cursor, etc.) can use ZachCourse's 
  * web-reading capabilities.
  * 
+ * DESIGN RATIONALE:
+ * This standalone MCP server deliberately re-exposes the exact same `fetchUrl` and
+ * `searchWeb` tools as the in-app Mentor Agent. Instead of writing separate utility code,
+ * it shares the same HTTP endpoints, search APIs (DuckDuckGo format parsing), and most
+ * importantly, the identical `isBlockedUrl` security filter.
+ * This guarantees that:
+ * 1. Security controls (SSRF protection) are applied uniformly across both standard user channels
+ *    and external developer/agent integrations.
+ * 2. Scraping, stripping, and token-optimization algorithms (HTML tag stripping, length capping)
+ *    do not diverge or duplicate, keeping maintenance overhead extremely low.
+ * 
  * Run with: npx tsx mcp_server.ts
  * Add to Claude Desktop config as a local MCP server.
  */
@@ -11,6 +22,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { isBlockedUrl } from "./src/lib/ssrf-guard";
 
 const server = new McpServer({
   name: "zachcourse-tools",
@@ -28,10 +40,8 @@ server.tool(
   },
   async ({ url, reason }) => {
     try {
-      const parsedUrl = new URL(url);
-      const blockedHosts = ["169.254.169.254", "metadata.google.internal", "localhost", "127.0.0.1"];
-      if (blockedHosts.includes(parsedUrl.hostname)) {
-        return { content: [{ type: "text", text: "Blocked: internal URLs not allowed" }] };
+      if (isBlockedUrl(url)) {
+        return { content: [{ type: "text", text: "Blocked: Access to internal/private hosts or unsupported protocols is forbidden." }] };
       }
 
       const response = await fetch(url, {

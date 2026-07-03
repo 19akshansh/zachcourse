@@ -18,6 +18,7 @@ import { prisma } from "./src/lib/db";
 const db = prisma;
 import { extractTextFromBuffer, detectPromptInjection } from "./src/lib/document-processor";
 import { retrieveRelevantMemories, storeMentorExchange } from "./src/lib/memory";
+import { isBlockedUrl } from "./src/lib/ssrf-guard";
 
 const app = express();
 
@@ -531,6 +532,21 @@ app.post(
   }
 );
 
+// ============================================================================
+// ROADMAP AGENT & CRITIC AGENT FLOW
+// ============================================================================
+// • Purpose: Translates a student's topic, pasted text/syllabus, or reference URLs
+//   into a comprehensive, personalized module-by-module study path.
+// • Technique Selection: Uses `generateObject` (schema-driven) with a strict
+//   Zod schema. This approach is highly preferred over free-text `generateText`
+//   because roadmaps are structural data backbones. It guarantees that the 
+//   generated roadmap perfectly matches the frontend's rendering contract.
+// • Inline Critic Agent: Features a synchronous curriculum-review Critic Agent. 
+//   If flaws are detected (e.g. prerequisite errors or unrealistic times), the Critic 
+//   rejects the candidate and triggers a targeted re-prompt.
+// • Design Constraint: The Critic's self-correction retry loop is capped at EXACTLY
+//   1 retry. This limits latency overhead to ensure a fast, responsive UI load time.
+// ============================================================================
 // 1. API: Generate Roadmap
 app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
   const { topic, sourceUrl, textContent, documentContext } = req.body;
@@ -653,6 +669,20 @@ ${JSON.stringify(roadmapData)}
   }
 });
 
+// ============================================================================
+// VISUAL ROADMAP AGENT & CRITIC AGENT FLOW
+// ============================================================================
+// • Purpose: Formulates a fully mapped-out interactive curriculum node-graph
+//   consisting of linear lessons, side paths, and checkpoint milestones.
+// • Technique Selection: Employs `generateObject` with an advanced Zod schema. 
+//   Since the UI directly renders this data as React Flow components (via `@xyflow/react`),
+//   structural soundness is paramount. Free-form text (`generateText`) would fail to 
+//   safely populate graph properties like node-edge identifiers, types, and coordinates.
+// • Critic Check: Runs an inline Critic review specialized in graph constraints (e.g.
+//   preventing disconnected/orphaned nodes, missing dependencies, or invalid links).
+// • Latency/Resiliency Trade-off: Capped at exactly 1 re-prompt, ensuring high-quality
+//   graphs without risking timeouts.
+// ============================================================================
 app.post("/api/generate-visual-roadmap", aiRateLimit, async (req, res) => {
   const { topic, experienceLevel, weeklyHours, sourceUrl, documentContext } = req.body
   
@@ -796,6 +826,20 @@ ${JSON.stringify(data)}
   }
 })
 
+// ============================================================================
+// LESSON AGENT (STUDY GUIDE) & JUDGE AGENT EVALUATION FLOW
+// ============================================================================
+// • Purpose: Authors a highly detailed Markdown study guide for a given lesson,
+//   custom-scoped to the lesson's concept list and optional reference document context.
+// • Technique Selection: Employs standard free-form text generation (`generateText` / no schema)
+//   because study guides require high-density, conversational prose, creative code examples,
+//   and fluid Markdown formatting which strict schema generation would overly constrain.
+// • Inline Judge Agent: Integrates an automated evaluator (Judge Agent) which critiques the
+//   study guide's clarity, technical accuracy, depth, and engagement against a rubric.
+// • Resiliency Loop: If the score falls below standard or a verdict of revision/fail is issued,
+//   the Lesson Agent is re-prompted. The loop caps at exactly 1 self-correction step
+//   to balance learning quality with fast generation performance.
+// ============================================================================
 // 2. API: Generate Study Guide Content
 app.post("/api/generate-lesson", requireAuth, async (req, res) => {
   const { roadmapKey, moduleId, lessonId, lessonTitle, concepts, courseContext, documentContext, courseId } = req.body;
@@ -896,6 +940,18 @@ ${contentToEvaluate}
   }
 });
 
+// ============================================================================
+// QUIZ AGENT FLOW
+// ============================================================================
+// • Purpose: Authors exactly 3 multiple-choice questions custom-tailored to the
+//   study material or lesson title provided.
+// • Technique Selection: Utilizes `generateObject` with a strict array-based Zod
+//   schema. Using a schema ensures that the generated response is structured correctly,
+//   with exactly 4 options per question and a valid 0-3 index for the correct answer,
+//   allowing the frontend interactive trivia game to execute error-free.
+// • Design Details: Dictates a balanced cognitive load distribution (1 easy,
+//   1 medium, 1 hard question) to test conceptual understanding rather than rote recall.
+// ============================================================================
 // 3. API: Generate Quiz
 app.post("/api/generate-quiz", requireAuth, async (req, res) => {
   const { lessonTitle, lessonContent } = req.body;
@@ -935,6 +991,25 @@ Requirements:
   }
 });
 
+// ============================================================================
+// MENTOR AGENT FLOW (AGENTIC LOOP + RAG)
+// ============================================================================
+// • Purpose: Acts as an interactive personal learning tutor that answers
+//   questions, recalls historical chat exchanges, reads public web links, and
+//   searches the web for up-to-date context.
+// • Technique Selection: Employs `streamText` to deliver real-time, token-by-token
+//   responses. Integrates registered tools (`fetchUrl` and `searchWeb`) forming a
+//   multi-step agentic execution loop.
+// • Retrieval Augmented Generation (RAG): Before responding, queries pgvector to
+//   surface semantically relevant fragments of earlier lessons or mentor chats,
+//   injecting them as background context into the prompt.
+// • Design Decision (Step Count Limit): The agentic loop is restricted to a maximum 
+//   of `isStepCount(5)` iterations. This prevents infinite tool execution loops,
+//   saves token quotas, and guarantees a rapid turnaround for the user.
+// • SSRF Protection: The registered `fetchUrl` tool routes all URLs through the
+//   centralized `isBlockedUrl` validator. This blocks loopback requests, internal Cloud
+//   Run metadata servers, and private subnets, completely neutralizing SSRF vectors.
+// ============================================================================
 // 4. API: Ask Mentor Chat
 app.post("/api/mentor-chat", requireAuth, async (req, res) => {
   try {
@@ -1025,16 +1100,8 @@ CRITICAL INSTRUCTIONS FOR TOOLS:
       }),
       execute: async ({ url, reason }: { url: string, reason: string }) => {
         try {
-          const parsedUrl = new URL(url);
-          const blockedHosts = [
-            "169.254.169.254", "metadata.google.internal", "localhost", "127.0.0.1", "0.0.0.0", "::1",
-          ];
-          const isPrivateIp = /^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/.test(parsedUrl.hostname);
-          if (blockedHosts.includes(parsedUrl.hostname) || isPrivateIp) {
-            throw new Error("Access to internal/private hosts is forbidden.");
-          }
-          if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
-            throw new Error("Only HTTP/HTTPS protocols are supported.");
+          if (isBlockedUrl(url)) {
+            throw new Error("Access to internal/private hosts or unsupported protocols is forbidden.");
           }
           const abort = new AbortController();
           const timer = setTimeout(() => abort.abort(), 8000);

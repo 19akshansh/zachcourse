@@ -16,9 +16,9 @@
 | :--- | :--- |
 | **Agent / Multi-agent system** | Seven agents — Roadmap, Visual Roadmap, Lesson, Quiz, Mentor, Judge, Critic — each a server route or inline evaluator with its own Zod-validated schema (`server.ts`) |
 | **RAG / long-term memory** | `src/lib/memory.ts` — chunks lesson text and mentor exchanges, embeds with `text-embedding-004`, stores vectors in pgvector for retrieval that grounds the Mentor beyond its 8-message window |
-| **Document ingestion** | `POST /api/process-documents` + `document-processor.ts` — parses uploaded PDF/text syllabi, sanitizes them, and screens for prompt-injection patterns before any text reaches a model |
+| **Document ingestion** | `POST /api/process-documents` + `document-processor.ts` — parses uploaded PDF/text syllabi, sanitizes them, and screens for potential prompt-injection via robust heuristic pattern-matching before any text reaches a model |
 | **MCP Server** | `mcp_server.ts` — a fully functional `@modelcontextprotocol/sdk` server exposing `fetchUrl` and `searchWeb` as MCP tools over stdio transport. Run with `npm run mcp`. |
-| **Security features** | SSRF protection in `fetchUrl`, prompt-injection screening on uploads, `express-rate-limit` on every AI endpoint, `helmet` with custom CSP, `requireAuth` middleware, input length caps, Zod input validation |
+| **Security features** | SSRF protection in `fetchUrl`, heuristic prompt-injection pattern screening on uploads, `express-rate-limit` on every AI endpoint, `helmet` with custom CSP, `requireAuth` middleware, input length caps, Zod input validation |
 | **Deployability** | Deployed on Google Cloud Run at the live URL above. Full build pipeline: `vite build` + `esbuild` bundling. `npm run start` launches the production server. |
 | **Agent skills** | `fetchUrl` and `searchWeb` implemented as callable tool skills inside the Mentor agent's agentic loop. Gemini autonomously decides when to invoke them. |
 
@@ -69,6 +69,12 @@ The application is a **Vite + React 19 SPA** served by an **Express.js** backend
 
 **Model strategy:** a three-model fallback chain — `gemini-2.5-flash` → `gemini-2.5-flash-lite` → `gemini-2.5-pro` — with automatic retry on `429`/`503`/overloaded responses, so the app degrades gracefully instead of crashing under quota pressure.
 
+### Architectural Rationale: Choosing Vercel AI SDK over Google ADK
+While Google's Agent Development Kit (ADK) provides robust, high-level frameworks for multi-agent workflows, ZachCourse deliberately employs the Vercel AI SDK (`@ai-sdk/google` + Vercel AI SDK v7 core) for critical architectural and operational trade-offs:
+* **Schema-First Structured Output Control:** The `generateObject` API backed by Zod guarantees that complex data structures, such as customized module roadmaps and node-edge visual graphs, strictly match our frontend rendering contract. ADK's prompt-level mappings introduce parsing risks for rendering visual React Flow diagrams via `@xyflow/react`.
+* **High-Density React Streaming:** Vercel's out-of-the-box support for streaming text tokens and real-time step progressions directly to React Hooks ensures low time-to-first-token latency for our persistent Mentor Agent.
+* **Unified TypeScript DX:** Standardizing on the Vercel SDK maintains a single, highly integrated toolset for schema generation, embedding execution, and agentic loops, aligning perfectly with full-stack TypeScript standards.
+
 ---
 
 ## The Agent System
@@ -117,7 +123,7 @@ Runs inline after Lesson generation, scoring the draft on clarity, accuracy, dep
 Runs inline after (Visual) Roadmap generation, checking for illogical ordering, bad time estimates, or invalid graph structure, and returns revision notes that re-prompt the original agent on rejection.
 
 ### Document Ingestion Pipeline
-A guarded preprocessing step, not a model call. `POST /api/process-documents` accepts up to 3 PDF/text files (10MB max each), extracts and sanitizes text, caps it at 50,000 characters, and screens it for prompt-injection patterns before it ever reaches a model prompt — a rejected document surfaces a clear error instead of silently poisoning the Roadmap Agent's context.
+A guarded preprocessing step, not a model call. `POST /api/process-documents` accepts up to 3 PDF/text files (10MB max each), extracts and sanitizes text, caps it at 50,000 characters, and screens it using robust heuristic pattern-matching for potential prompt-injection before it ever reaches a model prompt. This heuristic check serves as an agile first line of defense, while the downstream prompts in `server.ts` use rigid `<document_context>` XML-style tag isolation to ensure injected text is strictly parsed as untrusted context data and never as model instructions. A rejected document surfaces a clear error instead of silently poisoning the Roadmap Agent's context.
 
 ---
 
@@ -150,7 +156,7 @@ Security was designed in, not added after:
 - **Input validation:** message length and history size capped; Zod validates every tRPC input before it reaches the database.
 - **Structured outputs:** `generateObject()` with Zod schemas type-checks AI output before storage and rejects malformed responses.
 - **Credential separation:** user API keys live only in `localStorage`, sent via header, never stored server-side.
-- **Upload screening & ownership checks:** documents are sanitized and scanned for prompt-injection patterns before reaching a model; cohort/classroom mutations verify ownership.
+- **Upload screening & ownership checks:** documents are sanitized and scanned for heuristic prompt-injection patterns before reaching a model; cohort/classroom mutations verify ownership.
 
 ---
 
@@ -176,7 +182,7 @@ Testing covered: roadmap generation across 10+ topics and uploaded syllabi; less
 
 **Structured output reliability:** manual JSON parsing was inconsistent; `generateObject()` with Zod schemas eliminated parsing errors entirely.
 
-**Trust boundary for agent inputs:** `fetchUrl` and uploaded documents both carry attacker-controlled text into a prompt — SSRF blocking and the document injection-pattern screen address the same risk from two entry points.
+**Trust boundary for agent inputs:** `fetchUrl` and uploaded documents both carry attacker-controlled text into a prompt — SSRF blocking and the heuristic document injection-pattern screen address the same risk from two entry points, while strict prompt isolation ensures that even bypassed text is treated purely as data rather than instructions.
 
 **Fair metrics in shared curricula:** cloning the roadmap skeleton (not lesson text) at join time, and scoping leaderboard queries to cloned IDs, kept cohort metrics honest without duplicating generated content.
 

@@ -6,7 +6,7 @@ This document describes every AI agent in ZachCourse, how it works, what it uses
 
 ## Overview
 
-ZachCourse is built around **five specialized agents**, each responsible for a distinct part of the learning experience. They share a common infrastructure (Vercel AI SDK v7, Gemini via `@ai-sdk/google`, Zod schemas, NeonDB) but operate independently with no shared state at runtime.
+ZachCourse is built around **seven specialized agents**, each responsible for a distinct part of the learning experience. They share a common infrastructure (Vercel AI SDK v7, Gemini via `@ai-sdk/google`, Zod schemas, NeonDB) but operate independently with no shared state at runtime.
 
 ```
 User Request

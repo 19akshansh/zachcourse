@@ -7,6 +7,19 @@ const embeddingModel = google.textEmbeddingModel(
   "text-embedding-004"
 )
 
+// ============================================================================
+// RAG CHUNKING STRATEGY DESIGN NOTES:
+// ============================================================================
+// • Chunk Size (500 chars): Corresponds to roughly 80–100 words, representing
+//   the average length of a cohesive concept, paragraph, or code snippet. 
+//   Keeping chunks small and granular ensures that the vector similarity search 
+//   surfaces highly specific context, preventing unrelated noise from diluting 
+//   relevance scores.
+// • Overlap (100 chars): Provides a ~20% safety margin of surrounding context.
+//   This ensures that key sentences or code blocks split near chunk boundaries 
+//   retain enough surrounding semantic meaning to be indexed and matched correctly, 
+//   preserving continuity across chunk transitions.
+// ============================================================================
 // Chunk text into ~500 char pieces with 100 char overlap
 export function chunkText(
   text: string, 

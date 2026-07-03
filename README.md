@@ -107,7 +107,6 @@ ZachCourse is powered by a team of specialized AI agents working together:
 │   └── schema.prisma
 ├── public
 ├── scripts
-│   ├── archive/            # De-cluttered dev, test & patch scripts
 │   ├── eval-lessons.ts
 │   └── setup-db.sh
 ├── src
@@ -213,6 +212,39 @@ graph TD
     class LLM llm
     class DB db
 ```
+
+## 🧪 Evaluation
+
+To ensure that generated educational material is technically accurate, clear, engaging, and maintains appropriate depth, ZachCourse includes an automated offline evaluation suite running the **Judge Agent**.
+
+This evaluation runs completely independent of the PostgreSQL/Neon database. It analyzes hardcoded sample lessons (one high-quality and one intentionally flawed) against a strict educational rubric using Gemini and the Vercel AI SDK.
+
+### Running the Evaluation
+
+The evaluation suite can be run with the following command:
+
+```bash
+# Execute the automated Judge Agent evaluation pipeline
+npm run eval
+```
+
+*The underlying command definition in `package.json` resolves to: `tsx scripts/eval-lessons.ts`*
+
+### Dual Execution Modes
+
+To ensure a seamless experience for judges, the script supports two execution modes:
+1. **Live AI Evaluation Mode:** When a valid `GEMINI_API_KEY` environment variable is defined, the evaluation pipeline calls `gemini-2.5-flash` in real time to generate object scores and critiques matching the production Judge Agent's prompt guidelines.
+2. **Graceful Simulated Mode:** If `GEMINI_API_KEY` is not present, the script automatically alerts the console and prints pre-calculated, verified model outputs. This demonstrates the exact schema-compliant metrics and feedback that the Judge Agent returns in production without requiring configuration.
+
+### What the Judge Agent Validates
+
+When the evaluation is triggered, the Judge Agent will:
+1. Parse lesson contents and matching concepts.
+2. Score them out of 10 across four critical pedagogical metrics: **Clarity**, **Accuracy**, **Depth**, and **Engagement**.
+3. Produce a consolidated, Zod-schema-validated overall rating and constructive list of issue findings.
+4. Issue a final quality verdict: `PASS`, `NEEDS_REVISION`, or `FAIL`.
+
+---
 
 ## 🏆 Built For
 
