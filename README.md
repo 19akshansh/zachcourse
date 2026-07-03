@@ -97,6 +97,21 @@ ZachCourse is powered by a team of specialized AI agents working together:
 | **Database & ORM** | NeonDB (PostgreSQL), Prisma |
 | **Authentication** | Better Auth |
 
+## 📂 Repository Structure
+
+Below is an overview of how the codebase is organized:
+
+*   **`src/`**: Core frontend and application logic.
+    *   **`src/components/`**: Modular UI components (Dashboards, Sidebar, Visual Roadmap graphs).
+    *   **`src/features/`**: Feature-specific views (Authentication forms).
+    *   **`src/lib/`**: Core utilities, including the tRPC client and Better Auth setup.
+    *   **`src/server/`**: Server-side logic, routing, schemas, and database service integration.
+*   **`prisma/`**: Prisma database schemas and migration files.
+*   **`scripts/`**: Development and automation scripts.
+    *   **`scripts/archive/`**: Consolidated archive folder for historical testing scripts, patch runners, and experimental files.
+*   **`server.ts`**: The main Express server entry point integrating Vite middleware, tRPC routes, and Better Auth.
+*   **`mcp_server.ts`**: Standalone Model Context Protocol (MCP) server for external tool integration.
+
 ## 🚀 Getting Started
 
 1. **Clone the repository:**
