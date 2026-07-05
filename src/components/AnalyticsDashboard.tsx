@@ -28,10 +28,12 @@ export default function AnalyticsDashboard() {
     );
   }
 
-  if (!metrics) {
+  if (!metrics || metrics.activityDataAvailable === false) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[500px]">
-        <p className="text-[#8E88AB] font-medium">No analytics data available yet.</p>
+        <p className="text-[#8E88AB] font-medium text-center max-w-md px-4">
+          No learning activity data available yet. Keep learning, chatting with your mentor, and taking quizzes to see your stats here!
+        </p>
       </div>
     );
   }

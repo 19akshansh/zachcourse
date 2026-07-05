@@ -17,6 +17,13 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+function getResetToken(): string | undefined {
+  const pathMatch = window.location.pathname.match(/^\/reset-password\/(.+)$/);
+  if (pathMatch && pathMatch[1]) return decodeURIComponent(pathMatch[1]);
+  const params = new URLSearchParams(window.location.search);
+  return params.get("token") || undefined;
+}
+
 export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -74,8 +81,7 @@ export default function ResetPasswordPage() {
     setLoading(true);
     setGlobalError("");
     try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get("token") || undefined;
+      const token = getResetToken();
       // Better Auth handles the token automatically from the query string
       const res = await (authClient as any).resetPassword({
         newPassword: data.password,

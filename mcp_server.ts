@@ -22,7 +22,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { isBlockedUrl } from "./src/lib/ssrf-guard";
+import { isBlockedUrl, isBlockedUrlResolved } from "./src/lib/ssrf-guard";
 
 const server = new McpServer({
   name: "zachcourse-tools",
@@ -40,7 +40,7 @@ server.tool(
   },
   async ({ url, reason }) => {
     try {
-      if (isBlockedUrl(url)) {
+      if (await isBlockedUrlResolved(url)) {
         return { content: [{ type: "text", text: "Blocked: Access to internal/private hosts or unsupported protocols is forbidden." }] };
       }
 
@@ -98,7 +98,7 @@ server.tool(
         .join("\n\n");
 
       return {
-        content: [{ type: "text", text: results || "No results found for: " + query }],
+        content: [{ type: "text", text: results || `No direct summary found for '${query}'. Consider rephrasing the question or providing a specific URL to fetch instead.` }],
       };
     } catch (err: any) {
       return { content: [{ type: "text", text: `Search failed: ${err.message}` }] };

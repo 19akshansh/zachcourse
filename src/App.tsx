@@ -20,6 +20,9 @@ import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import CohortsDashboard from "./components/CohortsDashboard";
 import TeacherDashboard from "./components/TeacherDashboard";
 import { DocumentUpload } from "./components/DocumentUpload";
+import { QuizRunner } from "./components/QuizRunner";
+import { ProgressDashboard } from "./components/ProgressDashboard";
+import { MentorChat } from "./components/MentorChat";
 import { toast, Toaster } from "sonner";
 import { 
   BookOpen, 
@@ -179,16 +182,18 @@ export default function App() {
     if (isSessionPending) return;
     
     const authPaths = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password", "/verify-email"];
+    const isAuthPath = authPaths.some(p => path.startsWith(p));
     
     if (!sessionData?.user) {
       // Not logged in — redirect to sign-in if on protected route
-      if (!authPaths.includes(path) && path !== "/") {
+      if (!isAuthPath && path !== "/") {
         window.location.href = "/sign-in";
       }
     } else {
       // Logged in — redirect away from auth pages
       const preventLoggedPaths = ["/sign-in", "/sign-up", "/forgot-password"];
-      if (preventLoggedPaths.includes(path) || path === "/") {
+      const isPreventLoggedPath = preventLoggedPaths.some(p => path.startsWith(p));
+      if (isPreventLoggedPath || path === "/") {
         window.location.href = "/dashboard";
       }
     }
@@ -212,9 +217,7 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [authSuccess, setAuthSuccess] = useState("");
 
-  // New password resets
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
+
   
   // User DB Progress
   const [userDbProgress, setUserDbProgress] = useState<any>(null);
@@ -353,13 +356,7 @@ export default function App() {
     return () => { cancelled = true; };
   }, [sessionData?.user?.id]);
 
-  // Catch reset password links
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("token") || window.location.search.includes("reset-password")) {
-      setIsResettingPassword(true);
-    }
-  }, []);
+
 
   
   // Collapsible syllabus inputs
@@ -397,6 +394,7 @@ export default function App() {
   const [lessonModuleTitle, setLessonModuleTitle] = useState<string>("");
   const [lessonQualityScore, setLessonQualityScore] = useState<number | null>(null);
   const [lessonEvaluationData, setLessonEvaluationData] = useState<any>(null);
+  const [revalidating, setRevalidating] = useState<boolean>(false);
 
   // Quiz states
   const [generatingQuiz, setGeneratingQuiz] = useState<boolean>(false);
@@ -493,7 +491,7 @@ export default function App() {
     if (path === "/sign-in") return <SignInPage />;
     if (path === "/sign-up") return <SignUpPage />;
     if (path === "/forgot-password") return <ForgotPasswordPage />;
-    if (path === "/reset-password") return <ResetPasswordPage />;
+    if (path.startsWith("/reset-password")) return <ResetPasswordPage />;
     if (path === "/verify-email") return <VerifyEmailPage />;
     return <LandingPage />;
   }
@@ -803,6 +801,7 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
 
   const handleRevalidate = async () => {
     if (!selectedLesson || !activeCourseId) return;
+    setRevalidating(true);
     try {
       const evalResult = await trpc.validateLesson.mutate({
         courseId: activeCourseId,
@@ -816,6 +815,8 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
       toast.success("Lesson re-validated!");
     } catch (err) {
       toast.error("Failed to re-validate lesson");
+    } finally {
+      setRevalidating(false);
     }
   };
 
@@ -1311,25 +1312,7 @@ ${lessonContent}`;
     }
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPassword) return;
-    setAuthLoading(true);
-    setAuthError("");
-    setAuthSuccess("");
-    try {
-      await (authClient as any).resetPassword({
-        newPassword,
-      });
-      setAuthSuccess("Password has been reset successfully! You can now log in.");
-      setIsResettingPassword(false);
-      setAuthMode("signin");
-    } catch (err: any) {
-      setAuthError(err.message || "Failed to reset password. Please try again.");
-    } finally {
-      setAuthLoading(false);
-    }
-  };
+
 
   if (isSessionPending) {
     return (
@@ -1344,7 +1327,7 @@ ${lessonContent}`;
   // Render public-facing auth pages
   const getPublicPage = () => {
     if (path === "/verify-email") return <VerifyEmailPage />;
-    if (path === "/reset-password") return <ResetPasswordPage />;
+    if (path.startsWith("/reset-password")) return <ResetPasswordPage />;
     if (path === "/forgot-password") return <ForgotPasswordPage />;
     if (!sessionData?.user) {
       if (path === "/") return <LandingPage />;
@@ -1424,7 +1407,7 @@ ${lessonContent}`;
           onSignOut={handleSignOut}
         />
         
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto bg-[#0F0D19]">
           {/* Motivational quote - moved here from header */}
           <div className="bg-[#141223] border-b border-[#231E35] py-3 px-4 md:px-6">
             <p className="text-sm text-[#CECADF] font-medium italic text-center">
@@ -1957,10 +1940,11 @@ ${lessonContent}`;
                                 </div>
                                 <button
                                   onClick={handleRevalidate}
-                                  className="text-xs flex items-center gap-1 bg-[#1E1A33] hover:bg-[#2A2443] text-[#8E88AB] transition px-2 py-1 rounded"
+                                  disabled={revalidating}
+                                  className="text-xs flex items-center gap-1 bg-[#1E1A33] hover:bg-[#2A2443] text-[#8E88AB] transition px-2 py-1 rounded disabled:opacity-50"
                                 >
-                                  <RefreshCw className="w-3 h-3" />
-                                  <span>Re-validate</span>
+                                  <RefreshCw className={`w-3 h-3 ${revalidating ? "animate-spin" : ""}`} />
+                                  <span>{revalidating ? "Re-validating..." : "Re-validate"}</span>
                                 </button>
                               </div>
                               
@@ -2136,479 +2120,49 @@ ${lessonContent}`;
 
         {/* TAB 2: ASK MENTOR */}
         {activeTab === "mentor" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative overflow-hidden min-h-[400px]">
-
-            
-            {/* Quick Helper Prompts (span 4) */}
-            <div className="lg:col-span-4 flex flex-col gap-6">
-              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl">
-                <h3 className="text-lg font-bold text-[#FAF9FD] mb-2 flex items-center gap-2">
-                  <span>🧑‍🏫</span>
-                  <span>Companion Help desk</span>
-                </h3>
-                <p className="text-sm text-[#8E88AB] mb-4 leading-relaxed">
-                  Click any of these helper templates to ask me questions about your current study material:
-                </p>
-
-                <div className="space-y-2">
-                  <button
-                    onClick={() => setMentorInput("Can you give me an intuitive real-world analogy for this lesson?")}
-                    className="w-full text-left p-3.5 bg-[#121021] hover:bg-[#151227] border border-[#2A2443] text-[#CECADF] text-sm font-semibold rounded-2xl transition cursor-pointer hover:-translate-y-0.5"
-                  >
-                    💡 "Give me a real-world analogy."
-                  </button>
-                  <button
-                    onClick={() => setMentorInput("Can you break down this topic in much simpler terms for me?")}
-                    className="w-full text-left p-3.5 bg-[#121021] hover:bg-[#151227] border border-[#2A2443] text-[#CECADF] text-sm font-semibold rounded-2xl transition cursor-pointer hover:-translate-y-0.5"
-                  >
-                    🧸 "Explain it simpler, please."
-                  </button>
-                  <button
-                    onClick={() => setMentorInput("What is a fun interactive mini-project I can build to practice this topic?")}
-                    className="w-full text-left p-3.5 bg-[#121021] hover:bg-[#151227] border border-[#2A2443] text-[#CECADF] text-sm font-semibold rounded-2xl transition cursor-pointer hover:-translate-y-0.5"
-                  >
-                    🛠️ "Give me a fun mini-project idea."
-                  </button>
-                </div>
-              </div>
-
-              {/* Course Context Card */}
-              <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl">
-                <h4 className="text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-2">Active Context</h4>
-                <div className="space-y-2">
-                  <p className="text-base font-semibold text-[#FAF9FD] truncate">📚 {currentRoadmap?.title}</p>
-                  {selectedLesson ? (
-                    <p className="text-sm text-[#818CF8] font-medium">🎯 Selected Topic: {selectedLesson.title}</p>
-                  ) : (
-                    <p className="text-sm text-[#8E88AB] italic">No topic active—select a lesson in the roadmap tab to focus our questions.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Chat Box (span 8) */}
-            <div className="lg:col-span-8 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col h-[400px] md:h-[500px] lg:h-[600px]">
-              <div className="flex items-center gap-3 border-b border-[#2A2443] pb-4 mb-4">
-                <span className="text-3xl select-none">🧑‍🏫</span>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-[#FAF9FD]">Your Friendly Learning Tutor</h3>
-                  <p className="text-sm text-[#10B981] font-medium flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 bg-[#10B981] rounded-full animate-pulse"></span>
-                    Ready to chat and help you understand!
-                  </p>
-                </div>
-                <button
-                  onClick={async () => {
-                    try {
-                      await trpc.clearChatMemory.mutate({ courseId: activeCourseId });
-                      toast.success("Memory cleared for this course"); setActiveCourse(prev => prev ? { ...prev, messages: [] } : prev);
-                    } catch (e) {
-                      toast.error("Failed to clear memory");
-                    }
-                  }}
-                  className="px-3 py-1.5 bg-[#121021] hover:bg-[#151227] border border-[#2A2443] rounded-lg text-sm text-[#8E88AB] transition-colors"
-                >
-                  🧠 Clear memory
-                </button>
-              </div>
-
-              {/* Message List */}
-              <div className="flex-1 overflow-y-auto max-h-[calc(100vh-280px)] md:max-h-none space-y-4 mb-4 p-2">
-                {mentorMessages.map((msg, index) => {
-                  const isUser = msg.role === "user";
-                  const msgText = msg.content || msg.text;
-                  return (
-                    <div
-                      key={index}
-                      className={`flex ${isUser ? "justify-end" : "justify-start"}`}
-                    >
-                      <div className={`flex items-start gap-2.5 max-w-[92%] sm:max-w-[85%] md:max-w-[80%] ${isUser ? "flex-row-reverse" : "flex-row"}`}>
-                        <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 select-none text-lg">
-                          {isUser ? "👤" : "🧑‍🏫"}
-                        </div>
-                        <div
-                          className={`p-4 rounded-3xl text-base ${
-                            isUser
-                              ? "bg-[#6366F1] text-white rounded-tr-none shadow-md shadow-indigo-600/10"
-                              : "bg-[#121021] text-[#FAF9FD] border border-[#2A2443] rounded-tl-none shadow-md"
-                          }`}
-                        >
-                          {isUser ? (
-                            <p className="whitespace-pre-wrap">{msgText}</p>
-                          ) : (
-                            <div className="prose prose-sm max-w-none prose-invert overflow-x-auto">
-                              <Markdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{msgText}</Markdown>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {mentorLoading && (
-                  <div className="flex justify-start">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-lg select-none">
-                        🧑‍🏫
-                      </div>
-                      <div className="bg-[#121021] border border-[#2A2443] p-4 rounded-3xl rounded-tl-none shadow-md flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 text-[#818CF8] animate-spin" />
-                        <span className="text-sm text-[#8E88AB] font-medium">Tutor is writing...</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Chat Input form */}
-              <form onSubmit={handleSendMentorMessage} className="mt-auto pt-3 border-t border-[#2A2443]">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={mentorInput}
-                    onChange={(e) => setMentorInput(e.target.value)}
-                    placeholder="Ask anything — paste a URL and I'll read it 🔗"
-                    className="flex-1 bg-[#121021] border border-[#2A2443] rounded-2xl py-3 px-4 text-sm md:text-base text-[#FAF9FD] focus:outline-none focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 font-medium placeholder:text-[#8E88AB]/60"
-                  />
-                  <button
-                    type="submit"
-                    disabled={mentorLoading || !mentorInput.trim()}
-                    className="w-12 h-12 flex items-center justify-center shrink-0 bg-[#6366F1] hover:bg-[#5053e3] text-white rounded-2xl shadow-md transition disabled:opacity-40 hover:-translate-y-0.5 cursor-pointer"
-                  >
-                    <Send className="w-5 h-5" />
-                  </button>
-                </div>
-              </form>
-            </div>
-
-          </div>
+          <MentorChat
+            currentRoadmap={currentRoadmap}
+            selectedLesson={selectedLesson}
+            mentorInput={mentorInput}
+            setMentorInput={setMentorInput}
+            mentorMessages={mentorMessages}
+            mentorLoading={mentorLoading}
+            activeCourseId={activeCourseId}
+            setActiveCourse={setActiveCourse}
+            handleSendMentorMessage={handleSendMentorMessage}
+          />
         )}
 
         {/* TAB 3: QUICK QUIZ */}
         {activeTab === "quiz" && (
-          <div className="w-full md:max-w-3xl md:mx-auto bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 md:p-8 shadow-xl relative overflow-hidden min-h-[400px]" id="quiz-container">
-
-            
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-[#2A2443] pb-4 mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl select-none">📝</span>
-                <div>
-                  <h3 className="text-xl font-bold text-[#FAF9FD]">Quiz master Assessment</h3>
-                  <p className="text-sm text-[#8E88AB] mt-0.5">Test your retention with conceptual multiple-choice checks.</p>
-                </div>
-              </div>
-              
-              {selectedLesson && (
-                <span className="text-sm font-semibold text-[#818CF8] bg-[#121021] px-3 py-1 rounded-full border border-[#2A2443] truncate max-w-[200px] sm:max-w-none" title={selectedLesson.title}>
-                  Topic: {selectedLesson.title}
-                </span>
-              )}
-            </div>
-
-            {generatingQuiz ? (
-              <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <RefreshCw className="w-12 h-12 text-[#818CF8] animate-spin" />
-                <p className="text-lg font-bold text-[#FAF9FD]">Tutor is formulating your quiz questions... 🧠</p>
-                <p className="text-sm text-[#8E88AB] text-center max-w-sm">Designing adaptive choices to measure conceptual understand, rather than syntax retrieval.</p>
-              </div>
-            ) : quizData ? (
-              <div className="space-y-8">
-                {quizData.questions.map((q, qIdx) => (
-                  <div key={q.id || qIdx} className="space-y-3">
-                    <h4 className="text-lg font-bold text-[#FAF9FD]">
-                      Question {qIdx + 1}: {q.question}
-                    </h4>
-
-                    <div className="grid grid-cols-1 gap-3">
-                      {q.options.map((opt, oIdx) => {
-                        const isSelected = selectedAnswers[qIdx] === oIdx;
-                        const isCorrect = q.correctIndex === oIdx;
-                        const showAsCorrect = quizSubmitted && isCorrect;
-                        const showAsIncorrect = quizSubmitted && isSelected && !isCorrect;
-
-                        return (
-                          <button
-                            type="button"
-                            key={oIdx}
-                            onClick={() => handleSelectAnswer(qIdx, oIdx)}
-                            className={`w-full text-left p-4 rounded-2xl border text-sm md:text-base transition-all flex items-start gap-4 cursor-pointer ${
-                              showAsCorrect
-                                ? "bg-emerald-950/40 border-emerald-500 text-emerald-200 font-semibold"
-                                : showAsIncorrect
-                                  ? "bg-rose-950/40 border-rose-500 text-rose-200 font-semibold"
-                                  : isSelected
-                                    ? "bg-[#6366F1]/20 border-[#6366F1] text-[#A5B4FC] font-semibold"
-                                    : "bg-[#121021]/50 border-[#2A2443] text-[#CECADF] hover:bg-[#121021]"
-                            }`}
-                            disabled={quizSubmitted}
-                          >
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${
-                              showAsCorrect
-                                ? "bg-[#10B981] text-white"
-                                : showAsIncorrect
-                                  ? "bg-[#FF6B6B] text-white"
-                                  : isSelected
-                                    ? "bg-[#6366F1] text-white"
-                                    : "bg-slate-700 text-slate-300"
-                            }`}>
-                              {String.fromCharCode(65 + oIdx)}
-                            </span>
-                            <span>{opt}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {quizSubmitted && (
-                      <div className="bg-[#121021] p-4 rounded-2xl border border-[#2A2443] text-sm text-[#CECADF] leading-relaxed">
-                        <span className="font-bold text-[#818CF8] block mb-1">
-                          {selectedAnswers[qIdx] === q.correctIndex ? "🎉 Nailed it! Nice job!" : "🙈 Oops, let's learn from this:"}
-                        </span>
-                        {q.explanation}
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {!quizSubmitted ? (
-                  <button
-                    onClick={handleSubmitQuiz}
-                    disabled={Object.keys(selectedAnswers).length < quizData.questions.length}
-                    className="w-full bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold rounded-2xl py-3.5 text-base transition disabled:opacity-40 disabled:pointer-events-none cursor-pointer hover:-translate-y-0.5 shadow-lg shadow-indigo-600/20"
-                    id="btn-submit-quiz"
-                  >
-                    Submit Quiz Answers
-                  </button>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex flex-col sm:flex-row items-center justify-between bg-emerald-950/40 border border-emerald-500/30 p-5 rounded-2xl gap-4">
-                      <div>
-                        <p className="text-lg font-bold text-emerald-400">Quiz completed! 🏆</p>
-                        <p className="text-sm text-emerald-300/80 font-medium mt-0.5">
-                          Your performance score of {Math.round((quizData.questions.filter((q, idx) => selectedAnswers[idx] === q.correctIndex).length / quizData.questions.length) * 100)}% has been logged to your progress stats!
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setActiveTab("roadmap")}
-                        className="bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer hover:-translate-y-0.5 shrink-0"
-                      >
-                        Back to Roadmap Tab
-                      </button>
-                    </div>
-
-                    {quizAnalysis && (
-                      <div className="bg-[#121021] border border-[#2A2443] p-5 rounded-2xl">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Sparkles className="w-5 h-5 text-indigo-400" />
-                          <h4 className="text-base font-bold text-[#FAF9FD]">AI Adaptive Feedback</h4>
-                        </div>
-                        <p className="text-[#CECADF] text-sm mb-4 leading-relaxed">{quizAnalysis.recommendation}</p>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="bg-[#0A0A0F] border border-[#2A2443] rounded-xl p-3">
-                            <span className="text-xs font-bold text-[#8E88AB] uppercase tracking-wider block mb-1">Recommended Adjust</span>
-                            <div className="flex items-center gap-1 text-sm font-semibold text-[#818CF8]">
-                              {quizAnalysis.difficultyAdjustment === 'increase' ? 'Level Up Difficulty 📈' :
-                               quizAnalysis.difficultyAdjustment === 'decrease' ? 'Review Basics 📉' : 'Maintain Current Pace 🎯'}
-                            </div>
-                          </div>
-                          
-                          {quizAnalysis.reviewTopics?.length > 0 && (
-                            <div className="bg-[#0A0A0F] border border-[#2A2443] rounded-xl p-3">
-                              <span className="text-xs font-bold text-[#8E88AB] uppercase tracking-wider block mb-1">Topics to Review</span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {quizAnalysis.reviewTopics.map((t: string, i: number) => (
-                                  <span key={i} className="text-xs bg-indigo-900/30 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/20">{t}</span>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : selectedLesson ? (
-              <div className="py-8 flex flex-col items-center justify-center gap-6">
-                <span className="text-5xl select-none">⚙️</span>
-                <div className="text-center">
-                  <h3 className="text-2xl font-bold text-[#FAF9FD]">Configure your Quiz</h3>
-                  <p className="text-base text-[#8E88AB] max-w-sm mt-2 mx-auto">
-                    Customize the difficulty and length of your quiz for: <br/> <span className="font-semibold text-[#818CF8]">{selectedLesson.title}</span>
-                  </p>
-                </div>
-                
-                <div className="w-full max-w-md space-y-4 text-left">
-                  <div>
-                    <label className="block text-sm font-bold text-[#CECADF] mb-2">Difficulty</label>
-                    <select
-                      value={quizDifficulty}
-                      onChange={(e) => setQuizDifficulty(e.target.value)}
-                      className="w-full bg-[#121021] border border-[#2A2443] rounded-xl py-3 px-4 text-[#FAF9FD] focus:outline-none focus:border-[#6366F1]"
-                    >
-                      <option value="Beginner">Beginner</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Hard">Hard</option>
-                      <option value="Expert">Expert</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-bold text-[#CECADF] mb-2">Number of Questions</label>
-                    <input
-                      type="number"
-                      min={3}
-                      max={40}
-                      value={quizQuestionCount}
-                      onChange={(e) => {
-                        let val = parseInt(e.target.value);
-                        if (isNaN(val)) val = 3;
-                        if (val > 40) val = 40;
-                        if (val < 3 && e.target.value !== "") val = 3; // allow typing
-                        setQuizQuestionCount(val);
-                      }}
-                      className="w-full bg-[#121021] border border-[#2A2443] rounded-xl py-3 px-4 text-[#FAF9FD] focus:outline-none focus:border-[#6366F1]"
-                    />
-                  </div>
-
-                  <button
-                    onClick={generateQuiz}
-                    className="w-full mt-4 bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold text-base px-6 py-4 rounded-2xl transition cursor-pointer hover:-translate-y-0.5 shadow-lg shadow-indigo-600/20"
-                  >
-                    Generate Quiz
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-12 flex flex-col items-center justify-center gap-6">
-                <span className="text-5xl select-none">🗺️</span>
-                <div>
-                  <h3 className="text-2xl font-bold text-[#FAF9FD]">Start a lesson to practice!</h3>
-                  <p className="text-base text-[#8E88AB] max-w-sm mt-2 mx-auto">
-                    Select any lesson from your active Roadmap, click Take Quick Quiz in the lesson study guide view, and test your knowledge here!
-                  </p>
-                </div>
-                <button
-                  onClick={() => setActiveTab("roadmap")}
-                  className="bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold text-sm px-6 py-3 rounded-2xl transition cursor-pointer hover:-translate-y-0.5"
-                >
-                  Go to Roadmap Tab
-                </button>
-              </div>
-            )}
-
-          </div>
+          <QuizRunner
+            selectedLesson={selectedLesson}
+            generatingQuiz={generatingQuiz}
+            quizData={quizData}
+            selectedAnswers={selectedAnswers}
+            quizSubmitted={quizSubmitted}
+            quizAnalysis={quizAnalysis}
+            quizDifficulty={quizDifficulty}
+            setQuizDifficulty={setQuizDifficulty}
+            quizQuestionCount={quizQuestionCount}
+            setQuizQuestionCount={setQuizQuestionCount}
+            generateQuiz={generateQuiz}
+            handleSubmitQuiz={handleSubmitQuiz}
+            handleSelectAnswer={handleSelectAnswer}
+            setActiveTab={setActiveTab}
+          />
         )}
 
         {/* TAB 4: MY PROGRESS & STATS */}
         {activeTab === "progress" && (
-          <div className="max-w-4xl mx-auto w-full grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            
-            {/* Left Box: Stats Summary */}
-            <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 md:p-8 shadow-xl flex flex-col items-center text-center gap-6">
-              <h3 className="text-2xl font-bold text-[#FAF9FD]">Your Progression Dashboard</h3>
-              
-              {renderProgressRing(completionPercentage, 120, 9)}
-
-              <div className="w-full space-y-2 text-left mt-4 border-t border-[#2A2443] pt-4">
-                <div className="flex justify-between text-base font-semibold text-[#FAF9FD]/80">
-                  <span>Completed Topics:</span>
-                  <span className="text-[#FAF9FD]">{completedLessonsCount} of {totalLessons} Lessons</span>
-                </div>
-                <div className="w-full bg-[#121021] rounded-full h-2.5 overflow-hidden">
-                  <div 
-                    className="bg-[#10B981] h-2.5 transition-all duration-700 rounded-full"
-                    style={{ width: `${completionPercentage}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Study Streak indicator */}
-              <div className="w-full bg-[#121021]/50 border border-[#2A2443] rounded-2xl p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">🔥</span>
-                  <div className="text-left">
-                    <p className="text-base font-bold text-[#FAF9FD]">3-Day study Streak!</p>
-                    <p className="text-xs text-[#8E88AB] font-medium">Daily practice makes habits stick.</p>
-                  </div>
-                </div>
-                <span className="bg-amber-950/40 text-amber-400 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border border-amber-500/20">Active</span>
-              </div>
-            </div>
-
-            {/* Right Box: Achievements and perfect quizzes */}
-            <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 md:p-8 shadow-xl space-y-6">
-              <h3 className="text-2xl font-bold text-[#FAF9FD] flex items-center gap-2">
-                <Trophy className="w-6 h-6 text-amber-500" />
-                <span>Your badges & Achievements</span>
-              </h3>
-
-              <div className="space-y-4">
-                {/* Badge 1: New Learner */}
-                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-indigo-950/20 rounded-2xl border border-indigo-500/20">
-                  <span className="text-3xl select-none mt-1 shrink-0">🌱</span>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-base font-bold text-[#FAF9FD]">Curious Explorer</h4>
-                    <p className="text-sm text-[#8E88AB] font-medium">You took your first steps on your learning companion roadmap!</p>
-                  </div>
-                </div>
-
-                {/* Badge 2: Quizzes */}
-                <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-amber-950/20 rounded-2xl border border-amber-500/20">
-                  <span className="text-3xl select-none mt-1 shrink-0">🏆</span>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-base font-bold text-[#FAF9FD]">Quiz Performance</h4>
-                    <p className="text-sm text-[#8E88AB] font-medium mb-2">
-                      You have completed {Object.keys(completedQuizzes).length} quizzes.
-                    </p>
-                    {Object.entries(completedQuizzes).length > 0 && (
-                      <div className="space-y-2 mt-2">
-                        {Object.entries(completedQuizzes).map(([lessonId, score]) => {
-                           const allLessons = (currentRoadmap as any)?.modules?.flatMap((m: any) => m.lessons) || [];
-                           const lessonTitle = allLessons.find((l: any) => l.id === lessonId)?.title || "Lesson Quiz";
-                           return (
-                             <div key={lessonId} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-[#121021] px-3 py-2 rounded-xl gap-2">
-                               <span className="text-xs text-[#CECADF] truncate w-full sm:max-w-[150px]" title={lessonTitle}>{lessonTitle}</span>
-                               <span className={`text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap self-start sm:self-auto ${Number(score) >= 60 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                                 {String(score)}% Correct
-                               </span>
-                             </div>
-                           );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Completed Lessons checklist */}
-                <div className="border-t border-[#2A2443] pt-5 space-y-3">
-                  <h4 className="text-base font-bold text-[#FAF9FD]">Mastered Lessons Log:</h4>
-                  {completedLessons.length === 0 ? (
-                    <p className="text-sm text-[#8E88AB] italic">No lessons marked completed yet. Start learning in the Roadmap tab! 🧭</p>
-                  ) : (
-                    <div className="grid grid-cols-1 gap-2">
-                      {completedLessons.map((id) => {
-                        // Find title
-                        const allLessons = currentRoadmap?.modules?.flatMap((m: any) => m.lessons) || [];
-                        const foundTitle = allLessons.find((l: any) => l.id === id)?.title || "Custom lesson node";
-
-                        return (
-                          <div key={id} className="flex items-center gap-2 sm:gap-3 text-sm font-semibold text-[#10B981] bg-emerald-950/20 border border-emerald-500/20 px-3.5 py-2.5 rounded-xl">
-                            <CheckCircle className="w-4.5 h-4.5 text-[#10B981] shrink-0" />
-                            <span className="flex-1 min-w-0 truncate text-[#CECADF] font-medium">{foundTitle}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-            </div>
-
-          </div>
+          <ProgressDashboard
+            completionPercentage={completionPercentage}
+            completedLessonsCount={completedLessonsCount}
+            totalLessons={totalLessons}
+            completedQuizzes={completedQuizzes}
+            completedLessons={completedLessons}
+            currentRoadmap={currentRoadmap}
+          />
         )}
 
         {/* FOOTER - inside scrollable main container */}

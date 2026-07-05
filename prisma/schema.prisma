@@ -113,6 +113,8 @@ model Course {
   roadmapData      Json
   completedLessons Json            @default("[]")
   completedQuizzes Json            @default("{}")
+  completedLessonsAt Json          @default("[]")
+  completedQuizzesAt Json          @default("[]")
   currentLessonId  String?
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt

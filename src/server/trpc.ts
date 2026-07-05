@@ -180,10 +180,77 @@ export const appRouter = router({
     }))
     .mutation(async ({ ctx, input }) => {
       const { courseId, ...data } = input;
+
+      const course = await ctx.prisma.course.findUnique({
+        where: { id: courseId, userId: ctx.user.id },
+        select: {
+          completedLessons: true,
+          completedLessonsAt: true,
+          completedQuizzes: true,
+          completedQuizzesAt: true,
+        }
+      });
+
+      if (!course) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Course not found" });
+      }
+
+      let completedLessonsAt = Array.isArray(course.completedLessonsAt)
+        ? (course.completedLessonsAt as any[])
+        : [];
+      let completedQuizzesAt = Array.isArray(course.completedQuizzesAt)
+        ? (course.completedQuizzesAt as any[])
+        : [];
+
+      if (input.completedLessons) {
+        const oldLessons = Array.isArray(course.completedLessons)
+          ? (course.completedLessons as string[])
+          : [];
+        const newLessons = input.completedLessons;
+
+        // 1. Find newly completed lessons
+        const newlyCompleted = newLessons.filter(id => !oldLessons.includes(id));
+        newlyCompleted.forEach(lessonId => {
+          if (!completedLessonsAt.some(item => item.lessonId === lessonId)) {
+            completedLessonsAt.push({
+              lessonId,
+              completedAt: new Date().toISOString()
+            });
+          }
+        });
+
+        // 2. Filter out any lessons that are no longer marked completed
+        completedLessonsAt = completedLessonsAt.filter(item => newLessons.includes(item.lessonId));
+      }
+
+      if (input.completedQuizzes) {
+        const oldQuizzes = (course.completedQuizzes && typeof course.completedQuizzes === "object")
+          ? (course.completedQuizzes as Record<string, number>)
+          : {};
+        const newQuizzes = input.completedQuizzes as Record<string, number>;
+
+        Object.entries(newQuizzes).forEach(([lessonId, score]) => {
+          const oldScore = oldQuizzes[lessonId];
+          if (oldScore === undefined || oldScore !== score) {
+            completedQuizzesAt = completedQuizzesAt.filter(item => item.lessonId !== lessonId);
+            completedQuizzesAt.push({
+              lessonId,
+              score,
+              completedAt: new Date().toISOString()
+            });
+          }
+        });
+
+        const newQuizLessonIds = Object.keys(newQuizzes);
+        completedQuizzesAt = completedQuizzesAt.filter(item => newQuizLessonIds.includes(item.lessonId));
+      }
+
       return await ctx.prisma.course.update({
         where: { id: courseId, userId: ctx.user.id },
         data: {
           ...data,
+          completedLessonsAt,
+          completedQuizzesAt,
           updatedAt: new Date(),
         }
       });
@@ -318,17 +385,17 @@ export const appRouter = router({
       const systemPrompt = `You are an expert curriculum auditor and quality assurance reviewer.
 Analyze the following lesson content against these criteria:
 1. Factual accuracy: Flag any incorrect or questionable claims.
-2. Difficulty match: Judge if this matches a "\${input.level}" level.
+2. Difficulty match: Judge if this matches a "${input.level}" level.
 3. Safety: Flag any biased, harmful, or inappropriate content.
 4. Clarity: Score the pedagogy and clarity from 1-5.
 
 Respond thoughtfully and critically.`;
 
-      const prompt = `Topic: \${input.topic}
-Lesson Level: \${input.level}
+      const prompt = `Topic: ${input.topic}
+Lesson Level: ${input.level}
 
 Lesson Content:
-\${input.content}
+${input.content}
 `;
 
       const schema = z.object({
@@ -381,7 +448,7 @@ Return ONLY valid JSON matching this schema:
   "difficultyAdjustment": "increase" | "decrease" | "maintain",
   "reviewTopics": string[]
 }`;
-      const prompt = `Topic: \${input.topic}\nRecent Score: \${input.score}%`;
+      const prompt = `Topic: ${input.topic}\nRecent Score: ${input.score}%`;
       
       const schema = z.object({
         recommendation: z.string(),
@@ -565,12 +632,15 @@ Return ONLY valid JSON matching this schema:
       });
       if (existing) return existing;
 
-      const systemPrompt = `You are a technical mentor creating a real-world portfolio project for a student.
-Topic: \${input.topic}
-Module: \${input.moduleTitle}
-Level: \${input.level}
+      const systemPrompt = `You are a highly supportive and encouraging technical mentor creating a hands-on learning project for a student.
+Topic: ${input.topic}
+Module: ${input.moduleTitle}
+Level: ${input.level}
 
-Generate a comprehensive project that applies the concepts learned in this module. Return ONLY JSON matching this schema:
+Generate a highly structured, engaging, and beginner-friendly project that applies the concepts learned in this module.
+If the level is "Beginner" or if the topic is new, ensure the project is easy to digest, uses highly accessible phrasing, does not require complex boilerplate setup, and has clear, step-by-step instructions. Keep estimatedHours reasonable (e.g., 1-2 hours for beginners). Avoid daunting, overly complicated architecture. The instructions should be warm and guiding, making the student feel successful.
+
+Return ONLY JSON matching this schema:
 {
   "title": string,
   "description": string,

@@ -45,6 +45,14 @@
   </blockquote>
 </div>
 
+<br/>
+
+<p align="center">
+  <img src="https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2F4594831ed2af7a560b2b0ab47ea8bca2%2Fsystem_architecture.svg?generation=1783247630093137&alt=media" alt="ZachCourse System Architecture" width="900" />
+</p>
+
+<br/>
+
 ## 🔄 How It Works
 
 ```mermaid
@@ -110,7 +118,7 @@ ZachCourse is powered by a team of specialized AI agents working together:
 │   ├── eval-lessons.ts
 │   └── setup-db.sh
 ├── src
-│   ├── app/                # Reactjs App Router folders
+│   ├── app/                # React.js App folders
 │   │   ├── (auth)/
 │   │   ├── api/
 │   │   ├── layout.tsx
@@ -219,9 +227,9 @@ To ensure that generated educational material is technically accurate, clear, en
 
 This evaluation runs completely independent of the PostgreSQL/Neon database. It analyzes hardcoded sample lessons (one high-quality and one intentionally flawed) against a strict educational rubric using Gemini and the Vercel AI SDK.
 
-### Running the Evaluation
+### Running the Evaluation & Unit Tests
 
-The evaluation suite can be run with the following command:
+To run the automated LLM-judge evaluation pipeline:
 
 ```bash
 # Execute the automated Judge Agent evaluation pipeline
@@ -229,6 +237,15 @@ npm run eval
 ```
 
 *The underlying command definition in `package.json` resolves to: `tsx scripts/eval-lessons.ts`*
+
+To run the security and state layer unit tests:
+
+```bash
+# Run unit tests for SSRF-guard, document-processor, and memory chunking
+npm run test
+```
+
+*This runs `vitest run` on cheap, pure, and critical security-relevant functions to guarantee robust logic.*
 
 ### Dual Execution Modes
 

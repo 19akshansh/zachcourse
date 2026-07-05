@@ -309,6 +309,11 @@ All procedures are protected by `requireAuth` checking for an active Better Auth
   - `createCourse({ title, topic, difficulty, roadmapData })` -> Initializes a new curriculum.
   - `updateCourseProgress({ courseId, completedLessons, completedQuizzes, currentLessonId })` -> Increments checklist state.
 
+- **Module Projects (Hands-on Learning):**
+  - `getModuleProject({ courseId, moduleId })` -> Retrieves the generated project details for a specific course module.
+  - `generateProject({ courseId, moduleId, moduleTitle, topic, level })` -> Generates an engaging, beginner-friendly hands-on project suited to the user's course level using the Gemini API.
+  - `updateProjectStatus({ projectId, status, submissionNote })` -> Updates the progress status ("not_started", "in_progress", "completed") and optional submission notes of a project.
+
 - **Cohort Systems:**
   - `createCohort({ name, courseId, visualRoadmapId })` -> Sets up a learning cohort bound to a curriculum.
   - `previewCohortByInviteCode({ inviteCode })` -> Fetches name, member count, curriculum details, and an `isAlreadyMember` flag without committing enrollment.
@@ -334,3 +339,5 @@ All procedures are protected by `requireAuth` checking for an active Better Auth
 | **API Rate Limiting** | `express-rate-limit` enforces a maximum of 20 API requests/minute per IP address across all AI routes. |
 | **Payload Sanitization** | `express.json` limits payloads to `2mb`. Strict regex filters strip malicious `<script>` components before markdown rendering. |
 | **Access Guards** | Database ownership checks query and verify `course.userId === ctx.user.id` or `visualRoadmap.userId === ctx.user.id` on all mutation procedures. |
+| **CORS Restriction** | Origin validation rejects any wildcard pattern ending in `*.run.app` or similar shared domains. Only explicitly configured entries in `ALLOWED_ORIGINS` (including the primary deployed service URL) or localhost origins are allowed, blocking cross-origin session hijack attempts from peer container services. |
+| **CSP Whitelisting** | Helmet content security policies explicitly permit connection requests to `https://generativelanguage.googleapis.com` to support direct, client-side browser integration of user-provided Gemini API keys without degrading default sandbox protections. |

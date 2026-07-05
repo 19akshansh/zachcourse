@@ -378,6 +378,9 @@ z.object({
 | `saveLessonContent` | mutation | Upserts generated lesson content |
 | `saveVisualRoadmap` | mutation | Persists a visual roadmap |
 | `updateVisualRoadmapProgress` | mutation | Updates completed node IDs in graph |
+| `getModuleProject` | query | Fetches a generated project for a module |
+| `generateProject` | mutation | Generates a beginner-friendly hands-on project using Gemini |
+| `updateProjectStatus` | mutation | Updates a project's completion status and submission notes |
 | `createCohort` | mutation | Creates a new learning cohort tied to a Course and/or VisualRoadmap |
 | `previewCohortByInviteCode` | query | Fetches details of a cohort by code before joining |
 | `joinCohortAndClone` | mutation | Enrolls user in a cohort and clones its assigned course/roadmap structure |
@@ -428,5 +431,6 @@ Cohort / Classroom (Owner/Teacher-controlled)
 | Body size | `express.json({ limit: "2mb" })` |
 | Input validation | Max 500 chars topic, 2000 chars message, 10000 chars textContent |
 | SSRF protection | `fetchUrl` blocks private IPs, metadata endpoints, non-http protocols |
-| HTTP headers | `helmet` — sets XSS, clickjacking, MIME sniffing protection headers |
+| CORS protection | Strict origin verification. Origins must strictly match `ALLOWED_ORIGINS` (including deployed URLs) or localhost; wildcard suffix matches on shared `*.run.app` domains are explicitly disabled to prevent session-cookie leakage across distinct services. |
+| HTTP headers | `helmet` — sets XSS, clickjacking, MIME sniffing protection headers. Connect-src is customized to permit `https://generativelanguage.googleapis.com` for client-side direct API key interactions, maintaining robust CSP controls. |
 | Ownership checks | tRPC mutations verify `course.userId === ctx.user.id` before any write/delete |

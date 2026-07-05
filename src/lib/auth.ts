@@ -44,8 +44,11 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: true,
     autoSignIn: false,
-    sendResetPassword: async ({ user, url }) => {
+    sendResetPassword: async ({ user, url, token }: any) => {
       try {
+        const appUrl = process.env.APP_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000";
+        const resetLink = `${appUrl}/reset-password/${token}`;
+
         await sendEmail({
           to: user.email,
           subject: "Reset your password - ZachCourse",
@@ -54,12 +57,12 @@ export const auth = betterAuth({
               <h1 style="color: #6366F1">🎓 ZachCourse</h1>
               <h2>Reset Your Password</h2>
               <p>Hello ${user.name || "Student"}, click the button below to reset your password:</p>
-              <a href="${url}" style="display: inline-block; background: #6366F1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 16px 0">Reset Password</a>
+              <a href="${resetLink}" style="display: inline-block; background: #6366F1; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; margin: 16px 0">Reset Password</a>
               <p style="color: #94A3B8; font-size: 14px">If you didn't request a password reset, you can safely ignore this email.</p>
             </div>
           `,
         });
-        console.log(`Reset password email sent successfully to ${user.email}`);
+        console.log(`Reset password email sent successfully to ${user.email} with link: ${resetLink}`);
       } catch (err) {
         console.error("Failed to send reset password email:", err);
       }

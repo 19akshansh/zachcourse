@@ -49,6 +49,10 @@ To ensure absolute reliability, all core agents leverage a model-cascade fallbac
 - **Judge Agent (Lesson Builder):** Validates generated markdown lesson texts. It computes structured scores for *Clarity*, *Accuracy*, *Depth*, and *Engagement*. If the output earns a `needs_revision` or `fail` verdict, the system automatically triggers a re-generation loop.
 - **Critic Agent (Roadmap Builder):** Inspects generated graph networks before rendering them on screen. It ensures logical dependencies, valid chronological timelines, and that start/end milestones are properly defined.
 
+### Adaptive Module Project Generator
+- **Adaptive Phrasing and Phasing:** Hands-on projects generated via `generateProject` feature a model instructions layer specifically optimized to be beginner-friendly.
+- **Dynamic Scoping:** When the topic level is "Beginner" or the topic is brand-new, the prompt strictly enforces a reduction in estimated work hours (targeting 1–2 hours maximum), strips out complex database/boilerplate setups, uses highly accessible phrasing, and formats milestones as gentle, step-by-step guidance to prevent user fatigue.
+
 ---
 
 ## 3. Frontend Implementation Details
@@ -58,6 +62,9 @@ For our node-graph roadmaps, we utilize `@xyflow/react`.
 - Roadmaps consist of 20–35 custom nodes and 25–40 edges.
 - **Progress Tracking:** Active nodes dynamically update color based on their state in `completedNodeIds`.
 - **Sizing:** The node graph container utilizes a `ResizeObserver` pattern instead of fixed viewport heights to handle dynamic container or side-menu sizing gracefully.
+
+### Re-validation UX Controls
+- **Re-validate State Handling:** Users can re-validate lesson contents on demand. During re-validation, the action button is temporarily disabled with a clean opacity drop, and the `RefreshCw` icon is animated using Tailwind's `animate-spin` utility class to reflect active background evaluation tasks.
 
 ### Component Styling
 - **Tailwind CSS v4:** Directly integrates modern utility classes for smooth off-black background dark modes, paired with Inter fonts for UI components and Space Grotesk/Mono for data metrics.
@@ -75,3 +82,13 @@ The platform avoids over-complicating user data states by utilizing a pristine, 
 4. **Safety & Deletion Flow:** Creators/teachers retain full structural control over their cohorts. A secure `deleteCohort` procedure validates user ownership before execution, leveraging standard cascading constraints to clean up membership registries automatically.
 5. **Preventative UX Controls:** Invite-code previews compute an `isAlreadyMember` flag to disable redundant registration, shifting join triggers into a secure "Already Joined in Cohort" indicator. Attempting duplicate joins programmatically will reject the mutation with a clear `CONFLICT` error.
 6. **Leave Cohort Flow:** Normal cohort members (non-owners) have access to a clean "Leave Cohort" toggle/button on their Cohorts Dashboard. Triggering this calls `leaveCohort` to cleanly detach their membership from the cohort leaderboard while retaining their cloned course materials in their private profile. Owners cannot leave their own cohorts but can delete them entirely.
+
+---
+
+## 5. Security & CSP Configuration Enhancements
+
+To reinforce cross-origin security and provide support for "Bring Your Own API Key" user flows:
+
+1. **Strict CORS Policy Validation:** The CORS handler verifies incoming origins strictly against `ALLOWED_ORIGINS` or local debug endpoints. Suffix wildcard rules permitting any origin ending with `*.run.app` have been removed to prevent credentialed cross-origin attacks from neighboring Cloud Run container hosts.
+2. **Custom Content Security Policy (CSP):** The express-side Helmet configuration adds `https://generativelanguage.googleapis.com` to the `connect-src` whitelist. This allows direct client-side requests to the Google Gemini API when a user inputs their custom key, resolving browser-level script blockages.
+

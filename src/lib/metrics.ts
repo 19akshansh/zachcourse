@@ -38,15 +38,97 @@ export async function computeUserMetrics(userId: string) {
 
   const estimatedProficiency = Math.min(100, Math.max(0, Math.round((avgQuizScore * 0.7) + (Math.min(100, totalLessonsCompleted * 5) * 0.3))));
 
-  const activityData = [
-     { name: "Mon", lessons: 1, score: 80 },
-     { name: "Tue", lessons: 2, score: 85 },
-     { name: "Wed", lessons: 0, score: 0 },
-     { name: "Thu", lessons: Math.max(1, Math.floor(totalLessonsCompleted / 2)), score: 90 },
-     { name: "Fri", lessons: 1, score: avgQuizScore || 70 },
-     { name: "Sat", lessons: 0, score: 0 },
-     { name: "Sun", lessons: totalLessonsCompleted > 0 ? 1 : 0, score: avgQuizScore || 80 }
-  ];
+  // Fetch actual timestamped activity from last 7 days
+  const courseIds = courses.map(c => c.id);
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
+
+  const messages = courseIds.length > 0 
+    ? await prisma.courseMessage.findMany({
+        where: {
+          courseId: { in: courseIds },
+          createdAt: { gte: sevenDaysAgo }
+        }
+      })
+    : [];
+
+  const lessonCompletions: Array<{ lessonId: string; completedAt: Date }> = [];
+  const quizCompletions: Array<{ lessonId: string; score: number; completedAt: Date }> = [];
+
+  courses.forEach(c => {
+    if (Array.isArray(c.completedLessonsAt)) {
+      c.completedLessonsAt.forEach((item: any) => {
+        if (item && item.completedAt) {
+          lessonCompletions.push({
+            lessonId: item.lessonId,
+            completedAt: new Date(item.completedAt)
+          });
+        }
+      });
+    }
+    if (Array.isArray(c.completedQuizzesAt)) {
+      c.completedQuizzesAt.forEach((item: any) => {
+        if (item && item.completedAt) {
+          quizCompletions.push({
+            lessonId: item.lessonId,
+            score: typeof item.score === "number" ? item.score : 0,
+            completedAt: new Date(item.completedAt)
+          });
+        }
+      });
+    }
+  });
+
+  // Also include quiz scores from UserProgress if any have a date
+  if (progress && Array.isArray(progress.quizScores)) {
+    progress.quizScores.forEach((qs: any) => {
+      if (qs && qs.date) {
+        const completedAt = new Date(qs.date);
+        // Avoid duplicate scores for the same lesson
+        if (!quizCompletions.some(qc => qc.lessonId === qs.lessonId && Math.abs(qc.completedAt.getTime() - completedAt.getTime()) < 60000)) {
+          quizCompletions.push({
+            lessonId: qs.lessonId,
+            score: typeof qs.score === "number" ? qs.score : 0,
+            completedAt
+          });
+        }
+      }
+    });
+  }
+
+  // Generate last 7 days (including today)
+  const last7Days: Date[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    last7Days.push(d);
+  }
+
+  let totalActivityAcross7Days = 0;
+  const activityData = last7Days.map(d => {
+    const dayStr = d.toDateString();
+
+    const dayLessonCompletions = lessonCompletions.filter(lc => lc.completedAt.toDateString() === dayStr);
+    const dayQuizCompletions = quizCompletions.filter(qc => qc.completedAt.toDateString() === dayStr);
+    const dayChats = messages.filter(m => new Date(m.createdAt).toDateString() === dayStr);
+
+    const activityCount = dayLessonCompletions.length + dayQuizCompletions.length + dayChats.length;
+    totalActivityAcross7Days += activityCount;
+
+    const quizScoresOnDay = dayQuizCompletions.map(qc => qc.score);
+    const avgScoreOnDay = quizScoresOnDay.length > 0
+      ? Math.round(quizScoresOnDay.reduce((a, b) => a + b, 0) / quizScoresOnDay.length)
+      : 0;
+
+    return {
+      name: d.toLocaleDateString("en-US", { weekday: "short" }), // e.g., "Mon", "Tue"
+      lessons: activityCount,
+      score: avgScoreOnDay
+    };
+  });
+
+  const activityDataAvailable = totalActivityAcross7Days > 0;
 
   return {
      currentStreak: progress?.streakDays || 0,
@@ -55,6 +137,7 @@ export async function computeUserMetrics(userId: string) {
      completedCoursesCount,
      avgQuizScore,
      estimatedProficiency,
-     activityData
+     activityData,
+     activityDataAvailable
   };
 }

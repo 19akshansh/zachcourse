@@ -52,7 +52,7 @@ ZachCourse turns any topic, URL, or syllabus into a fully personalized, interact
 
 ## Technical Architecture
 
-![System Overview](https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2Fa6d542683ac334cb9e37c56967a54acb%2Fzachcourse_system_overview_branded.svg?generation=1782887338712365&alt=media)
+![System Overview](https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2F8d482ce644d63fac8f1c66c903e16087%2Fsystem_overview.svg?generation=1783247540927066&alt=media)
 
 The application is a **Vite + React 19 SPA** served by an **Express.js** backend. All AI calls happen server-side; client code never touches a model credential.
 
@@ -79,7 +79,7 @@ While Google's Agent Development Kit (ADK) provides robust, high-level framework
 
 ## The Agent System
 
-![User Journey](https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2F502e3794f6f00283d7c724e1648c6f36%2Fzachcourse_user_journey_branded.svg?generation=1782887367908912&alt=media)
+![User Journey](https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2Feb671b2ace9eab790f8cf7a1213ec244%2Fuser_journey.svg?generation=1783247571277914&alt=media)
 
 ZachCourse is built around seven specialized agents plus a guarded document pipeline, each scoped to exactly the context it needs:
 
@@ -204,5 +204,5 @@ ZachCourse proves that putting agents at the center of a learning platform — r
 
 This foundation — a real MCP server, SSRF- and injection-guarded ingestion, schema-validated outputs, persistent RAG memory, model fallback chains — was built to production standards because education deserves reliability.
 
-![Tech Stack](https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2F79a600e51dd3972d441d66f3eb9dc43d%2Fzachcourse_tech_stack_branded.svg?generation=1782887421630954&alt=media)
-![System Architecture](https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2F6a0701a4119b213b52540e3e1dcf19b1%2Fzachcourse_architecture_fixed.svg?generation=1782887444798891&alt=media)
+![Tech Stack](https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2F254f9bc0cd864511a1a0181338884086%2Ftech_stack.svg?generation=1783247608316268&alt=media)
+![System Architecture](https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2F4594831ed2af7a560b2b0ab47ea8bca2%2Fsystem_architecture.svg?generation=1783247630093137&alt=media)
