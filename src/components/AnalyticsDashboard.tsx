@@ -65,7 +65,7 @@ export default function AnalyticsDashboard() {
         </div>
 
         <div className="bg-[#121021] border border-[#2A2443] rounded-2xl p-5 shadow-lg relative overflow-hidden group">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all"></div>
+          <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#4F46E5]/10 rounded-full blur-xl group-hover:bg-[#4F46E5]/20 transition-all"></div>
           <div className="flex items-center gap-3 mb-2 relative">
             <div className="p-2 bg-indigo-950/50 rounded-lg text-indigo-400">
               <BookOpen className="w-5 h-5" />
@@ -129,7 +129,7 @@ export default function AnalyticsDashboard() {
                   contentStyle={{ backgroundColor: '#1E1A33', borderColor: '#2A2443', borderRadius: '8px', color: '#FAF9FD' }}
                   itemStyle={{ color: '#818CF8' }}
                 />
-                <Bar dataKey="lessons" fill="#6366F1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="lessons" fill="#4F46E5" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -180,10 +180,10 @@ export default function AnalyticsDashboard() {
       </div>
       
       {/* Achievements or Milestones */}
-      <div className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 border border-indigo-500/20 rounded-2xl p-6 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 border border-[#4F46E5]/20 rounded-2xl p-6 relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-indigo-500/20 rounded-xl flex items-center justify-center text-indigo-400">
+            <div className="w-12 h-12 bg-[#4F46E5]/20 rounded-xl flex items-center justify-center text-indigo-400">
               <Award className="w-6 h-6" />
             </div>
             <div>
@@ -195,7 +195,7 @@ export default function AnalyticsDashboard() {
             disabled={metrics.completedCoursesCount === 0}
             className={`px-5 py-2.5 font-semibold rounded-xl transition-colors shadow-lg flex items-center gap-2 ${
               metrics.completedCoursesCount > 0 
-                ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-900/20" 
+                ? "bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-indigo-900/20" 
                 : "bg-[#1E1A33] text-[#8E88AB] cursor-not-allowed opacity-70"
             }`}
           >

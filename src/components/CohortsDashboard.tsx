@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { trpc } from "../lib/trpc-client";
-import { Users, Plus, Hash, Trophy, Activity, ArrowRight, Loader2, BookOpen, Map, Check, Trash2, LogOut } from "lucide-react";
+import { Users, Plus, Hash, Trophy, Activity, ArrowRight, Loader2, BookOpen, Map, Check, Trash2, LogOut, Github } from "lucide-react";
+import { DiscordIcon } from "./DiscordIcon";
 import { toast } from "sonner";
 import { useSession } from "../lib/auth-client";
 
-export default function CohortsDashboard() {
+interface CohortsDashboardProps {
+  onNavigateToCourse?: (courseId: string) => void;
+  onNavigateToRoadmap?: (visualRoadmapId: string) => void;
+}
+
+export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadmap }: CohortsDashboardProps) {
   const { data: sessionData } = useSession();
   const userId = sessionData?.user?.id;
 
@@ -108,6 +114,12 @@ export default function CohortsDashboard() {
       setIsJoining(false);
       await loadCohorts();
       setActiveCohortId(res.cohortId);
+
+      if (res.courseId && onNavigateToCourse) {
+        onNavigateToCourse(res.courseId);
+      } else if (res.visualRoadmapId && onNavigateToRoadmap) {
+        onNavigateToRoadmap(res.visualRoadmapId);
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to join cohort");
     } finally {
@@ -126,6 +138,14 @@ export default function CohortsDashboard() {
   const activeMembership = memberships.find(m => m.cohort.id === activeCohortId);
   const isOwner = userId && activeMembership?.cohort?.ownerId === userId;
 
+  const userCourse = activeMembership?.cohort?.courseId 
+    ? courses.find(c => c.clonedFromCourseId === activeMembership.cohort.courseId || c.id === activeMembership.cohort.courseId)
+    : null;
+
+  const userRoadmap = activeMembership?.cohort?.visualRoadmapId
+    ? roadmaps.find(r => r.clonedFromRoadmapId === activeMembership.cohort.visualRoadmapId || r.id === activeMembership.cohort.visualRoadmapId)
+    : null;
+
   if (activeCohortId) {
     return (
       <CohortDetail 
@@ -138,6 +158,10 @@ export default function CohortsDashboard() {
         isOwner={!!isOwner}
         onDeleted={loadCohorts}
         onLeft={loadCohorts}
+        userCourseId={userCourse?.id}
+        userRoadmapId={userRoadmap?.id}
+        onNavigateToCourse={onNavigateToCourse}
+        onNavigateToRoadmap={onNavigateToRoadmap}
       />
     );
   }
@@ -161,7 +185,7 @@ export default function CohortsDashboard() {
           </button>
           <button 
             onClick={() => { setIsCreating(true); setIsJoining(false); }}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition shadow-lg shadow-indigo-900/20 flex items-center gap-2"
+            className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-medium transition shadow-lg shadow-indigo-900/20 flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Create
           </button>
@@ -169,7 +193,7 @@ export default function CohortsDashboard() {
       </div>
 
       {isCreating && (
-        <form onSubmit={handleCreate} className="bg-[#121021] border border-indigo-500/30 rounded-2xl p-6 space-y-4 animate-in fade-in slide-in-from-top-4">
+        <form onSubmit={handleCreate} className="bg-[#121021] border border-[#4F46E5]/30 rounded-2xl p-6 space-y-4 animate-in fade-in slide-in-from-top-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-1">
               <label className="block text-sm font-semibold text-[#CECADF] mb-2">Cohort Name</label>
@@ -178,7 +202,7 @@ export default function CohortsDashboard() {
                 value={createName} 
                 onChange={e => setCreateName(e.target.value)}
                 placeholder="e.g. Frontend Masters Fall 2026"
-                className="w-full bg-[#1E1A33] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[#1E1A33] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-[#4F46E5]"
                 autoFocus
               />
             </div>
@@ -190,7 +214,7 @@ export default function CohortsDashboard() {
                 onChange={e => {
                   setCreateCourseId(e.target.value);
                 }}
-                className="w-full bg-[#1E1A33] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[#1E1A33] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-[#4F46E5]"
               >
                 <option value="">-- None Selected --</option>
                 {courses.map(c => (
@@ -206,7 +230,7 @@ export default function CohortsDashboard() {
                 onChange={e => {
                   setCreateVisualRoadmapId(e.target.value);
                 }}
-                className="w-full bg-[#1E1A33] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-indigo-500"
+                className="w-full bg-[#1E1A33] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-[#4F46E5]"
               >
                 <option value="">-- None Selected --</option>
                 {roadmaps.map(r => (
@@ -225,7 +249,7 @@ export default function CohortsDashboard() {
             <button 
               type="submit" 
               disabled={!createName || (!createCourseId && !createVisualRoadmapId)} 
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="px-6 py-3 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               Create Cohort
             </button>
@@ -359,41 +383,69 @@ export default function CohortsDashboard() {
             <p className="text-sm text-[#8E88AB]/70 mt-1">Create one or join an existing group to get started.</p>
           </div>
         ) : (
-          memberships.map((m) => (
-            <div 
-              key={m.cohort.id} 
-              onClick={() => setActiveCohortId(m.cohort.id)}
-              className="bg-[#121021] border border-[#2A2443] hover:border-indigo-500/50 rounded-2xl p-6 cursor-pointer transition-all hover:-translate-y-1 group flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center group-hover:bg-indigo-500 group-hover:text-white transition-colors">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-[#2A2443] group-hover:text-indigo-400 transition-colors" />
-                </div>
-                <h3 className="text-lg font-bold text-[#FAF9FD] mb-1 group-hover:text-indigo-300 transition-colors">{m.cohort.name}</h3>
-                <p className="text-sm text-[#CECADF] flex items-center gap-1 mb-4">
-                  {m.cohort._count?.members || 1} Member{(m.cohort._count?.members || 1) !== 1 ? 's' : ''}
-                </p>
-              </div>
+          memberships.map((m) => {
+            const userCourse = m.cohort.courseId 
+              ? courses.find(c => c.clonedFromCourseId === m.cohort.courseId || c.id === m.cohort.courseId)
+              : null;
 
-              <div className="space-y-1.5 pt-3 border-t border-[#1E1A33]">
-                {m.cohort.course && (
-                  <div className="flex items-center gap-1.5 text-xs text-[#8E88AB]">
-                    <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                    <span className="truncate">Course: <strong className="text-white">{m.cohort.course.title}</strong></span>
+            const userRoadmap = m.cohort.visualRoadmapId
+              ? roadmaps.find(r => r.clonedFromRoadmapId === m.cohort.visualRoadmapId || r.id === m.cohort.visualRoadmapId)
+              : null;
+
+            return (
+              <div 
+                key={m.cohort.id} 
+                onClick={() => setActiveCohortId(m.cohort.id)}
+                className="bg-[#121021] border border-[#2A2443] hover:border-[#4F46E5]/50 rounded-2xl p-6 cursor-pointer transition-all hover:-translate-y-1 group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="w-10 h-10 rounded-lg bg-[#4F46E5]/10 text-indigo-400 flex items-center justify-center group-hover:bg-[#4F46E5] group-hover:text-white transition-colors">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <ArrowRight className="w-5 h-5 text-[#2A2443] group-hover:text-indigo-400 transition-colors" />
                   </div>
-                )}
-                {m.cohort.visualRoadmap && (
-                  <div className="flex items-center gap-1.5 text-xs text-[#8E88AB]">
-                    <Map className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span className="truncate">Roadmap: <strong className="text-white">{m.cohort.visualRoadmap.title}</strong></span>
+                  <h3 className="text-lg font-bold text-[#FAF9FD] mb-1 group-hover:text-indigo-300 transition-colors">{m.cohort.name}</h3>
+                  <p className="text-sm text-[#CECADF] flex items-center gap-1 mb-4">
+                    {m.cohort._count?.members || 1} Member{(m.cohort._count?.members || 1) !== 1 ? 's' : ''}
+                  </p>
+                </div>
+
+                <div>
+                  <div className="space-y-1.5 pt-3 border-t border-[#1E1A33]">
+                    {m.cohort.course && (
+                      <div className="flex items-center gap-1.5 text-xs text-[#8E88AB]">
+                        <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <span className="truncate">Course: <strong className="text-white">{m.cohort.course.title}</strong></span>
+                      </div>
+                    )}
+                    {m.cohort.visualRoadmap && (
+                      <div className="flex items-center gap-1.5 text-xs text-[#8E88AB]">
+                        <Map className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <span className="truncate">Roadmap: <strong className="text-white">{m.cohort.visualRoadmap.title}</strong></span>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {(userCourse || userRoadmap) && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (userCourse && onNavigateToCourse) {
+                          onNavigateToCourse(userCourse.id);
+                        } else if (userRoadmap && onNavigateToRoadmap) {
+                          onNavigateToRoadmap(userRoadmap.id);
+                        }
+                      }}
+                      className="mt-4 w-full py-2 px-3 bg-[#4F46E5]/20 hover:bg-[#4F46E5] border border-[#4F46E5]/30 hover:border-[#4F46E5] text-indigo-300 hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      Continue to Course <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
@@ -409,7 +461,11 @@ function CohortDetail({
   roadmapTitle,
   isOwner,
   onDeleted,
-  onLeft
+  onLeft,
+  userCourseId,
+  userRoadmapId,
+  onNavigateToCourse,
+  onNavigateToRoadmap
 }: { 
   cohortId: string, 
   onBack: () => void, 
@@ -419,7 +475,11 @@ function CohortDetail({
   roadmapTitle?: string,
   isOwner: boolean,
   onDeleted?: () => void,
-  onLeft?: () => void
+  onLeft?: () => void,
+  userCourseId?: string | null,
+  userRoadmapId?: string | null,
+  onNavigateToCourse?: (courseId: string) => void,
+  onNavigateToRoadmap?: (visualRoadmapId: string) => void
 }) {
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
   const [activity, setActivity] = useState<any[] | null>(null);
@@ -427,6 +487,25 @@ function CohortDetail({
   const [isLeaving, setIsLeaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  const [selectedProfileUserId, setSelectedProfileUserId] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState<any | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
+
+  const handleNameClick = async (userId: string) => {
+    setSelectedProfileUserId(userId);
+    setIsProfileLoading(true);
+    setProfileData(null);
+    try {
+      const data = await trpc.getCohortMemberProfile.query({ cohortId, userId });
+      setProfileData(data);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to load member profile");
+      setSelectedProfileUserId(null);
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
 
   useEffect(() => {
     trpc.getCohortLeaderboard.query({ cohortId })
@@ -496,14 +575,40 @@ function CohortDetail({
                 </span>
               )}
               {courseTitle && (
-                <span className="text-xs bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 px-2.5 py-1 rounded-md font-semibold flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    if (userCourseId && onNavigateToCourse) {
+                      onNavigateToCourse(userCourseId);
+                    }
+                  }}
+                  disabled={!userCourseId}
+                  className={`text-xs px-2.5 py-1 rounded-md font-semibold flex items-center gap-1.5 transition-all ${
+                    userCourseId 
+                      ? "bg-[#4F46E5]/15 text-indigo-300 hover:bg-[#4F46E5] hover:text-white border border-[#4F46E5]/30 cursor-pointer" 
+                      : "bg-[#1E1A33] text-[#CECADF] border border-[#2A2443] cursor-not-allowed"
+                  }`}
+                >
                   <BookOpen className="w-3 h-3" /> Course: {courseTitle}
-                </span>
+                  {userCourseId && <ArrowRight className="w-3 h-3 text-indigo-400" />}
+                </button>
               )}
               {roadmapTitle && (
-                <span className="text-xs bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-md font-semibold flex items-center gap-1">
+                <button
+                  onClick={() => {
+                    if (userRoadmapId && onNavigateToRoadmap) {
+                      onNavigateToRoadmap(userRoadmapId);
+                    }
+                  }}
+                  disabled={!userRoadmapId}
+                  className={`text-xs px-2.5 py-1 rounded-md font-semibold flex items-center gap-1.5 transition-all ${
+                    userRoadmapId 
+                      ? "bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 border border-emerald-500/30 cursor-pointer" 
+                      : "bg-[#1E1A33] text-[#CECADF] border border-[#2A2443] cursor-not-allowed"
+                  }`}
+                >
                   <Map className="w-3 h-3" /> Roadmap: {roadmapTitle}
-                </span>
+                  {userRoadmapId && <ArrowRight className="w-3 h-3 text-emerald-400" />}
+                </button>
               )}
             </div>
           </div>
@@ -549,7 +654,8 @@ function CohortDetail({
           </div>
           
           <div className="bg-[#121021] border border-[#2A2443] rounded-2xl overflow-hidden shadow-xl">
-            <table className="w-full text-left text-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm min-w-[600px]">
               <thead className="bg-[#1E1A33] text-[#CECADF] font-semibold text-xs uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Rank</th>
@@ -567,7 +673,15 @@ function CohortDetail({
                        idx === 1 ? <span className="text-slate-300 text-lg font-bold">2</span> : 
                        idx === 2 ? <span className="text-amber-700 text-lg font-bold">3</span> : idx + 1}
                     </td>
-                    <td className="px-6 py-4 font-semibold text-[#FAF9FD]">{user.name}</td>
+                    <td className="px-6 py-4 font-semibold text-[#FAF9FD]">
+                      <button
+                        type="button"
+                        onClick={() => handleNameClick(user.userId)}
+                        className="hover:text-indigo-400 hover:underline transition text-left font-semibold cursor-pointer outline-none"
+                      >
+                        {user.name}
+                      </button>
+                    </td>
                     <td className="px-6 py-4 text-right text-indigo-400 font-bold">{user.estimatedProficiency}%</td>
                     <td className="px-6 py-4 text-right text-emerald-400">{user.avgQuizScore}%</td>
                     <td className="px-6 py-4 text-right text-orange-400 font-semibold">{user.currentStreak} 🔥</td>
@@ -582,6 +696,7 @@ function CohortDetail({
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
 
@@ -593,13 +708,25 @@ function CohortDetail({
 
           <div className="bg-[#121021] border border-[#2A2443] rounded-2xl p-5 space-y-4 shadow-xl">
             {activity ? activity.map((act, i) => (
-              <div key={i} className="flex gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#1E1A33] flex items-center justify-center shrink-0 text-[#FAF9FD] font-bold text-xs uppercase">
+              <div key={i} className="flex gap-3 items-start">
+                <button
+                  type="button"
+                  onClick={() => handleNameClick(act.userId)}
+                  className="w-8 h-8 rounded-full bg-[#1E1A33] hover:bg-[#2A2443] flex items-center justify-center shrink-0 text-[#FAF9FD] font-bold text-xs uppercase cursor-pointer transition outline-none"
+                  title={`View ${act.userName}'s Profile`}
+                >
                   {act.userName.substring(0,2)}
-                </div>
+                </button>
                 <div>
                   <p className="text-sm text-[#CECADF]">
-                    <span className="font-bold text-[#FAF9FD]">{act.userName}</span> {act.action}
+                    <button
+                      type="button"
+                      onClick={() => handleNameClick(act.userId)}
+                      className="font-bold text-[#FAF9FD] hover:text-indigo-400 hover:underline transition cursor-pointer text-left outline-none"
+                    >
+                      {act.userName}
+                    </button>{" "}
+                    {act.action}
                   </p>
                   <p className="text-xs text-[#8E88AB] mt-0.5">
                     {new Date(act.time).toLocaleDateString()}
@@ -702,6 +829,99 @@ function CohortDetail({
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {selectedProfileUserId && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121021] border border-[#2A2443] rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 relative">
+            <button 
+              onClick={() => setSelectedProfileUserId(null)}
+              className="absolute top-4 right-4 text-[#8E88AB] hover:text-white transition cursor-pointer text-sm font-bold"
+            >
+              ✕
+            </button>
+
+            {isProfileLoading ? (
+              <div className="py-12 flex flex-col justify-center items-center gap-2 text-sm text-[#8E88AB]">
+                <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+                <span>Loading profile...</span>
+              </div>
+            ) : profileData ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 border-b border-[#2A2443] pb-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#8B5CF6] flex items-center justify-center text-base text-white font-extrabold shadow-md">
+                    {profileData.name ? profileData.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) : "U"}
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-[#FAF9FD]">{profileData.name}</h3>
+                    <p className="text-xs text-[#8E88AB] font-medium">
+                      Cohort{" "}
+                      {profileData.role === "Student" || profileData.role === "Teacher" || profileData.role === "Owner" ? (
+                        <span className="text-[#FBBF24] font-bold px-1.5 py-0.5 rounded bg-[#FBBF24]/10 border border-[#FBBF24]/20">{profileData.role}</span>
+                      ) : (
+                        "Member"
+                      )}
+                      {" "}Profile
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-xs font-semibold text-[#8E88AB] uppercase tracking-wider block">Bio</span>
+                  {profileData.bio ? (
+                    <p className="text-sm text-[#CECADF] bg-[#1E1A33]/50 border border-[#2A2443]/50 rounded-xl p-3.5 leading-relaxed italic">
+                      "{profileData.bio}"
+                    </p>
+                  ) : (
+                    <p className="text-sm text-[#8E88AB] italic bg-[#1E1A33]/20 rounded-xl p-3">
+                      This user has not set a bio yet.
+                    </p>
+                  )}
+                </div>
+
+                {profileData.socialLinks && profileData.socialLinks.length > 0 && (
+                  <div className="space-y-2.5 pt-1">
+                    <span className="text-xs font-semibold text-[#8E88AB] uppercase tracking-wider block">Verified Social Accounts</span>
+                    <div className="flex flex-col gap-2">
+                      {profileData.socialLinks.map((link: any) => {
+                        const isGithub = link.provider === "github";
+                        return (
+                          <a
+                            key={link.id}
+                            href={link.profileUrl || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between p-3 rounded-xl border transition-all hover:scale-[1.02] text-xs font-bold bg-[#5865F2]/15 hover:bg-[#5865F2]/25 border-[#5865F2]/30 text-[#FAF9FD]"
+                          >
+                            <span className="flex items-center gap-2">
+                              {isGithub ? <Github className="w-4 h-4 text-[#5865F2]" /> : <DiscordIcon className="w-4 h-4 text-[#5865F2]" />}
+                              <span>{isGithub ? "GitHub" : "Discord"} Profile</span>
+                            </span>
+                            <span className="text-xs text-[#8E88AB] font-normal font-mono">@{link.externalUsername} ↗</span>
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProfileUserId(null)}
+                    className="px-5 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer w-full text-center"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="py-8 text-center text-[#8E88AB] text-sm">
+                No profile details could be retrieved.
+              </div>
+            )}
           </div>
         </div>
       )}

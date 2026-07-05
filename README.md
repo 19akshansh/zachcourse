@@ -168,6 +168,8 @@ ZachCourse is powered by a team of specialized AI agents working together:
 | `VITE_APP_URL` | Application base URL for Vite client | Yes |
 | `GITHUB_CLIENT_ID` | GitHub OAuth Client ID | No (for GitHub auth) |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth Client Secret | No (for GitHub auth) |
+| `DISCORD_CLIENT_ID` | Discord OAuth Client ID | No (for verified Discord social link) |
+| `DISCORD_CLIENT_SECRET` | Discord OAuth Client Secret (redirect: `{BASE_URL}/api/auth/callback/discord`) | No (for verified Discord social link) |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID | No (for Google auth) |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret | No (for Google auth) |
 | `EMAIL_HOST` | SMTP host for email sending | No (for email magic links) |

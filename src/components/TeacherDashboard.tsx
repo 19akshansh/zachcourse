@@ -160,7 +160,7 @@ export default function TeacherDashboard() {
                   placeholder="e.g. CS101 Autumn 2026"
                   value={newClassroomName}
                   onChange={e => setNewClassroomName(e.target.value)}
-                  className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
+                  className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] px-4 py-3 rounded-xl focus:outline-none focus:border-[#4F46E5] text-sm"
                 />
               </div>
 
@@ -169,7 +169,7 @@ export default function TeacherDashboard() {
                 <select
                   value={selectedCourseId}
                   onChange={e => setSelectedCourseId(e.target.value)}
-                  className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
+                  className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] px-4 py-3 rounded-xl focus:outline-none focus:border-[#4F46E5] text-sm"
                 >
                   <option value="">-- None Selected --</option>
                   {courses.map(c => (
@@ -183,7 +183,7 @@ export default function TeacherDashboard() {
                 <select
                   value={selectedVisualRoadmapId}
                   onChange={e => setSelectedVisualRoadmapId(e.target.value)}
-                  className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] px-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 text-sm"
+                  className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] px-4 py-3 rounded-xl focus:outline-none focus:border-[#4F46E5] text-sm"
                 >
                   <option value="">-- None Selected --</option>
                   {roadmaps.map(r => (
@@ -199,7 +199,7 @@ export default function TeacherDashboard() {
               <button
                 type="submit"
                 disabled={!newClassroomName.trim() || (!selectedCourseId && !selectedVisualRoadmapId)}
-                className="bg-[#6366F1] hover:bg-[#5053e3] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition cursor-pointer"
+                className="bg-[#4F46E5] hover:bg-[#4338CA] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition cursor-pointer"
               >
                 Create Classroom
               </button>
@@ -208,7 +208,7 @@ export default function TeacherDashboard() {
 
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {classrooms.map(cls => (
-              <div key={cls.id} className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl flex flex-col justify-between hover:border-indigo-500/50 transition">
+              <div key={cls.id} className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl flex flex-col justify-between hover:border-[#4F46E5]/50 transition">
                 <div>
                   <div className="flex justify-between items-start gap-4">
                     <h3 className="text-xl font-bold text-[#FAF9FD]">{cls.name}</h3>

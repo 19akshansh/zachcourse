@@ -99,7 +99,7 @@ export default function VisualRoadmapsTab({
       <div className="flex flex-col items-center justify-center h-full text-center max-w-md mx-auto relative px-6">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-[#0F0D19] z-10 pointer-events-none" />
         <div className="relative z-20">
-          <div className="w-20 h-20 bg-indigo-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-indigo-500/20">
+          <div className="w-20 h-20 bg-[#4F46E5]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-[#4F46E5]/20">
             <span className="text-4xl">🔑</span>
           </div>
           <h2 className="text-2xl font-bold text-white mb-4">API Key Required</h2>
@@ -107,7 +107,7 @@ export default function VisualRoadmapsTab({
             Visual Roadmaps use structured output generation to build complex graph paths. Add your Gemini API key to unlock this feature.
           </p>
           <button 
-            className="bg-[#6366F1] hover:bg-[#4F46E5] text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] w-full"
+            className="bg-[#4F46E5] hover:bg-[#4338CA] text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] w-full"
             onClick={() => window.dispatchEvent(new CustomEvent('zc-open-onboarding'))}
           >
             Add API Key <ArrowRight className="w-5 h-5" />
@@ -149,7 +149,7 @@ export default function VisualRoadmapsTab({
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder="e.g. System Design, Kubernetes, UI Design..."
-                className="w-full bg-[#0F0D19] border-2 border-[#2A2443] focus:border-[#6366F1] rounded-xl px-5 py-4 text-white text-lg transition-colors placeholder:text-[#3F395B] outline-none"
+                className="w-full bg-[#0F0D19] border-2 border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-5 py-4 text-white text-lg transition-colors placeholder:text-[#3F395B] outline-none"
               />
             </div>
 
@@ -169,7 +169,7 @@ export default function VisualRoadmapsTab({
                     onClick={() => setExperienceLevel(lvl.id)}
                     className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
                       experienceLevel === lvl.id 
-                        ? "border-[#6366F1] bg-[#6366F1]/10 text-white" 
+                        ? "border-[#4F46E5] bg-[#4F46E5]/10 text-white" 
                         : "border-[#2A2443] bg-[#0F0D19] text-[#8E88AB] hover:border-[#3F395B]"
                     }`}
                   >
@@ -190,7 +190,7 @@ export default function VisualRoadmapsTab({
                 max="30"
                 value={weeklyHours}
                 onChange={(e) => setWeeklyHours(parseInt(e.target.value))}
-                className="w-full accent-[#6366F1]"
+                className="w-full accent-[#4F46E5]"
               />
               <div className="flex justify-between text-xs font-medium text-[#4B5563] mt-2">
                 <span>Casual (1h)</span>
@@ -208,7 +208,7 @@ export default function VisualRoadmapsTab({
                 value={sourceUrl}
                 onChange={(e) => setSourceUrl(e.target.value)}
                 placeholder="https://... (Docs, syllabus, or course link)"
-                className="w-full bg-[#0F0D19] border border-[#2A2443] focus:border-[#6366F1] rounded-xl px-4 py-3 text-white transition-colors placeholder:text-[#3F395B] outline-none"
+                className="w-full bg-[#0F0D19] border border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-4 py-3 text-white transition-colors placeholder:text-[#3F395B] outline-none"
               />
 
               <DocumentUpload
@@ -227,7 +227,7 @@ export default function VisualRoadmapsTab({
             <button
               type="submit"
               disabled={!topic || isGenerating}
-              className="w-full bg-[#6366F1] hover:bg-[#4F46E5] disabled:bg-[#3F395B] disabled:cursor-not-allowed text-white px-6 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] text-lg"
+              className="w-full bg-[#4F46E5] hover:bg-[#4338CA] disabled:bg-[#3F395B] disabled:cursor-not-allowed text-white px-6 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] text-lg"
             >
               {isGenerating ? (
                 <>
@@ -299,7 +299,7 @@ export default function VisualRoadmapsTab({
                 key={r.id}
                 onClick={() => setActiveVRoadmapId(r.id)}
                 className={`flex-shrink-0 w-[240px] snap-start bg-[#111118] border-2 rounded-xl p-4 cursor-pointer transition-all hover:-translate-y-1 ${
-                  isActive ? 'border-[#6366F1] shadow-[0_0_20px_rgba(99,102,241,0.15)]' : 'border-[#2A2443] hover:border-[#3F395B]'
+                  isActive ? 'border-[#4F46E5] shadow-[0_0_20px_rgba(99,102,241,0.15)]' : 'border-[#2A2443] hover:border-[#3F395B]'
                 }`}
               >
                 <div className="flex justify-between items-start mb-3">
@@ -332,7 +332,7 @@ export default function VisualRoadmapsTab({
                 
                 <div className="w-full bg-[#1A172E] rounded-full h-1.5 mb-2 overflow-hidden">
                   <div 
-                    className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? 'bg-[#10B981]' : 'bg-[#6366F1]'}`}
+                    className={`h-full rounded-full transition-all duration-500 ${progress === 100 ? 'bg-[#10B981]' : 'bg-[#4F46E5]'}`}
                     style={{ width: `${progress}%` }}
                   />
                 </div>

@@ -1,5 +1,6 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import { prisma } from "../lib/db.js";
+import { recordDailyActivity } from "../lib/streak.js";
 import { auth } from "../lib/auth.js";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import { z } from "zod";
@@ -202,6 +203,8 @@ export const appRouter = router({
         ? (course.completedQuizzesAt as any[])
         : [];
 
+      let isStudyActivity = false;
+
       if (input.completedLessons) {
         const oldLessons = Array.isArray(course.completedLessons)
           ? (course.completedLessons as string[])
@@ -210,6 +213,9 @@ export const appRouter = router({
 
         // 1. Find newly completed lessons
         const newlyCompleted = newLessons.filter(id => !oldLessons.includes(id));
+        if (newlyCompleted.length > 0) {
+          isStudyActivity = true;
+        }
         newlyCompleted.forEach(lessonId => {
           if (!completedLessonsAt.some(item => item.lessonId === lessonId)) {
             completedLessonsAt.push({
@@ -229,6 +235,11 @@ export const appRouter = router({
           : {};
         const newQuizzes = input.completedQuizzes as Record<string, number>;
 
+        const newlyCompletedQuizzes = Object.keys(newQuizzes).filter(id => oldQuizzes[id] === undefined);
+        if (newlyCompletedQuizzes.length > 0) {
+          isStudyActivity = true;
+        }
+
         Object.entries(newQuizzes).forEach(([lessonId, score]) => {
           const oldScore = oldQuizzes[lessonId];
           if (oldScore === undefined || oldScore !== score) {
@@ -243,6 +254,10 @@ export const appRouter = router({
 
         const newQuizLessonIds = Object.keys(newQuizzes);
         completedQuizzesAt = completedQuizzesAt.filter(item => newQuizLessonIds.includes(item.lessonId));
+      }
+
+      if (isStudyActivity) {
+        await recordDailyActivity(ctx.prisma, ctx.user.id);
       }
 
       return await ctx.prisma.course.update({
@@ -579,6 +594,18 @@ Return ONLY valid JSON matching this schema:
       completedNodeIds: z.array(z.string()),
     }))
     .mutation(async ({ ctx, input }) => {
+      const roadmap = await ctx.prisma.visualRoadmap.findUnique({
+        where: { id: input.id, userId: ctx.user.id },
+        select: { completedNodeIds: true }
+      });
+      if (roadmap) {
+        const oldNodeIds = Array.isArray(roadmap.completedNodeIds) ? (roadmap.completedNodeIds as string[]) : [];
+        const newlyCompleted = input.completedNodeIds.filter(id => !oldNodeIds.includes(id));
+        if (newlyCompleted.length > 0) {
+          await recordDailyActivity(ctx.prisma, ctx.user.id);
+        }
+      }
+
       return await ctx.prisma.visualRoadmap.update({
         where: { id: input.id, userId: ctx.user.id },
         data: {
@@ -1206,7 +1233,127 @@ Return ONLY JSON matching this schema:
         _count: { select: { members: true } }
       }
     });
-  })
+  }),
+
+  updateMyBio: protectedProcedure
+    .input(z.object({ bio: z.string().max(160, "Bio must be 160 characters or less") }))
+    .mutation(async ({ ctx, input }) => {
+      return await ctx.prisma.user.update({
+        where: { id: ctx.user.id },
+        data: { bio: input.bio }
+      });
+    }),
+
+  unlinkSocialProvider: protectedProcedure
+    .input(z.object({ provider: z.enum(["discord", "github"]) }))
+    .mutation(async ({ ctx, input }) => {
+      const accounts = await ctx.prisma.account.findMany({
+        where: { userId: ctx.user.id }
+      });
+
+      if (accounts.length <= 1) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Cannot unlink your only login method."
+        });
+      }
+
+      await ctx.prisma.socialLink.deleteMany({
+        where: { userId: ctx.user.id, provider: input.provider }
+      });
+
+      await ctx.prisma.account.deleteMany({
+        where: { userId: ctx.user.id, providerId: input.provider }
+      });
+
+      return { success: true };
+    }),
+
+  getMySocialLinks: protectedProcedure
+    .query(async ({ ctx }) => {
+      const user = await ctx.prisma.user.findUnique({
+        where: { id: ctx.user.id },
+        select: { bio: true }
+      });
+      const socialLinks = await ctx.prisma.socialLink.findMany({
+        where: { userId: ctx.user.id }
+      });
+      
+      const accounts = await ctx.prisma.account.findMany({
+        where: { userId: ctx.user.id }
+      });
+      const accountProviders = accounts.map(a => a.providerId);
+      const mergedLinks = [...socialLinks];
+
+      for (const provider of ["github", "discord"]) {
+        if (accountProviders.includes(provider) && !mergedLinks.some(l => l.provider === provider)) {
+          mergedLinks.push({
+            id: `synthetic_${provider}`,
+            provider,
+            externalUsername: null,
+            profileUrl: null,
+            userId: ctx.user.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          } as any);
+        }
+      }
+
+      return {
+        bio: user?.bio || "",
+        socialLinks: mergedLinks
+      };
+    }),
+
+  getCohortMemberProfile: protectedProcedure
+    .input(z.object({ cohortId: z.string(), userId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const isCallerMember = await ctx.prisma.cohortMember.findUnique({
+        where: { cohortId_userId: { cohortId: input.cohortId, userId: ctx.user.id } }
+      });
+      if (!isCallerMember) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "You are not a member of this cohort" });
+      }
+
+      const isTargetMember = await ctx.prisma.cohortMember.findUnique({
+        where: { cohortId_userId: { cohortId: input.cohortId, userId: input.userId } }
+      });
+      if (!isTargetMember) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Target user is not a member of this cohort" });
+      }
+
+      const targetUser = await ctx.prisma.user.findUnique({
+        where: { id: input.userId },
+        select: {
+          name: true,
+          bio: true,
+          socialLinks: true
+        }
+      });
+
+      if (!targetUser) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      }
+
+      const cohort = await ctx.prisma.cohort.findUnique({
+        where: { id: input.cohortId }
+      });
+      let role = "Member";
+      if (cohort) {
+        if (cohort.ownerId === input.userId) {
+          role = cohort.isClassroom ? "Teacher" : "Owner";
+        } else {
+          role = cohort.isClassroom ? "Student" : "Member";
+        }
+      }
+
+      return {
+        name: targetUser.name,
+        bio: targetUser.bio || "",
+        socialLinks: targetUser.socialLinks,
+        role: role
+      };
+    })
 });
 
 export type AppRouter = typeof appRouter;

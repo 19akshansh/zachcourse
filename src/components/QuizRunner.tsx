@@ -96,7 +96,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
                           : showAsIncorrect
                             ? "bg-rose-950/40 border-rose-500 text-rose-200 font-semibold"
                             : isSelected
-                              ? "bg-[#6366F1]/20 border-[#6366F1] text-[#A5B4FC] font-semibold"
+                              ? "bg-[#4F46E5]/20 border-[#4F46E5] text-[#A5B4FC] font-semibold"
                               : "bg-[#121021]/50 border-[#2A2443] text-[#CECADF] hover:bg-[#121021]"
                       }`}
                       disabled={quizSubmitted}
@@ -107,7 +107,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
                           : showAsIncorrect
                             ? "bg-[#FF6B6B] text-white"
                             : isSelected
-                              ? "bg-[#6366F1] text-white"
+                              ? "bg-[#4F46E5] text-white"
                               : "bg-slate-700 text-slate-300"
                       }`}>
                         {String.fromCharCode(65 + oIdx)}
@@ -133,7 +133,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
             <button
               onClick={handleSubmitQuiz}
               disabled={Object.keys(selectedAnswers).length < quizData.questions.length}
-              className="w-full bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold rounded-2xl py-3.5 text-base transition disabled:opacity-40 disabled:pointer-events-none cursor-pointer hover:-translate-y-0.5 shadow-lg shadow-indigo-600/20"
+              className="w-full bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold rounded-2xl py-3.5 text-base transition disabled:opacity-40 disabled:pointer-events-none cursor-pointer hover:-translate-y-0.5 shadow-lg shadow-[#4F46E5]/20"
               id="btn-submit-quiz"
             >
               Submit Quiz Answers
@@ -150,7 +150,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveTab("roadmap")}
-                  className="bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer hover:-translate-y-0.5 shrink-0"
+                  className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm px-6 py-3 rounded-xl transition cursor-pointer hover:-translate-y-0.5 shrink-0"
                 >
                   Back to Roadmap Tab
                 </button>
@@ -178,7 +178,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
                         <span className="text-xs font-bold text-[#8E88AB] uppercase tracking-wider block mb-1">Topics to Review</span>
                         <div className="flex flex-wrap gap-1.5">
                           {quizAnalysis.reviewTopics.map((t: string, i: number) => (
-                            <span key={i} className="text-xs bg-indigo-900/30 text-indigo-300 px-2 py-0.5 rounded-full border border-indigo-500/20">{t}</span>
+                            <span key={i} className="text-xs bg-indigo-900/30 text-indigo-300 px-2 py-0.5 rounded-full border border-[#4F46E5]/20">{t}</span>
                           ))}
                         </div>
                       </div>
@@ -205,7 +205,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
               <select
                 value={quizDifficulty}
                 onChange={(e) => setQuizDifficulty(e.target.value)}
-                className="w-full bg-[#121021] border border-[#2A2443] rounded-xl py-3 px-4 text-[#FAF9FD] focus:outline-none focus:border-[#6366F1]"
+                className="w-full bg-[#121021] border border-[#2A2443] rounded-xl py-3 px-4 text-[#FAF9FD] focus:outline-none focus:border-[#4F46E5]"
               >
                 <option value="Beginner">Beginner</option>
                 <option value="Medium">Medium</option>
@@ -228,14 +228,14 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
                   if (val < 3 && e.target.value !== "") val = 3;
                   setQuizQuestionCount(val);
                 }}
-                className="w-full bg-[#121021] border border-[#2A2443] rounded-xl py-3 px-4 text-[#FAF9FD] focus:outline-none focus:border-[#6366F1]"
+                className="w-full bg-[#121021] border border-[#2A2443] rounded-xl py-3 px-4 text-[#FAF9FD] focus:outline-none focus:border-[#4F46E5]"
               />
             </div>
 
             <button
               type="button"
               onClick={generateQuiz}
-              className="w-full mt-4 bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold text-base px-6 py-4 rounded-2xl transition cursor-pointer hover:-translate-y-0.5 shadow-lg shadow-indigo-600/20"
+              className="w-full mt-4 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-base px-6 py-4 rounded-2xl transition cursor-pointer hover:-translate-y-0.5 shadow-lg shadow-[#4F46E5]/20"
             >
               Generate Quiz
             </button>
@@ -253,7 +253,7 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab("roadmap")}
-            className="bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold text-sm px-6 py-3 rounded-2xl transition cursor-pointer hover:-translate-y-0.5"
+            className="bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold text-sm px-6 py-3 rounded-2xl transition cursor-pointer hover:-translate-y-0.5"
           >
             Go to Roadmap
           </button>

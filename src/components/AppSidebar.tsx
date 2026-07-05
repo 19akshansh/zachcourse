@@ -194,7 +194,7 @@ export default function AppSidebar({
             className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer mb-1
               ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
               ${activeTab === "visual-roadmaps"
-                ? "bg-indigo-600/15 text-[#818CF8]" 
+                ? "bg-[#4F46E5]/15 text-[#818CF8]" 
                 : "text-[#8E88AB] hover:bg-white/5 hover:text-[#FAF9FD]"
               }
             `}
@@ -221,7 +221,7 @@ export default function AppSidebar({
             className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer mb-1
               ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
               ${activeTab === "cohorts"
-                ? "bg-indigo-600/15 text-[#818CF8]" 
+                ? "bg-[#4F46E5]/15 text-[#818CF8]" 
                 : "text-[#8E88AB] hover:bg-white/5 hover:text-[#FAF9FD]"
               }
             `}
@@ -245,7 +245,7 @@ export default function AppSidebar({
             className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer
               ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
               ${activeTab === "analytics"
-                ? "bg-indigo-600/15 text-[#818CF8]" 
+                ? "bg-[#4F46E5]/15 text-[#818CF8]" 
                 : "text-[#8E88AB] hover:bg-white/5 hover:text-[#FAF9FD]"
               }
             `}
@@ -302,7 +302,7 @@ export default function AppSidebar({
           
           <button
             onClick={handleNewCourseClick}
-            className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer text-[#FAF9FD] bg-[#6366F1]/10 hover:bg-[#6366F1]/20 border border-[#6366F1]/20 mb-3
+            className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer text-[#FAF9FD] bg-[#4F46E5]/10 hover:bg-[#4338CA]/20 border border-[#4F46E5]/20 mb-3
               ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
             `}
           >
@@ -340,7 +340,7 @@ export default function AppSidebar({
                       className={`w-full flex items-center h-12 rounded-xl transition-all duration-200 cursor-pointer relative group
                         ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
                         ${isActive 
-                          ? "bg-[#1E1B36] border-l-[3px] border-l-[#6366F1]" 
+                          ? "bg-[#1E1B36] border-l-[3px] border-l-[#4F46E5]" 
                           : "hover:bg-white/5 border-l-[3px] border-l-transparent"
                         }
                       `}
@@ -373,7 +373,7 @@ export default function AppSidebar({
                                     setEditingCourseId(null);
                                   }
                                 }}
-                                className="w-full bg-[#181628] text-sm font-semibold text-[#FAF9FD] rounded px-1.5 py-0.5 border border-[#6366F1] outline-none"
+                                className="w-full bg-[#181628] text-sm font-semibold text-[#FAF9FD] rounded px-1.5 py-0.5 border border-[#4F46E5] outline-none"
                               />
                             ) : (
                               <span className={`text-sm font-semibold truncate ${isActive ? "text-[#FAF9FD]" : "text-[#8E88AB] group-hover:text-[#FAF9FD]"}`}>
@@ -461,7 +461,7 @@ export default function AppSidebar({
                     className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer
                       ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
                       ${isActive 
-                        ? "bg-indigo-600/15 text-[#818CF8]" 
+                        ? "bg-[#4F46E5]/15 text-[#818CF8]" 
                         : "text-[#8E88AB] hover:bg-white/5 hover:text-[#FAF9FD]"
                       }
                     `}
@@ -486,11 +486,11 @@ export default function AppSidebar({
               <img
                 src={user.image}
                 alt={displayName}
-                className="w-8 h-8 rounded-full object-cover border border-[#6366F1]/30 shrink-0"
+                className="w-8 h-8 rounded-full object-cover border border-[#4F46E5]/30 shrink-0"
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center text-xs text-white font-extrabold shadow-md shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#8B5CF6] flex items-center justify-center text-xs text-white font-extrabold shadow-md shrink-0">
                 {initials}
               </div>
             )}
@@ -528,11 +528,11 @@ export default function AppSidebar({
               <img
                 src={user.image}
                 alt={displayName}
-                className="w-8 h-8 rounded-full object-cover border border-[#6366F1]/30 shrink-0"
+                className="w-8 h-8 rounded-full object-cover border border-[#4F46E5]/30 shrink-0"
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center text-xs text-white font-extrabold shadow-md shrink-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#8B5CF6] flex items-center justify-center text-xs text-white font-extrabold shadow-md shrink-0">
                 {initials}
               </div>
             )}

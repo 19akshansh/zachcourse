@@ -89,7 +89,7 @@ export const MentorChat: React.FC<MentorChatProps> = ({
       </div>
 
       {/* Chat Box (span 8) */}
-      <div className="lg:col-span-8 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col h-[400px] md:h-[500px] lg:h-[600px]">
+      <div className="lg:col-span-8 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col h-[80vh] min-h-[600px] md:h-[600px] lg:h-[700px]">
         <div className="flex items-center gap-3 border-b border-[#2A2443] pb-4 mb-4">
           <span className="text-3xl select-none">🧑‍🏫</span>
           <div className="flex-1">
@@ -118,7 +118,7 @@ export const MentorChat: React.FC<MentorChatProps> = ({
         </div>
 
         {/* Message List */}
-        <div className="flex-1 overflow-y-auto max-h-[calc(100vh-280px)] md:max-h-none space-y-4 mb-4 p-2">
+        <div className="flex-1 overflow-y-auto space-y-4 mb-4 p-2">
           {mentorMessages.map((msg, index) => {
             const isUser = msg.role === "user";
             const msgText = msg.content || msg.text;
@@ -134,7 +134,7 @@ export const MentorChat: React.FC<MentorChatProps> = ({
                   <div
                     className={`p-4 rounded-3xl text-base ${
                       isUser
-                        ? "bg-[#6366F1] text-white rounded-tr-none shadow-md shadow-indigo-600/10"
+                        ? "bg-[#4F46E5] text-white rounded-tr-none shadow-md shadow-[#4F46E5]/10"
                         : "bg-[#121021] text-[#FAF9FD] border border-[#2A2443] rounded-tl-none shadow-md"
                     }`}
                   >
@@ -174,12 +174,12 @@ export const MentorChat: React.FC<MentorChatProps> = ({
               value={mentorInput}
               onChange={(e) => setMentorInput(e.target.value)}
               placeholder="Ask anything — paste a URL and I'll read it 🔗"
-              className="flex-1 bg-[#121021] border border-[#2A2443] rounded-2xl py-3 px-4 text-sm md:text-base text-[#FAF9FD] focus:outline-none focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 font-medium placeholder:text-[#8E88AB]/60"
+              className="flex-1 bg-[#121021] border border-[#2A2443] rounded-2xl py-3 px-4 text-sm md:text-base text-[#FAF9FD] focus:outline-none focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10 font-medium placeholder:text-[#8E88AB]/60"
             />
             <button
               type="submit"
               disabled={mentorLoading || !mentorInput.trim()}
-              className="w-12 h-12 flex items-center justify-center shrink-0 bg-[#6366F1] hover:bg-[#5053e3] text-white rounded-2xl shadow-md transition disabled:opacity-40 hover:-translate-y-0.5 cursor-pointer"
+              className="w-12 h-12 flex items-center justify-center shrink-0 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-2xl shadow-md transition disabled:opacity-40 hover:-translate-y-0.5 cursor-pointer"
             >
               <Send className="w-5 h-5" />
             </button>

@@ -98,7 +98,7 @@ export function DocumentUpload({ onExtracted, onClear, hasDocument }: DocumentUp
         </div>
         <div className="flex flex-wrap gap-2 mt-1">
           {uploadedFiles.map((f, i) => (
-            <div key={i} className="flex items-center gap-1.5 bg-[#1A172E] border border-indigo-500/20 px-3 py-1.5 rounded-full text-xs text-indigo-200">
+            <div key={i} className="flex items-center gap-1.5 bg-[#1A172E] border border-[#4F46E5]/20 px-3 py-1.5 rounded-full text-xs text-indigo-200">
               <FileText className="w-3 h-3 text-indigo-400" />
               <span className="truncate max-w-[150px]">{f.name}</span>
             </div>
@@ -116,8 +116,8 @@ export function DocumentUpload({ onExtracted, onClear, hasDocument }: DocumentUp
       onClick={() => !isUploading && fileInputRef.current?.click()}
       className={`relative p-6 mt-4 flex flex-col items-center justify-center border-2 border-dashed rounded-2xl cursor-pointer transition-all ${
         isDragging 
-          ? "border-indigo-500 bg-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.2)]" 
-          : "border-[#2A2443] bg-[#1A172E] hover:border-indigo-500/50 hover:bg-[#1E1B36]"
+          ? "border-[#4F46E5] bg-[#4F46E5]/10 shadow-[0_0_15px_rgba(99,102,241,0.2)]" 
+          : "border-[#2A2443] bg-[#1A172E] hover:border-[#4F46E5]/50 hover:bg-[#1E1B36]"
       }`}
     >
       <input 

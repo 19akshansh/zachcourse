@@ -184,6 +184,8 @@ export default function App() {
     const authPaths = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password", "/verify-email"];
     const isAuthPath = authPaths.some(p => path.startsWith(p));
     
+    if (path.startsWith("/api")) return null;
+    
     if (!sessionData?.user) {
       // Not logged in — redirect to sign-in if on protected route
       if (!isAuthPath && path !== "/") {
@@ -438,6 +440,7 @@ export default function App() {
         if (item.type === 'progress') {
           try {
             await trpc.updateCourseProgress.mutate(item.data);
+            trpc.getUserProgress.query().then(data => { if (data) setUserDbProgress(data); }).catch(() => {});
             toast.success("Offline progress synced successfully! ☁️");
           } catch (err) {
             console.error("Failed to sync item", item, err);
@@ -474,7 +477,7 @@ export default function App() {
   if (isSessionPending) {
     return (
       <main className="min-h-screen bg-[#0F0D19] flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 text-[#6366F1] animate-spin mb-4" />
+        <Loader2 className="w-10 h-10 text-[#4F46E5] animate-spin mb-4" />
         <p className="text-[#A59ECA] font-medium">Warming up your space...</p>
       </main>
     );
@@ -488,11 +491,12 @@ export default function App() {
   }
 
   if (!sessionData?.user) {
+    if (path.startsWith("/api")) return null;
     if (path === "/sign-in") return <SignInPage />;
-    if (path === "/sign-up") return <SignUpPage />;
-    if (path === "/forgot-password") return <ForgotPasswordPage />;
+    if (path.startsWith("/sign-up")) return <SignUpPage />;
+    if (path.startsWith("/forgot-password")) return <ForgotPasswordPage />;
     if (path.startsWith("/reset-password")) return <ResetPasswordPage />;
-    if (path === "/verify-email") return <VerifyEmailPage />;
+    if (path.startsWith("/verify-email")) return <VerifyEmailPage />;
     return <LandingPage />;
   }
 
@@ -843,6 +847,7 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
           courseId: activeCourseId,
           completedLessons: updatedLessons,
         });
+        trpc.getUserProgress.query().then(data => { if (data) setUserDbProgress(data); }).catch(() => {});
 
         // Check if module was just completed
         if (currentRoadmap && updatedLessons.includes(lessonId)) {
@@ -1052,6 +1057,7 @@ ${lessonContent}`;
             completedQuizzes: updatedScores,
             completedLessons: updatedLessons,
           });
+          trpc.getUserProgress.query().then(data => { if (data) setUserDbProgress(data); }).catch(() => {});
 
           const analysis = await trpc.analyzeQuizPerformance.mutate({
             courseId: activeCourseId,
@@ -1317,7 +1323,7 @@ ${lessonContent}`;
   if (isSessionPending) {
     return (
       <main className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-center text-[#FAF9FD] p-6 text-center">
-        <Loader2 className="w-12 h-12 text-[#6366F1] animate-spin mb-4" />
+        <Loader2 className="w-12 h-12 text-[#4F46E5] animate-spin mb-4" />
         <h2 className="text-xl font-bold tracking-tight">Syncing with companion core...</h2>
         <p className="text-sm text-[#8E88AB] mt-1 font-medium">Please wait while we establish your secure study connection.</p>
       </main>
@@ -1326,12 +1332,13 @@ ${lessonContent}`;
 
   // Render public-facing auth pages
   const getPublicPage = () => {
-    if (path === "/verify-email") return <VerifyEmailPage />;
+    if (path.startsWith("/api")) return null;
+    if (path.startsWith("/verify-email")) return <VerifyEmailPage />;
     if (path.startsWith("/reset-password")) return <ResetPasswordPage />;
-    if (path === "/forgot-password") return <ForgotPasswordPage />;
+    if (path.startsWith("/forgot-password")) return <ForgotPasswordPage />;
     if (!sessionData?.user) {
       if (path === "/") return <LandingPage />;
-      if (path === "/sign-up") return <SignUpPage />;
+      if (path.startsWith("/sign-up")) return <SignUpPage />;
       return <SignInPage />;
     }
     return null;
@@ -1415,7 +1422,7 @@ ${lessonContent}`;
             </p>
           </div>
           
-          <div className="p-4 md:p-6 lg:p-8">
+          <div className="p-4 md:p-6 lg:p-8 flex flex-col min-h-[calc(100vh-120px)]">
             
             {/* TAB: TEACHER */}
             {activeTab === "teacher" && (
@@ -1429,7 +1436,37 @@ ${lessonContent}`;
 
             {/* TAB: COHORTS */}
             {activeTab === "cohorts" && (
-              <CohortsDashboard />
+              <CohortsDashboard 
+                onNavigateToCourse={(courseId) => {
+                  setIsLoadingCourses(true);
+                  trpc.getCourses.query()
+                    .then((data: any) => {
+                      setCourses(data);
+                      setIsLoadingCourses(false);
+                      setActiveCourseId(courseId);
+                      setActiveTab("roadmap");
+                    })
+                    .catch((err) => {
+                      console.error(err);
+                      setIsLoadingCourses(false);
+                      setActiveCourseId(courseId);
+                      setActiveTab("roadmap");
+                    });
+                }}
+                onNavigateToRoadmap={(roadmapId) => {
+                  trpc.getVisualRoadmaps.query()
+                    .then((data: any) => {
+                      setVRoadmaps(data);
+                      setActiveVRoadmapId(roadmapId);
+                      setActiveTab("visual-roadmaps");
+                    })
+                    .catch((err) => {
+                      console.error(err);
+                      setActiveVRoadmapId(roadmapId);
+                      setActiveTab("visual-roadmaps");
+                    });
+                }}
+              />
             )}
 
             {/* TAB 0: VISUAL ROADMAPS */}
@@ -1488,6 +1525,7 @@ ${lessonContent}`;
                       id: roadmapId,
                       completedNodeIds: updated,
                     });
+                    trpc.getUserProgress.query().then(data => { if (data) setUserDbProgress(data); }).catch(() => {});
                   } catch (err) {
                     setVRoadmaps(prev => prev.map(r => r.id === roadmapId ? { ...r, completedNodeIds: current } : r));
                     toast.error("Failed to save progress");
@@ -1527,7 +1565,7 @@ ${lessonContent}`;
                         placeholder="e.g. Python Programming, UI Design, Photography..."
                         value={topicInput}
                         onChange={(e) => setTopicInput(e.target.value)}
-                        className="w-full bg-[#121021] border border-[#2A2443] rounded-2xl py-3.5 pl-12 pr-4 text-base text-[#FAF9FD] placeholder:text-[#8E88AB]/60 focus:outline-none focus:border-[#6366F1] focus:ring-4 focus:ring-[#6366F1]/10 transition-all font-medium"
+                        className="w-full bg-[#121021] border border-[#2A2443] rounded-2xl py-3.5 pl-12 pr-4 text-base text-[#FAF9FD] placeholder:text-[#8E88AB]/60 focus:outline-none focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10 transition-all font-medium"
                         required
                       />
                     </div>
@@ -1540,7 +1578,7 @@ ${lessonContent}`;
                       <button
                         type="button"
                         onClick={() => handlePillClick("Python")}
-                        className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#6366F1]/15 hover:border-[#6366F1] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
+                        className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#4338CA]/15 hover:border-[#4F46E5] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
                       >
                         <span>🐍</span>
                         <span>Python</span>
@@ -1548,7 +1586,7 @@ ${lessonContent}`;
                       <button
                         type="button"
                         onClick={() => handlePillClick("AI Basics")}
-                        className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#6366F1]/15 hover:border-[#6366F1] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
+                        className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#4338CA]/15 hover:border-[#4F46E5] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
                       >
                         <span>🤖</span>
                         <span>AI Basics</span>
@@ -1556,7 +1594,7 @@ ${lessonContent}`;
                       <button
                         type="button"
                         onClick={() => handlePillClick("Data Science")}
-                        className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#6366F1]/15 hover:border-[#6366F1] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
+                        className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#4338CA]/15 hover:border-[#4F46E5] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
                       >
                         <span>📊</span>
                         <span>Data Science</span>
@@ -1564,7 +1602,7 @@ ${lessonContent}`;
                       <button
                         type="button"
                         onClick={() => handlePillClick("UI Design")}
-                        className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#6366F1]/15 hover:border-[#6366F1] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
+                        className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#4338CA]/15 hover:border-[#4F46E5] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
                       >
                         <span>🎨</span>
                         <span>UI Design</span>
@@ -1597,7 +1635,7 @@ ${lessonContent}`;
                             placeholder="https://your-syllabus-link.com"
                             value={sourceUrlInput}
                             onChange={(e) => setSourceUrlInput(e.target.value)}
-                            className="w-full bg-[#1A172E] border border-[#2A2443] rounded-xl py-2.5 px-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/50 focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10 transition-all font-medium"
+                            className="w-full bg-[#1A172E] border border-[#2A2443] rounded-xl py-2.5 px-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/50 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
                           />
                         </div>
                         <div>
@@ -1609,7 +1647,7 @@ ${lessonContent}`;
                             placeholder="Paste syllabus key points..."
                             value={textContentInput}
                             onChange={(e) => setTextContentInput(e.target.value)}
-                            className="w-full bg-[#1A172E] border border-[#2A2443] rounded-xl py-2.5 px-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/50 focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/10 transition-all font-medium"
+                            className="w-full bg-[#1A172E] border border-[#2A2443] rounded-xl py-2.5 px-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/50 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
                           />
                         </div>
                       </div>
@@ -1631,7 +1669,7 @@ ${lessonContent}`;
                   <button
                     type="submit"
                     disabled={generatingRoadmap}
-                    className="w-full bg-[#6366F1] hover:bg-[#5053e3] active:scale-[0.985] text-white font-bold rounded-2xl py-4 px-6 text-base md:text-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/45 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none"
+                    className="w-full bg-[#4F46E5] hover:bg-[#4338CA] active:scale-[0.985] text-white font-bold rounded-2xl py-4 px-6 text-base md:text-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#4F46E5]/20 hover:shadow-indigo-600/45 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none"
                     id="btn-generate-roadmap"
                   >
                     {generatingRoadmap ? (
@@ -1656,7 +1694,9 @@ ${lessonContent}`;
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">🔥</span>
-                    <span className="text-base font-bold text-amber-500">3-day study streak!</span>
+                    <span className="text-base font-bold text-amber-500">
+                      {(userDbProgress?.streakDays || 1) === 1 ? "1-day study streak!" : `${userDbProgress?.streakDays || 1}-day study streak!`}
+                    </span>
                   </div>
                   <h3 className="text-lg font-bold text-[#FAF9FD]">You're doing fantastic!</h3>
                   <p className="text-sm text-[#8E88AB] mt-1">Keep it up! Completed {completedLessonsCount} of {totalLessons} topics so far.</p>
@@ -1671,7 +1711,7 @@ ${lessonContent}`;
                 <div className="border-b border-[#2A2443] pb-5 mb-5 flex flex-col md:flex-row md:justify-between items-start gap-4 md:gap-0">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs bg-indigo-950/40 text-[#818CF8] font-bold px-3 py-1 rounded-full border border-indigo-500/30">
+                      <span className="text-xs bg-indigo-950/40 text-[#818CF8] font-bold px-3 py-1 rounded-full border border-[#4F46E5]/30">
                         {currentRoadmap.difficulty}
                       </span>
                       <span className="text-sm text-[#818CF8] font-bold">
@@ -1728,7 +1768,7 @@ ${lessonContent}`;
                               onClick={() => handleSelectLesson(mod.title, lesson)}
                               className={`group flex items-center justify-between p-3.5 rounded-2xl border text-left cursor-pointer transition-all ${
                                 isSelected 
-                                  ? "bg-indigo-950/40 border-indigo-500/30 shadow-md" 
+                                  ? "bg-indigo-950/40 border-[#4F46E5]/30 shadow-md" 
                                   : "bg-[#121021]/40 hover:bg-[#121021]/80 border-[#2A2443]/40"
                               }`}
                               id={`lesson-node-${lesson.id}`}
@@ -1817,8 +1857,8 @@ ${lessonContent}`;
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#2A2443] pb-5 gap-4">
                     <div>
                       <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                        <span className="text-xs font-bold text-[#818CF8] uppercase tracking-wider bg-indigo-950/40 border border-indigo-500/20 px-2.5 py-1 rounded-full">{lessonModuleTitle}</span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                        <span className="text-xs font-bold text-[#818CF8] uppercase tracking-wider bg-indigo-950/40 border border-[#4F46E5]/20 px-2.5 py-1 rounded-full">{lessonModuleTitle}</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]"></span>
                         <span className="text-sm font-medium text-[#8E88AB]">{selectedLesson.duration} study time</span>
                       </div>
                       <h2 className="text-2xl font-bold text-[#FAF9FD] tracking-tight">{selectedLesson.title}</h2>
@@ -1829,7 +1869,7 @@ ${lessonContent}`;
                         onClick={() => toggleCompleteLesson(selectedLesson.id)}
                         className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl border text-sm font-semibold cursor-pointer transition w-full sm:w-auto ${
                           completedLessons.includes(selectedLesson.id)
-                            ? "bg-indigo-950/40 border-indigo-500/30 text-[#818CF8]"
+                            ? "bg-indigo-950/40 border-[#4F46E5]/30 text-[#818CF8]"
                             : "bg-[#121021] border-[#2A2443] text-[#CECADF] hover:bg-[#151227]"
                         }`}
                         id="btn-toggle-complete-lesson"
@@ -1849,7 +1889,7 @@ ${lessonContent}`;
 
                       <button
                         onClick={handleStartQuiz}
-                        className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-[#6366F1] hover:bg-[#5053e3] text-white font-bold rounded-2xl text-sm transition active:scale-[0.98] shadow-md shadow-indigo-600/10 cursor-pointer hover:-translate-y-0.5 w-full sm:w-auto"
+                        className="flex items-center justify-center gap-1.5 px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold rounded-2xl text-sm transition active:scale-[0.98] shadow-md shadow-[#4F46E5]/10 cursor-pointer hover:-translate-y-0.5 w-full sm:w-auto"
                         id="btn-take-quiz"
                       >
                         <Award className="w-4.5 h-4.5" />
@@ -1883,7 +1923,7 @@ ${lessonContent}`;
                             {selectedLesson.concepts.map((concept, idx) => (
                               <span 
                                 key={idx}
-                                className="text-sm bg-indigo-950/40 text-[#818CF8] border border-indigo-500/20 px-3 py-1 rounded-full font-semibold"
+                                className="text-sm bg-indigo-950/40 text-[#818CF8] border border-[#4F46E5]/20 px-3 py-1 rounded-full font-semibold"
                               >
                                 {concept}
                               </span>
@@ -2162,11 +2202,12 @@ ${lessonContent}`;
             completedQuizzes={completedQuizzes}
             completedLessons={completedLessons}
             currentRoadmap={currentRoadmap}
+            streakDays={userDbProgress?.streakDays || 1}
           />
         )}
 
         {/* FOOTER - inside scrollable main container */}
-        <footer className="border-t border-[#2A2443]/30 bg-[#141223]/30 py-6 px-4 text-center mt-12 shrink-0">
+        <footer className="border-t border-[#2A2443]/30 bg-[#141223]/30 py-6 px-4 text-center mt-auto shrink-0">
           <p className="text-xs text-[#8E88AB] font-medium">
             ZachCourse Companion Core • Powered by Warm Generative AI Guidance
           </p>

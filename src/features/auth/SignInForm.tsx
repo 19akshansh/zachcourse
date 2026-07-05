@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { authClient } from "../../lib/auth-client";
 import { navigate } from "../../lib/router";
@@ -11,6 +11,22 @@ export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [globalError, setGlobalError] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("error") === "oauth_failed") {
+        toast.error("OAuth authentication failed. Please try again or use another login method.", {
+          id: "oauth-fail-toast"
+        });
+        setGlobalError("OAuth authentication failed. An account with this email may already exist under a different login method, or the connection was interrupted.");
+        // Clean up url query param
+        const url = new URL(window.location.href);
+        url.searchParams.delete("error");
+        window.history.replaceState({}, "", url.pathname + url.search);
+      }
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -92,6 +108,7 @@ export default function SignInForm() {
       const res = await authClient.signIn.social({
         provider,
         callbackURL: "/dashboard",
+        errorCallbackURL: "/sign-in?error=oauth_failed",
       });
       if (res?.error) {
         toast.error(res.error.message || `Failed to authenticate with ${provider}.`);
@@ -109,7 +126,7 @@ export default function SignInForm() {
     <div className="w-full max-w-md bg-[#111118] border border-[#1E1E2E] rounded-3xl p-8 shadow-2xl relative overflow-hidden"
          style={{ boxShadow: "0 0 40px rgba(99,102,241,0.15)" }}>
       {/* Glow Effect Accent */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#6366F1]/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#4F46E5]/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="text-center mb-8 relative">
         <span className="text-4xl select-none" id="brand-logo">🎓</span>
@@ -139,7 +156,7 @@ export default function SignInForm() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 transition-all font-medium"
+              className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
             />
           </div>
         </div>
@@ -152,7 +169,7 @@ export default function SignInForm() {
             </label>
             <a
               href="/forgot-password"
-              className="text-xs text-[#818CF8] hover:text-[#6366F1] font-semibold transition"
+              className="text-xs text-[#818CF8] hover:text-[#4F46E5] font-semibold transition"
             >
               Forgot password?
             </a>
@@ -167,7 +184,7 @@ export default function SignInForm() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-10 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 transition-all font-medium"
+              className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-10 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
             />
             <button
               type="button"
@@ -183,7 +200,7 @@ export default function SignInForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-[#6366F1] to-[#4F46E5] hover:from-[#5053e3] hover:to-[#4338CA] active:scale-[0.985] text-white font-bold rounded-xl py-3 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-indigo-600/25 disabled:opacity-50 mt-2"
+          className="w-full bg-gradient-to-r from-[#4F46E5] to-[#4338CA] hover:from-[#4338CA] hover:to-[#4338CA] active:scale-[0.985] text-white font-bold rounded-xl py-3 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-indigo-600/25 disabled:opacity-50 mt-2"
         >
           {loading ? (
             <>
@@ -214,7 +231,7 @@ export default function SignInForm() {
           type="button"
           onClick={() => handleOAuthSignIn("google")}
           disabled={loading}
-          className="flex items-center justify-center gap-2 bg-[#1A1A2E] hover:bg-[#20203a] border border-[#1E1E2E] rounded-xl py-2.5 px-3.5 text-xs font-bold text-[#FAF9FD] hover:border-[#6366F1]/50 cursor-pointer transition disabled:opacity-50"
+          className="flex items-center justify-center gap-2 bg-[#1A1A2E] hover:bg-[#20203a] border border-[#1E1E2E] rounded-xl py-2.5 px-3.5 text-xs font-bold text-[#FAF9FD] hover:border-[#4F46E5]/50 cursor-pointer transition disabled:opacity-50"
         >
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -228,7 +245,7 @@ export default function SignInForm() {
           type="button"
           onClick={() => handleOAuthSignIn("github")}
           disabled={loading}
-          className="flex items-center justify-center gap-2 bg-[#1A1A2E] hover:bg-[#20203a] border border-[#1E1E2E] rounded-xl py-2.5 px-3.5 text-xs font-bold text-[#FAF9FD] hover:border-[#6366F1]/50 cursor-pointer transition disabled:opacity-50"
+          className="flex items-center justify-center gap-2 bg-[#1A1A2E] hover:bg-[#20203a] border border-[#1E1E2E] rounded-xl py-2.5 px-3.5 text-xs font-bold text-[#FAF9FD] hover:border-[#4F46E5]/50 cursor-pointer transition disabled:opacity-50"
         >
           <svg className="w-4 h-4 shrink-0 fill-current" viewBox="0 0 24 24">
             <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
@@ -241,13 +258,13 @@ export default function SignInForm() {
       <div className="mt-8 text-center relative space-y-2">
         <p className="text-sm text-[#8E88AB] font-medium">
           Don't have an account?{" "}
-          <a href="/sign-up" className="text-[#818CF8] hover:text-[#6366F1] font-bold transition">
+          <a href="/sign-up" className="text-[#818CF8] hover:text-[#4F46E5] font-bold transition">
             Sign up
           </a>
         </p>
         <p className="text-sm text-[#8E88AB] font-medium">
           Forgot your password?{" "}
-          <a href="/forgot-password" className="text-[#818CF8] hover:text-[#6366F1] font-bold transition">
+          <a href="/forgot-password" className="text-[#818CF8] hover:text-[#4F46E5] font-bold transition">
             Reset it here
           </a>
         </p>

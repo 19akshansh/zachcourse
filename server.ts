@@ -110,8 +110,20 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
   crossOriginOpenerPolicy: false,
 }));
-app.use(express.json({ limit: "2mb" }));
-app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+// Custom body parsers that do not intercept Better Auth routes
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/auth") && !req.path.endsWith("/sign-up/email")) {
+    return next();
+  }
+  express.json({ limit: "2mb" })(req, res, next);
+});
+
+app.use((req, res, next) => {
+  if (req.path.startsWith("/api/auth")) {
+    return next();
+  }
+  express.urlencoded({ extended: true, limit: "2mb" })(req, res, next);
+});
 
 const aiRateLimit = rateLimit({
   windowMs: 60 * 1000, // 1 minute

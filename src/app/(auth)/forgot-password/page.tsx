@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md bg-[#111118] border border-[#1E1E2E] rounded-3xl p-8 shadow-2xl relative overflow-hidden"
            style={{ boxShadow: "0 0 40px rgba(99,102,241,0.15)" }}>
         {/* Glow Effect Accent */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#6366F1]/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#4F46E5]/10 rounded-full blur-3xl pointer-events-none"></div>
 
         {!success ? (
           <div>
@@ -100,7 +100,7 @@ export default function ForgotPasswordPage() {
                   <input
                     type="email"
                     placeholder="you@example.com"
-                    className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#6366F1] focus:ring-2 focus:ring-[#6366F1]/20 transition-all font-medium"
+                    className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
                     {...register("email")}
                   />
                 </div>
@@ -114,7 +114,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-[#6366F1] to-[#4F46E5] hover:from-[#5053e3] hover:to-[#4338CA] active:scale-[0.985] text-white font-bold rounded-xl py-3 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-indigo-600/25 disabled:opacity-50 mt-1"
+                className="w-full bg-gradient-to-r from-[#4F46E5] to-[#4338CA] hover:from-[#4338CA] hover:to-[#4338CA] active:scale-[0.985] text-white font-bold rounded-xl py-3 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg hover:shadow-indigo-600/25 disabled:opacity-50 mt-1"
               >
                 {loading ? (
                   <>
@@ -138,7 +138,7 @@ export default function ForgotPasswordPage() {
               </div>
               <p className="text-xs text-[#8E88AB] font-medium">
                 New here?{" "}
-                <a href="/sign-up" className="text-[#818CF8] hover:text-[#6366F1] font-bold transition">
+                <a href="/sign-up" className="text-[#818CF8] hover:text-[#4F46E5] font-bold transition">
                   Create an account
                 </a>
               </p>
@@ -146,7 +146,7 @@ export default function ForgotPasswordPage() {
           </div>
         ) : (
           <div className="text-center py-6 relative">
-            <div className="w-16 h-16 bg-[#6366F1]/10 border border-[#6366F1]/30 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-indigo-500/15">
+            <div className="w-16 h-16 bg-[#4F46E5]/10 border border-[#4F46E5]/30 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#4F46E5]/15">
               <span className="text-3xl select-none">✉️</span>
             </div>
             <h2 className="text-xl font-extrabold text-[#FAF9FD] tracking-tight mb-3">Check your inbox</h2>
@@ -158,7 +158,7 @@ export default function ForgotPasswordPage() {
             </p>
             <button
               onClick={() => navigate("/sign-in")}
-              className="inline-flex items-center gap-1.5 text-sm font-bold text-[#818CF8] hover:text-[#6366F1] transition"
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-[#818CF8] hover:text-[#4F46E5] transition"
             >
               <ArrowLeft className="w-4 h-4" /> Return to Sign In
             </button>

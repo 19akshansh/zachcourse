@@ -8,6 +8,7 @@ interface ProgressDashboardProps {
   completedQuizzes: Record<string, number>;
   completedLessons: string[];
   currentRoadmap: any;
+  streakDays?: number;
 }
 
 export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
@@ -17,6 +18,7 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
   completedQuizzes,
   completedLessons,
   currentRoadmap,
+  streakDays = 1,
 }) => {
   // Render SVG circular progress inside the component to keep it modular
   const renderProgressRing = (pct: number, size: number = 84, strokeWidth: number = 7) => {
@@ -80,7 +82,9 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
           <div className="flex items-center gap-3">
             <span className="text-3xl">🔥</span>
             <div className="text-left">
-              <p className="text-base font-bold text-[#FAF9FD]">3-Day study Streak!</p>
+              <p className="text-base font-bold text-[#FAF9FD]">
+                {streakDays === 1 ? "1-Day study Streak!" : `${streakDays}-Day study Streak!`}
+              </p>
               <p className="text-xs text-[#8E88AB] font-medium">Daily practice makes habits stick.</p>
             </div>
           </div>
@@ -97,7 +101,7 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
 
         <div className="space-y-4">
           {/* Badge 1: New Learner */}
-          <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-indigo-950/20 rounded-2xl border border-indigo-500/20">
+          <div className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 bg-indigo-950/20 rounded-2xl border border-[#4F46E5]/20">
             <span className="text-3xl select-none mt-1 shrink-0">🌱</span>
             <div className="flex-1 min-w-0">
               <h4 className="text-base font-bold text-[#FAF9FD]">Curious Explorer</h4>
@@ -140,7 +144,6 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
             ) : (
               <div className="grid grid-cols-1 gap-2">
                 {completedLessons.map((id) => {
-                  // Find title
                   const allLessons = currentRoadmap?.modules?.flatMap((m: any) => m.lessons) || [];
                   const foundTitle = allLessons.find((l: any) => l.id === id)?.title || "Custom lesson node";
 
@@ -154,7 +157,6 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
               </div>
             )}
           </div>
-
         </div>
       </div>
     </div>

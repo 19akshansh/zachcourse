@@ -72,12 +72,12 @@ export default function VerifyEmailPage() {
       <div className="w-full max-w-md bg-[#111118] border border-[#1E1E2E] rounded-3xl p-8 shadow-2xl relative overflow-hidden"
            style={{ boxShadow: "0 0 40px rgba(99,102,241,0.15)" }}>
         {/* Glow Effect Accent */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#6366F1]/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-[#4F46E5]/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="text-center py-6 relative">
           {status === "loading" && (
             <div className="flex flex-col items-center">
-              <Loader2 className="w-12 h-12 text-[#6366F1] animate-spin mb-5" />
+              <Loader2 className="w-12 h-12 text-[#4F46E5] animate-spin mb-5" />
               <h2 className="text-xl font-extrabold text-[#FAF9FD] tracking-tight mb-2">Verifying Email</h2>
               <p className="text-sm text-[#8E88AB] font-medium">Securing and confirming your companion credentials...</p>
             </div>
@@ -107,7 +107,7 @@ export default function VerifyEmailPage() {
               
               <button
                 onClick={() => navigate("/sign-in")}
-                className="bg-gradient-to-r from-[#6366F1] to-[#4F46E5] hover:from-[#5053e3] hover:to-[#4338CA] active:scale-[0.985] text-white font-bold rounded-xl py-2.5 px-6 text-xs transition shadow-lg cursor-pointer"
+                className="bg-gradient-to-r from-[#4F46E5] to-[#4338CA] hover:from-[#4338CA] hover:to-[#4338CA] active:scale-[0.985] text-white font-bold rounded-xl py-2.5 px-6 text-xs transition shadow-lg cursor-pointer"
               >
                 Go to Sign In
               </button>

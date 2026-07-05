@@ -101,7 +101,7 @@ export default function RoadmapGraph({
                   nodeClasses += "bg-[#10B981] text-white border-2 border-[#10B981] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]";
                   icon = <Check className="w-6 h-6" />;
                 } else if (status.isAvailable || isSelected) {
-                  nodeClasses += "bg-[#1A172E] text-white border-2 border-[#6366F1] hover:bg-[#6366F1] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]";
+                  nodeClasses += "bg-[#1A172E] text-white border-2 border-[#4F46E5] hover:bg-[#4338CA] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]";
                   icon = <Play className="w-5 h-5 ml-1" />;
                 } else {
                   nodeClasses += "bg-[#0F0D19] text-[#8E88AB] border-2 border-[#2A2443] cursor-not-allowed";
@@ -109,7 +109,7 @@ export default function RoadmapGraph({
                 }
 
                 if (isSelected) {
-                  nodeClasses += " ring-4 ring-[#6366F1]/30 ring-offset-2 ring-offset-[#111118] scale-110";
+                  nodeClasses += " ring-4 ring-[#4F46E5]/30 ring-offset-2 ring-offset-[#111118] scale-110";
                 }
 
                 return (

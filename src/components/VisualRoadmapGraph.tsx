@@ -34,7 +34,7 @@ const StartNode = ({ data }: any) => (
 const ModuleNode = ({ data }: any) => (
   <div className="w-[220px] bg-[#1A172E] border border-[#2A2443] rounded-xl overflow-hidden shadow-lg">
     <Handle type="target" position={Position.Top} className="opacity-0" />
-    <div className="bg-[#6366F1] px-4 py-2 flex items-center justify-between">
+    <div className="bg-[#4F46E5] px-4 py-2 flex items-center justify-between">
       <span className="text-xs font-bold text-white uppercase tracking-wider">Module {data.order}</span>
       <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{data.lessonCount || 0} Lessons</span>
     </div>
@@ -48,7 +48,7 @@ const ModuleNode = ({ data }: any) => (
 const LessonNode = ({ data }: any) => {
   const isCompleted = data.isCompleted;
   return (
-    <div className={`w-[180px] bg-[#111118] border-2 ${isCompleted ? 'border-[#10B981]' : data.isActive ? 'border-[#6366F1]' : 'border-[#2A2443]'} rounded-xl p-4 shadow-xl transition-all cursor-pointer hover:border-[#6366F1]`}>
+    <div className={`w-[180px] bg-[#111118] border-2 ${isCompleted ? 'border-[#10B981]' : data.isActive ? 'border-[#4F46E5]' : 'border-[#2A2443]'} rounded-xl p-4 shadow-xl transition-all cursor-pointer hover:border-[#4F46E5]`}>
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <div className="flex justify-between items-start mb-2">
         <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${data.difficulty === 'Beginner' ? 'bg-emerald-500/10 text-emerald-400' : data.difficulty === 'Intermediate' ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'}`}>
@@ -206,7 +206,7 @@ function VisualRoadmapGraphInner({
       let animated = false;
 
       if (e.type === 'required' || e.type === 'parallel') {
-        stroke = '#6366F1'; // Indigo
+        stroke = '#4F46E5'; // Indigo
         strokeDasharray = '0'; // Solid
       }
 
@@ -310,7 +310,7 @@ function VisualRoadmapGraphInner({
             if (n.type === 'end') return '#EAB308';
             if (n.type === 'project') return '#F97316';
             if (n.type === 'milestone') return '#F59E0B';
-            if (n.type === 'module') return '#6366F1';
+            if (n.type === 'module') return '#4F46E5';
             if (completedNodeIds.includes(n.id)) return '#10B981';
             return '#111118';
           }}
@@ -320,7 +320,7 @@ function VisualRoadmapGraphInner({
           }}
           nodeStrokeWidth={3}
           maskColor="rgba(15, 13, 25, 0.75)"
-          maskStrokeColor="#6366F1"
+          maskStrokeColor="#4F46E5"
           maskStrokeWidth={2}
           pannable={true}
           zoomable={true}
@@ -422,7 +422,7 @@ function VisualRoadmapGraphInner({
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3">Key Concepts</h4>
                   <div className="flex flex-wrap gap-2">
                     {selectedNode.concepts.map((concept: string, i: number) => (
-                      <span key={i} className="bg-[#6366F1]/10 text-[#6366F1] px-2 py-1 rounded border border-[#6366F1]/20 text-xs font-medium">
+                      <span key={i} className="bg-[#4F46E5]/10 text-[#4F46E5] px-2 py-1 rounded border border-[#4F46E5]/20 text-xs font-medium">
                         {concept}
                       </span>
                     ))}
@@ -440,12 +440,12 @@ function VisualRoadmapGraphInner({
                         href={res.url || "#"} 
                         target="_blank" 
                         rel="noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg bg-[#1A172E] border border-[#2A2443] hover:border-[#6366F1] transition-colors group"
+                        className="flex items-center gap-3 p-3 rounded-lg bg-[#1A172E] border border-[#2A2443] hover:border-[#4F46E5] transition-colors group"
                       >
                         <span className="text-lg">
                           {res.type === 'video' ? '📹' : res.type === 'article' ? '📄' : res.type === 'doc' ? '📚' : '💻'}
                         </span>
-                        <span className="text-sm font-medium text-[#FAF9FD] group-hover:text-[#6366F1] transition-colors">{res.title}</span>
+                        <span className="text-sm font-medium text-[#FAF9FD] group-hover:text-[#4F46E5] transition-colors">{res.title}</span>
                       </a>
                     ))}
                   </div>

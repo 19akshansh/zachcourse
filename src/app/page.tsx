@@ -80,15 +80,45 @@ export default function LandingPage() {
       emoji: "📚",
       title: "Multi-Course Support",
       description: "Organize your entire learning journey. Switch between multiple courses without losing your progress."
+    },
+    {
+      emoji: "🕸️",
+      title: "Interactive Visual Graphs",
+      description: "Explore your curriculum as a node-link visual graph with custom-rendered side-paths and parallel modules powered by React Flow."
+    },
+    {
+      emoji: "🛠️",
+      title: "Hands-On Module Projects",
+      description: "Apply your knowledge to practical, beginner-friendly builds generated dynamically based on your level and weekly learning progress."
+    },
+    {
+      emoji: "👥",
+      title: "Cohorts & Classrooms",
+      description: "Create shared study groups, preview and clone course curricula, sync leaderboards, and monitor active classroom student rosters."
+    },
+    {
+      emoji: "🛡️",
+      title: "Self-Correcting QA Loops",
+      description: "Critic and Judge agents synchronously evaluate lessons and roadmap ordering for optimal accuracy and clarity before delivery."
+    },
+    {
+      emoji: "🔒",
+      title: "Guarded Document Pipeline",
+      description: "Deeply secure file ingest scans for prompt injections and malicious patterns while completely blocking server-side SSRF risks."
+    },
+    {
+      emoji: "🔌",
+      title: "MCP Tool Server",
+      description: "Standalone Model Context Protocol server exposing robust Search and Fetch capabilities to cursor, claude desktop, and external agents."
     }
   ];
 
   return (
-    <div className="relative min-h-screen bg-[#0A0A0F] text-[#F8FAFC] font-sans antialiased selection:bg-[#6366F1]/30 selection:text-white overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#0A0A0F] text-[#F8FAFC] font-sans antialiased selection:bg-[#4F46E5]/30 selection:text-white overflow-x-hidden">
       
       {/* BACKGROUND ORBS */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-[#6366F1]/10 to-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse"></div>
-      <div className="absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-bl from-[#8B5CF6]/10 to-[#6366F1]/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-gradient-to-tr from-[#4F46E5]/10 to-[#8B5CF6]/5 rounded-full blur-3xl pointer-events-none -z-10 animate-pulse"></div>
+      <div className="absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-gradient-to-bl from-[#8B5CF6]/10 to-[#4F46E5]/5 rounded-full blur-3xl pointer-events-none -z-10"></div>
       <div className="absolute bottom-1/4 left-1/3 w-[450px] h-[450px] bg-gradient-to-r from-indigo-900/10 to-violet-950/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
 
       {/* NAVBAR */}
@@ -96,7 +126,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate("/")}>
             <span className="text-3xl select-none" id="nav-logo">🎓</span>
-            <span className="font-extrabold text-2xl tracking-tight text-[#F8FAFC] hover:text-[#6366F1] transition">
+            <span className="font-extrabold text-2xl tracking-tight text-[#F8FAFC] hover:text-[#4F46E5] transition">
               ZachCourse
             </span>
           </div>
@@ -110,7 +140,7 @@ export default function LandingPage() {
             </button>
             <button
               onClick={handleGetStarted}
-              className="text-xs sm:text-sm font-extrabold bg-[#6366F1] hover:bg-[#4F46E5] text-white px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl cursor-pointer transition shadow-lg shadow-indigo-600/20 active:scale-95 shrink-0"
+              className="text-xs sm:text-sm font-extrabold bg-[#4F46E5] hover:bg-[#4338CA] text-white px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl cursor-pointer transition shadow-lg shadow-[#4F46E5]/20 active:scale-95 shrink-0"
             >
               Get Started Free
             </button>
@@ -126,10 +156,10 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#6366F1]/30 bg-[#6366F1]/5 text-xs text-[#818CF8] font-bold tracking-wide uppercase mb-8"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#4F46E5]/30 bg-[#4F46E5]/5 text-xs text-[#818CF8] font-bold tracking-wide uppercase mb-8"
           style={{ boxShadow: "0 0 15px rgba(99,102,241,0.1)" }}
         >
-          <span className="flex h-2 w-2 rounded-full bg-[#6366F1] animate-ping" />
+          <span className="flex h-2 w-2 rounded-full bg-[#4F46E5] animate-ping" />
           <span>🎓 Built for serious learners</span>
         </motion.div>
 
@@ -141,7 +171,7 @@ export default function LandingPage() {
           className="text-4xl sm:text-5xl md:text-7xl font-black text-[#F8FAFC] tracking-tight leading-[1.1] max-w-4xl"
         >
           Turn Any Course Into a <br />
-          <span className="bg-gradient-to-r from-[#6366F1] via-[#8B5CF6] to-[#A78BFA] bg-clip-text text-transparent drop-shadow-sm">
+          <span className="bg-gradient-to-r from-[#4F46E5] via-[#8B5CF6] to-[#A78BFA] bg-clip-text text-transparent drop-shadow-sm">
             Personal Learning Roadmap
           </span>
         </motion.h1>
@@ -165,7 +195,7 @@ export default function LandingPage() {
         >
           <button
             onClick={handleGetStarted}
-            className="w-full sm:w-auto text-base font-extrabold bg-gradient-to-r from-[#6366F1] to-[#4F46E5] hover:from-[#5053e3] hover:to-[#4338CA] text-white px-8 py-4 rounded-2xl cursor-pointer transition-all shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:-translate-y-0.5 active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full sm:w-auto text-base font-extrabold bg-gradient-to-r from-[#4F46E5] to-[#4338CA] hover:from-[#4338CA] hover:to-[#4338CA] text-white px-8 py-4 rounded-2xl cursor-pointer transition-all shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:-translate-y-0.5 active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <span>Start Learning Free</span>
             <ArrowRight className="w-5 h-5" />
@@ -190,7 +220,7 @@ export default function LandingPage() {
           className="w-full max-w-5xl mt-16 relative"
         >
           {/* Subtle Glow Behind Mockup */}
-          <div className="absolute inset-0 bg-[#6366F1]/10 rounded-3xl blur-3xl -z-10 transform scale-95" />
+          <div className="absolute inset-0 bg-[#4F46E5]/10 rounded-3xl blur-3xl -z-10 transform scale-95" />
 
           {/* simulated dashboard container */}
           <div className="bg-[#111118] border border-[#1E1E2E] rounded-3xl p-5 md:p-8 text-left shadow-2xl relative overflow-hidden"
@@ -222,15 +252,15 @@ export default function LandingPage() {
                     <span className="text-[#10B981] font-bold">66% Done</span>
                   </div>
                   <div className="w-full bg-[#1E1E2E] h-2 rounded-full mt-1.5 overflow-hidden">
-                    <div className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] h-full w-[66%]" />
+                    <div className="bg-gradient-to-r from-[#4F46E5] to-[#8B5CF6] h-full w-[66%]" />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <p className="text-xs font-bold text-[#94A3B8]/50 uppercase tracking-wider pl-1">Course Milestones</p>
                   
-                  <div className="flex items-center gap-3 p-3 bg-[#6366F1]/10 border border-[#6366F1]/30 rounded-xl">
-                    <span className="text-sm bg-[#6366F1] text-white font-extrabold h-6 w-6 rounded-full flex items-center justify-center">1</span>
+                  <div className="flex items-center gap-3 p-3 bg-[#4F46E5]/10 border border-[#4F46E5]/30 rounded-xl">
+                    <span className="text-sm bg-[#4F46E5] text-white font-extrabold h-6 w-6 rounded-full flex items-center justify-center">1</span>
                     <div className="text-left">
                       <p className="text-xs text-white font-bold">Week 1: Fundamentals</p>
                       <p className="text-[10px] text-[#818CF8] font-semibold">Completed • 4 Lessons</p>
@@ -259,7 +289,7 @@ export default function LandingPage() {
               <div className="lg:col-span-2 bg-[#1A1A2E]/30 border border-[#1E1E2E] rounded-2xl p-5 md:p-6 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="bg-[#6366F1]/10 text-[#818CF8] text-[10px] font-extrabold uppercase tracking-widest py-1 px-2.5 rounded-md border border-[#6366F1]/20">
+                    <span className="bg-[#4F46E5]/10 text-[#818CF8] text-[10px] font-extrabold uppercase tracking-widest py-1 px-2.5 rounded-md border border-[#4F46E5]/20">
                       Lesson 2.3
                     </span>
                     <span className="text-xs text-[#94A3B8] font-semibold">Backpropagation Demystified</span>
@@ -288,7 +318,7 @@ export default function LandingPage() {
                     </span>
                     <span>Ready for Weekly Quiz check</span>
                   </div>
-                  <button className="text-xs bg-[#6366F1] hover:bg-[#4F46E5] text-white font-bold py-2 px-4 rounded-xl shadow-md transition cursor-pointer">
+                  <button className="text-xs bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold py-2 px-4 rounded-xl shadow-md transition cursor-pointer">
                     Take Quiz (10 Questions) →
                   </button>
                 </div>
@@ -303,7 +333,7 @@ export default function LandingPage() {
       <section id="how-it-works" className="py-24 px-6 border-y border-[#1E1E2E] bg-[#111118]/20 relative">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-xs font-black uppercase tracking-widest text-[#6366F1]">Methodology</h2>
+            <h2 className="text-xs font-black uppercase tracking-widest text-[#4F46E5]">Methodology</h2>
             <p className="text-3xl sm:text-4xl font-extrabold text-[#F8FAFC] tracking-tight mt-3">
               From lost to on-track in 3 steps
             </p>
@@ -314,7 +344,7 @@ export default function LandingPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Step 1 */}
-            <div className="bg-[#111118] border border-[#1E1E2E] rounded-3xl p-8 relative overflow-hidden group hover:border-[#6366F1]/30 transition-all duration-300">
+            <div className="bg-[#111118] border border-[#1E1E2E] rounded-3xl p-8 relative overflow-hidden group hover:border-[#4F46E5]/30 transition-all duration-300">
               <span className="absolute top-4 right-6 text-6xl font-black text-indigo-950/40 select-none">01</span>
               <div className="text-4xl mb-6 select-none">📎</div>
               <h3 className="text-lg font-bold text-[#F8FAFC]">Paste a course or topic</h3>
@@ -324,7 +354,7 @@ export default function LandingPage() {
             </div>
 
             {/* Step 2 */}
-            <div className="bg-[#111118] border border-[#1E1E2E] rounded-3xl p-8 relative overflow-hidden group hover:border-[#6366F1]/30 transition-all duration-300">
+            <div className="bg-[#111118] border border-[#1E1E2E] rounded-3xl p-8 relative overflow-hidden group hover:border-[#4F46E5]/30 transition-all duration-300">
               <span className="absolute top-4 right-6 text-6xl font-black text-indigo-950/40 select-none">02</span>
               <div className="text-4xl mb-6 select-none">🗺️</div>
               <h3 className="text-lg font-bold text-[#F8FAFC]">Get your personal roadmap</h3>
@@ -334,7 +364,7 @@ export default function LandingPage() {
             </div>
 
             {/* Step 3 */}
-            <div className="bg-[#111118] border border-[#1E1E2E] rounded-3xl p-8 relative overflow-hidden group hover:border-[#6366F1]/30 transition-all duration-300">
+            <div className="bg-[#111118] border border-[#1E1E2E] rounded-3xl p-8 relative overflow-hidden group hover:border-[#4F46E5]/30 transition-all duration-300">
               <span className="absolute top-4 right-6 text-6xl font-black text-indigo-950/40 select-none">03</span>
               <div className="text-4xl mb-6 select-none">🧠</div>
               <h3 className="text-lg font-bold text-[#F8FAFC]">Learn, quiz, and track</h3>
@@ -362,10 +392,10 @@ export default function LandingPage() {
           {features.map((feat, idx) => (
             <div
               key={idx}
-              className="bg-[#111118] border border-[#1E1E2E] p-6.5 rounded-2xl transition-all duration-300 hover:border-[#6366F1]/40 hover:-translate-y-1 group"
+              className="bg-[#111118] border border-[#1E1E2E] p-6.5 rounded-2xl transition-all duration-300 hover:border-[#4F46E5]/40 hover:-translate-y-1 group"
               style={{ boxShadow: "hover: 0 4px 20px rgba(99,102,241,0.05)" }}
             >
-              <div className="text-3xl mb-4 select-none bg-[#1A1A2E] w-12 h-12 rounded-xl flex items-center justify-center border border-[#1E1E2E] group-hover:border-[#6366F1]/20 group-hover:bg-[#6366F1]/5 transition-all">
+              <div className="text-3xl mb-4 select-none bg-[#1A1A2E] w-12 h-12 rounded-xl flex items-center justify-center border border-[#1E1E2E] group-hover:border-[#4F46E5]/20 group-hover:bg-[#4338CA]/5 transition-all">
                 {feat.emoji}
               </div>
               <h3 className="text-base font-extrabold text-[#F8FAFC] tracking-tight">{feat.title}</h3>
@@ -380,7 +410,7 @@ export default function LandingPage() {
       {/* SOCIAL PROOF / TESTIMONIALS */}
       <section className="py-24 px-6 border-t border-[#1E1E2E] bg-[#111118]/10 relative">
         <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-xs font-black uppercase tracking-widest text-[#6366F1]">Testimonials</h2>
+          <h2 className="text-xs font-black uppercase tracking-widest text-[#4F46E5]">Testimonials</h2>
           <p className="text-3xl sm:text-4xl font-extrabold text-[#F8FAFC] tracking-tight mt-3">
             Loved by learners worldwide
           </p>
@@ -398,7 +428,7 @@ export default function LandingPage() {
                   “{test.quote}”
                 </p>
                 <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center text-xs text-white font-extrabold shadow-md">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#8B5CF6] flex items-center justify-center text-xs text-white font-extrabold shadow-md">
                     {test.initials}
                   </div>
                   <div>
@@ -423,7 +453,7 @@ export default function LandingPage() {
               ))}
             </div>
             <p className="text-xs font-bold text-[#94A3B8] tracking-wide uppercase">
-              Join <span className="text-[#6366F1]">2,400+ learners</span> already on track
+              Join <span className="text-[#4F46E5]">2,400+ learners</span> already on track
             </p>
           </div>
         </div>
@@ -431,13 +461,13 @@ export default function LandingPage() {
 
       {/* FINAL CTA SECTION */}
       <section className="py-24 px-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[#6366F1]/5 rounded-3xl blur-3xl pointer-events-none transform -translate-y-12"></div>
+        <div className="absolute inset-0 bg-[#4F46E5]/5 rounded-3xl blur-3xl pointer-events-none transform -translate-y-12"></div>
         
         <div className="max-w-4xl mx-auto bg-gradient-to-b from-[#111118] to-[#0A0A0F] border border-[#1E1E2E] rounded-3xl p-10 md:p-16 text-center relative overflow-hidden"
              style={{ boxShadow: "0 0 50px rgba(99,102,241,0.12)" }}>
           
           {/* subtle inside gradient accent */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#6366F1]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#4F46E5]/10 rounded-full blur-3xl pointer-events-none" />
 
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-[#F8FAFC] tracking-tight relative">
             Ready to actually finish that course?
@@ -449,7 +479,7 @@ export default function LandingPage() {
           <div className="mt-10 relative flex justify-center">
             <button
               onClick={handleGetStarted}
-              className="w-full sm:w-auto text-base font-extrabold bg-[#6366F1] hover:bg-[#4F46E5] text-white px-10 py-4 rounded-xl cursor-pointer transition shadow-xl shadow-indigo-600/30 active:scale-95"
+              className="w-full sm:w-auto text-base font-extrabold bg-[#4F46E5] hover:bg-[#4338CA] text-white px-10 py-4 rounded-xl cursor-pointer transition shadow-xl shadow-indigo-600/30 active:scale-95"
             >
               Get Started Free
             </button>

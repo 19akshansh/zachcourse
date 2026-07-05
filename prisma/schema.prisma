@@ -17,6 +17,7 @@ model User {
   emailVerified Boolean       @default(false)
   image         String?
   role          String        @default("student")
+  bio           String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   accounts      Account[]
@@ -28,6 +29,7 @@ model User {
   cohortsOwned  Cohort[]      @relation("CohortOwner")
   cohortMemberships CohortMember[]
   projects      Project[]
+  socialLinks   SocialLink[]
 
   @@map("user")
 }
@@ -244,4 +246,17 @@ model Project {
 
   @@unique([courseId, moduleId])
   @@map("project")
+}
+
+model SocialLink {
+  id               String   @id @default(cuid())
+  userId           String
+  provider         String   // "discord" | "github"
+  externalUsername String?
+  profileUrl       String?
+  linkedAt         DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@map("social_link")
 }

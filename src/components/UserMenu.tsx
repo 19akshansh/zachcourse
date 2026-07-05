@@ -69,11 +69,11 @@ export default function UserMenu() {
           <img
             src={user.image}
             alt={user.name || "User Avatar"}
-            className="w-8 h-8 rounded-full object-cover border border-[#6366F1]/30"
+            className="w-8 h-8 rounded-full object-cover border border-[#4F46E5]/30"
             referrerPolicy="no-referrer"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center text-xs text-white font-extrabold shadow-md">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#8B5CF6] flex items-center justify-center text-xs text-white font-extrabold shadow-md">
             {initials}
           </div>
         )}
@@ -95,7 +95,7 @@ export default function UserMenu() {
             onClick={() => { setIsOpen(false); navigate("/dashboard?tab=progress"); }}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1E1E2E]/50 rounded-xl transition cursor-pointer text-left"
           >
-            <User className="w-4 h-4 text-[#6366F1]" />
+            <User className="w-4 h-4 text-[#4F46E5]" />
             <span>My Profile</span>
           </button>
 

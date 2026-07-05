@@ -48,7 +48,7 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
   return (
     <main className="min-h-screen bg-[#0F0D19] flex items-center justify-center p-4 font-sans text-white">
       <div className="bg-[#111118] border border-[#1E1E2E] rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative">
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#6366F1] via-[#8B5CF6] to-[#EC4899] z-10 rounded-t-3xl"></div>
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#4F46E5] via-[#8B5CF6] to-[#EC4899] z-10 rounded-t-3xl"></div>
         
         <div className="p-8 md:p-12 flex flex-col">
           <div className="flex items-center gap-3 mb-6">
@@ -72,7 +72,7 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
                   href="https://aistudio.google.com/apikey" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[#818CF8] hover:text-[#6366F1] font-semibold text-sm transition"
+                  className="inline-flex items-center gap-1.5 text-[#818CF8] hover:text-[#4F46E5] font-semibold text-sm transition"
                 >
                   Get Free Key <ExternalLink className="w-3.5 h-3.5" />
                 </a>
@@ -102,7 +102,7 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
                       onChange={(e) => {
                         setApiKey(e.target.value);
                       }}
-                      className="block w-full pl-10 pr-3 py-2.5 bg-[#1A172E] border border-[#2A2443] rounded-xl text-[#FAF9FD] placeholder-[#8E88AB] focus:ring-2 focus:ring-[#6366F1] focus:border-transparent transition text-sm"
+                      className="block w-full pl-10 pr-3 py-2.5 bg-[#1A172E] border border-[#2A2443] rounded-xl text-[#FAF9FD] placeholder-[#8E88AB] focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent transition text-sm"
                       placeholder="Paste your API key..."
                     />
                   </div>
@@ -110,7 +110,7 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
                   <button
                     type="submit"
                     disabled={isActivating}
-                    className="w-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] hover:from-[#5054D3] hover:to-[#7C3AED] text-white font-bold py-2.5 px-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-[#4F46E5] to-[#8B5CF6] hover:from-[#5054D3] hover:to-[#7C3AED] text-white font-bold py-2.5 px-4 rounded-xl transition shadow-lg flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {isActivating ? (
                       <>
