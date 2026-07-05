@@ -48,7 +48,7 @@
 <br/>
 
 <p align="center">
-  <img src="https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2F4594831ed2af7a560b2b0ab47ea8bca2%2Fsystem_architecture.svg?generation=1783247630093137&alt=media" alt="ZachCourse System Architecture" width="900" />
+  <img src="https://www.googleapis.com/download/storage/v1/b/kaggle-user-content/o/inbox%2F29564831%2F8d482ce644d63fac8f1c66c903e16087%2Fsystem_overview.svg?generation=1783247540927066&alt=media" alt="ZachCourse System Overview" width="900" />
 </p>
 
 <br/>
