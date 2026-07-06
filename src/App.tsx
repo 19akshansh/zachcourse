@@ -22,6 +22,7 @@ import TeacherDashboard from "./components/TeacherDashboard";
 import { DocumentUpload } from "./components/DocumentUpload";
 import { QuizRunner } from "./components/QuizRunner";
 import { ProgressDashboard } from "./components/ProgressDashboard";
+import { PublicCertificatePage } from "./components/PublicCertificatePage";
 import { MentorChat } from "./components/MentorChat";
 import { toast, Toaster } from "sonner";
 import { 
@@ -174,6 +175,8 @@ const MOTIVATIONAL_QUOTES = [
   "Curiosity is the spark behind every great discovery. Keep exploring! 🧭"
 ];
 
+import { TourController } from "./components/tour/TourController";
+
 export default function App() {
   const { data: sessionData, isPending: isSessionPending, refetch: refetchSession } = useSession();
   const path = usePath();
@@ -188,7 +191,8 @@ export default function App() {
     
     if (!sessionData?.user) {
       // Not logged in — redirect to sign-in if on protected route
-      if (!isAuthPath && path !== "/") {
+      const isCertificatePath = path === "/certificate" || path.startsWith("/certificate/");
+      if (!isAuthPath && path !== "/" && !isCertificatePath) {
         window.location.href = "/sign-in";
       }
     } else {
@@ -499,6 +503,11 @@ export default function App() {
 
   if (!sessionData?.user) {
     if (path.startsWith("/api")) return null;
+    if (path === "/certificate" || path.startsWith("/certificate/")) {
+      const parts = path.split("/");
+      const certId = parts[2] || "";
+      return <PublicCertificatePage certId={certId} />;
+    }
     if (path === "/sign-in") return <SignInPage />;
     if (path.startsWith("/sign-up")) return <SignUpPage />;
     if (path.startsWith("/forgot-password")) return <ForgotPasswordPage />;
@@ -1340,6 +1349,11 @@ ${lessonContent}`;
   // Render public-facing auth pages
   const getPublicPage = () => {
     if (path.startsWith("/api")) return null;
+    if (path === "/certificate" || path.startsWith("/certificate/")) {
+      const parts = path.split("/");
+      const certId = parts[2] || "";
+      return <PublicCertificatePage certId={certId} />;
+    }
     if (path.startsWith("/verify-email")) return <VerifyEmailPage />;
     if (path.startsWith("/reset-password")) return <ResetPasswordPage />;
     if (path.startsWith("/forgot-password")) return <ForgotPasswordPage />;
@@ -1421,6 +1435,16 @@ ${lessonContent}`;
           onSignOut={handleSignOut}
         />
         
+        <TourController
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          activeCourseId={activeCourseId}
+          setActiveCourseId={setActiveCourseId}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          isMobile={window.innerWidth < 768}
+        />
+        
         <main className="flex-1 overflow-y-auto bg-[#0F0D19]">
           {/* Motivational quote - moved here from header */}
           <div className="bg-[#141223] border-b border-[#231E35] py-3 px-4 md:px-6">
@@ -1495,9 +1519,18 @@ ${lessonContent}`;
                     weeklyHours: meta.weeklyHours,
                     roadmapData: roadmapData,
                   });
+                  const isFirst = vroadmaps.length === 0;
                   setVRoadmaps(prev => [saved, ...prev]);
                   setActiveVRoadmapId(saved.id);
                   toast.success("Roadmap saved! ✨");
+                  
+                  if (isFirst) {
+                    setTimeout(() => {
+                      import("./components/tour/TourController").then(mod => {
+                        mod.tourEventEmitter.dispatchEvent(new CustomEvent('startTour', { detail: { chapter: 'vroadmap-graph-tour' } }));
+                      });
+                    }, 500);
+                  }
                 }}
                 onDelete={async (id) => {
                   try {
@@ -1568,7 +1601,7 @@ ${lessonContent}`;
                     <label className="block text-base font-bold text-[#CECADF] mb-2">
                       Topic or Skill you want to learn:
                     </label>
-                    <div className="relative">
+                    <div className="relative" data-tour="course-topic-input">
                       <Search className="absolute left-4 top-3.5 w-5 h-5 text-[#8E88AB]" />
                       <input
                         type="text"
@@ -1584,7 +1617,7 @@ ${lessonContent}`;
                   {/* Suggestion Chips */}
                   <div>
                     <p className="text-sm font-semibold text-[#8E88AB] mb-2.5">Try popular topics:</p>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2" data-tour="course-topic-pills">
                       <button
                         type="button"
                         onClick={() => handlePillClick("Python")}
@@ -1624,6 +1657,7 @@ ${lessonContent}`;
                   <div className="border-t border-[#2A2443] pt-4">
                     <button
                       type="button"
+                      data-tour="course-source-url"
                       onClick={() => setShowUrlInputs(!showUrlInputs)}
                       className="w-full flex items-center justify-between text-left gap-2 text-base font-semibold text-[#FAF9FD]/80 hover:text-[#818CF8] transition"
                     >
@@ -1664,19 +1698,69 @@ ${lessonContent}`;
                     )}
                   </div>
 
-                  <DocumentUpload
-                    onExtracted={(text, names) => {
-                      setDocumentContext(text);
-                      setUploadedFileNames(names);
-                    }}
-                    onClear={() => {
-                      setDocumentContext("");
-                      setUploadedFileNames([]);
-                    }}
-                    hasDocument={!!documentContext}
-                  />
+                  <div data-tour="course-doc-upload">
+                    <DocumentUpload
+                      onExtracted={(text, names) => {
+                        setDocumentContext(text);
+                        setUploadedFileNames(names);
+                      }}
+                      onClear={() => {
+                        setDocumentContext("");
+                        setUploadedFileNames([]);
+                      }}
+                      hasDocument={!!documentContext}
+                    />
+                  </div>
+                  <div data-tour="course-level-hours" className="flex flex-col gap-6 border-t border-[#2A2443] pt-6">
+                    <div>
+                      <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
+                        Experience Level
+                      </label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { id: "beginner", icon: "🌱", label: "Beginner" },
+                          { id: "intermediate", icon: "🔥", label: "Intermediate" },
+                          { id: "advanced", icon: "🚀", label: "Advanced" }
+                        ].map((lvl) => (
+                          <button
+                            key={lvl.id}
+                            type="button"
+                            onClick={() => setExperienceLevel(lvl.id)}
+                            className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
+                              experienceLevel === lvl.id 
+                                ? "border-[#4F46E5] bg-[#4F46E5]/10 text-white" 
+                                : "border-[#2A2443] bg-[#0F0D19] text-[#8E88AB] hover:border-[#3F395B]"
+                            }`}
+                          >
+                            <span className="text-2xl mb-2">{lvl.icon}</span>
+                            <span className="font-semibold text-sm">{lvl.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
+                        Weekly Commitment: <span className="text-white">{weeklyHours} hours</span>
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="30"
+                        value={weeklyHours}
+                        onChange={(e) => setWeeklyHours(parseInt(e.target.value))}
+                        className="w-full accent-[#4F46E5]"
+                      />
+                      <div className="flex justify-between text-xs font-medium text-[#4B5563] mt-2">
+                        <span>Casual (1h)</span>
+                        <span>Part-time (15h)</span>
+                        <span>Intensive (30h)</span>
+                      </div>
+                    </div>
+                  </div>
 
                   <button
+                    data-tour="course-generate-btn"
                     type="submit"
                     disabled={generatingRoadmap}
                     className="w-full bg-[#4F46E5] hover:bg-[#4338CA] active:scale-[0.985] text-white font-bold rounded-2xl py-4 px-6 text-base md:text-lg transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#4F46E5]/20 hover:shadow-indigo-600/45 hover:-translate-y-0.5 disabled:opacity-50 disabled:pointer-events-none"
@@ -1750,15 +1834,17 @@ ${lessonContent}`;
                 </div>
 
                 {roadmapView === "graph" ? (
-                  <RoadmapGraph 
-                    roadmap={currentRoadmap} 
-                    completedLessons={completedLessons}
-                    completedQuizzes={completedQuizzes}
-                    selectedLessonId={selectedLesson?.id || null}
-                    onSelectLesson={handleSelectLesson}
-                  />
+                  <div data-tour="course-roadmap-graph">
+                    <RoadmapGraph 
+                      roadmap={currentRoadmap} 
+                      completedLessons={completedLessons}
+                      completedQuizzes={completedQuizzes}
+                      selectedLessonId={selectedLesson?.id || null}
+                      onSelectLesson={handleSelectLesson}
+                    />
+                  </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div className="space-y-6" data-tour="course-roadmap-graph">
                     {currentRoadmap.modules?.map((mod: any, modIdx: number) => (
                       <div key={mod.id || modIdx} className="space-y-3">
                         <h4 className="text-base font-bold text-[#FAF9FD]">
@@ -2213,6 +2299,7 @@ ${lessonContent}`;
             completedLessons={completedLessons}
             currentRoadmap={currentRoadmap}
             streakDays={userDbProgress?.streakDays || 1}
+            activeCourseId={activeCourseId}
           />
         )}
 

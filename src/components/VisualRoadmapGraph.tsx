@@ -18,6 +18,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import dagre from "@dagrejs/dagre";
 import { Play, CheckCircle, Trophy, Hammer, Flag, X, Download, RotateCcw } from "lucide-react";
+import { sanitizeResourceUrl } from "../lib/resource-link";
 
 // --- CUSTOM NODES ---
 
@@ -437,7 +438,7 @@ function VisualRoadmapGraphInner({
                     {selectedNode.resources.map((res: any, i: number) => (
                       <a 
                         key={i} 
-                        href={res.url || "#"} 
+                        href={sanitizeResourceUrl(res.url, res.title, res.type)} 
                         target="_blank" 
                         rel="noreferrer"
                         className="flex items-center gap-3 p-3 rounded-lg bg-[#1A172E] border border-[#2A2443] hover:border-[#4F46E5] transition-colors group"

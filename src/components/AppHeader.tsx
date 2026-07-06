@@ -5,6 +5,8 @@ import KeyStatusBadge from "./KeyStatusBadge";
 import { trpc } from "../lib/trpc-client";
 import { toast } from "sonner";
 import { authClient } from "../lib/auth-client";
+import { TourLauncher } from "./tour/TourLauncher";
+import { tourEventEmitter } from "./tour/TourController";
 
 interface AppHeaderProps {
   onMenuClick: () => void;
@@ -24,6 +26,23 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [isSavingBio, setIsSavingBio] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const handleTourStep = (e: Event) => {
+      const customEvent = e as CustomEvent<{ stepId: string }>;
+      const stepId = customEvent.detail?.stepId;
+      if (stepId === "header-profile-item" || stepId === "header-avatar-menu") {
+        setDropdownOpen(true);
+      } else if (stepId) {
+        setDropdownOpen(false);
+      }
+    };
+
+    tourEventEmitter.addEventListener("tour-step", handleTourStep);
+    return () => {
+      tourEventEmitter.removeEventListener("tour-step", handleTourStep);
+    };
+  }, []);
 
   const fetchMyProfile = async () => {
     setIsProfileLoading(true);
@@ -123,6 +142,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
       {/* LEFT SIDE */}
       <div className="flex items-center gap-2">
         <button
+          data-tour="sidebar-collapse"
           onClick={onMenuClick}
           className="p-1.5 rounded-lg hover:bg-white/5 border border-[#1E1E2E] text-[#8E88AB] hover:text-[#FAF9FD] transition cursor-pointer"
           aria-label="Toggle Navigation Menu"
@@ -146,10 +166,14 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
 
       {/* RIGHT SIDE */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-        <KeyStatusBadge />
+        <TourLauncher />
+        <div data-tour="header-key-badge">
+          <KeyStatusBadge />
+        </div>
 
         <div className="relative shrink-0" ref={dropdownRef}>
           <button
+            data-tour="header-avatar-menu"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="w-8 h-8 rounded-full overflow-hidden hover:ring-2 hover:ring-indigo-500/50 transition cursor-pointer"
             aria-label="User Account Menu"
@@ -178,6 +202,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
 
               <button
                 type="button"
+                data-tour="header-profile-item"
                 onClick={() => {
                   setDropdownOpen(false);
                   setProfileOpen(true);

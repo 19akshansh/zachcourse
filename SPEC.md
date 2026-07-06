@@ -306,7 +306,7 @@ All procedures are protected by `requireAuth` checking for an active Better Auth
 - **Course Management:**
   - `getCourses()` -> List enrolled courses.
   - `getCourse({ courseId })` -> Fetch metadata, modules, lessons, and last 50 mentor messages.
-  - `createCourse({ title, topic, difficulty, roadmapData })` -> Initializes a new curriculum.
+  - `createCourse({ title, topic, difficulty, experienceLevel, weeklyHours, roadmapData })` -> Initializes a new curriculum.
   - `updateCourseProgress({ courseId, completedLessons, completedQuizzes, currentLessonId })` -> Increments checklist state.
 
 - **Module Projects (Hands-on Learning):**
@@ -339,5 +339,6 @@ All procedures are protected by `requireAuth` checking for an active Better Auth
 | **API Rate Limiting** | `express-rate-limit` enforces a maximum of 20 API requests/minute per IP address across all AI routes. |
 | **Payload Sanitization** | `express.json` limits payloads to `2mb`. Strict regex filters strip malicious `<script>` components before markdown rendering. |
 | **Access Guards** | Database ownership checks query and verify `course.userId === ctx.user.id` or `visualRoadmap.userId === ctx.user.id` on all mutation procedures. |
+| **Resource Link Safety** | Prompt-level engineering and server-side/client-side URL sanitization (via `sanitizeResourceUrl` blocklist checks) filter out dummy/placeholder domains (e.g. `example.com`), routing them safely to a dynamic Google Search fallback. |
 | **CORS Restriction** | Origin validation rejects any wildcard pattern ending in `*.run.app` or similar shared domains. Only explicitly configured entries in `ALLOWED_ORIGINS` (including the primary deployed service URL) or localhost origins are allowed, blocking cross-origin session hijack attempts from peer container services. |
 | **CSP Whitelisting** | Helmet content security policies explicitly permit connection requests to `https://generativelanguage.googleapis.com` to support direct, client-side browser integration of user-provided Gemini API keys without degrading default sandbox protections. |

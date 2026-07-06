@@ -67,6 +67,42 @@ export const appRouter = router({
     return progress;
   }),
 
+  getTourProgress: protectedProcedure.query(async ({ ctx }) => {
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.user.id },
+      select: { tourChaptersSeen: true, tourCompletedAt: true, tourContentVersion: true },
+    });
+    return {
+      chaptersSeen: Array.isArray(user?.tourChaptersSeen) ? (user!.tourChaptersSeen as string[]) : [],
+      completedAt: user?.tourCompletedAt ?? null,
+      contentVersion: user?.tourContentVersion ?? 0,
+    };
+  }),
+
+  markTourChapterSeen: protectedProcedure
+    .input(z.object({ chapterId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.prisma.user.findUnique({ where: { id: ctx.user.id }, select: { tourChaptersSeen: true } });
+      const existing = Array.isArray(user?.tourChaptersSeen) ? (user!.tourChaptersSeen as string[]) : [];
+      if (!existing.includes(input.chapterId)) {
+        await ctx.prisma.user.update({
+          where: { id: ctx.user.id },
+          data: { tourChaptersSeen: [...existing, input.chapterId] },
+        });
+      }
+      return { success: true };
+    }),
+
+  markTourCompleted: protectedProcedure
+    .input(z.object({ version: z.number() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.prisma.user.update({
+        where: { id: ctx.user.id },
+        data: { tourCompletedAt: new Date(), tourContentVersion: input.version },
+      });
+      return { success: true };
+    }),
+
   getLearningMetrics: protectedProcedure.query(async ({ ctx }) => {
     const { computeUserMetrics } = await import("../lib/metrics.js");
     return await computeUserMetrics(ctx.user.id);
@@ -122,6 +158,73 @@ export const appRouter = router({
       }
     });
   }),
+
+  issueCertificate: protectedProcedure
+    .input(z.object({ courseId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const course = await ctx.prisma.course.findFirst({
+        where: { id: input.courseId, userId: ctx.user.id },
+      });
+      if (!course) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Course not found" });
+      }
+
+      const existing = await ctx.prisma.certificate.findFirst({
+        where: { userId: ctx.user.id, courseId: input.courseId }
+      });
+      if (existing) {
+        return existing;
+      }
+
+      const completedLessons = (course.completedLessons as string[]) || [];
+      let totalLessons = 0;
+      const roadmap = course.roadmapData as any;
+      if (roadmap && roadmap.modules) {
+        roadmap.modules.forEach((mod: any) => {
+          if (mod.lessons) totalLessons += mod.lessons.length;
+        });
+      }
+
+      if (totalLessons === 0 || completedLessons.length < totalLessons) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You must complete all lessons to get a certificate.",
+        });
+      }
+
+      const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase().padEnd(8, "X");
+      const certId = `ZC-${randomPart}`;
+
+      const user = await ctx.prisma.user.findUnique({
+        where: { id: ctx.user.id }
+      });
+
+      const certificate = await ctx.prisma.certificate.create({
+        data: {
+          certId,
+          userId: ctx.user.id,
+          courseId: input.courseId,
+          courseTitle: course.title,
+          userName: user?.name || "Student",
+          recipientEmail: user?.email,
+          completionDate: new Date(),
+        }
+      });
+
+      return certificate;
+    }),
+
+  getCertificateByCertId: publicProcedure
+    .input(z.object({ certId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const certificate = await ctx.prisma.certificate.findUnique({
+        where: { certId: input.certId }
+      });
+      if (!certificate) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Certificate not found" });
+      }
+      return certificate;
+    }),
 
   getCourse: protectedProcedure
     .input(z.object({ courseId: z.string() }))

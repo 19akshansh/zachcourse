@@ -21,6 +21,7 @@ import { retrieveRelevantMemories, storeMentorExchange } from "./src/lib/memory"
 import { isBlockedUrl, isBlockedUrlResolved } from "./src/lib/ssrf-guard";
 import { getLocalFallbackRoadmap, getLocalFallbackLesson, getLocalFallbackQuiz, getLocalFallbackMentorReply } from "./src/lib/local-fallbacks";
 import { fetchUrlTool, searchWebTool } from "./src/lib/mentor-tools";
+import { sanitizeResourceUrl } from "./src/lib/resource-link";
 
 const app = express();
 
@@ -594,7 +595,18 @@ GRAPH STRUCTURE RULES:
 
 CONTENT RULES:
 - Every lesson node MUST have: concepts (3-5 terms), 
-  duration, difficulty, and 2-3 resources
+  duration, difficulty, and 2-3 resources.
+- For resources:
+  - Only reference well-known, stable resources you're confident exist: 
+    official docs (developer.mozilla.org, react.dev, docs.python.org, etc.), 
+    major learning platforms (freeCodeCamp, W3Schools, YouTube, GitHub), or 
+    the primary official site for the topic.
+  - NEVER invent a specific article/blog post URL, path, or slug you 
+    cannot verify exists.
+  - If unsure of an exact URL, set url to the site's known homepage/search 
+    page instead of a fabricated deep link, or omit url entirely.
+  - Explicitly forbid example.com, example.org, placeholder.com, or any 
+    other placeholder/dummy domain.
 - Make descriptions specific and actionable
   (not "learn about X" but "build a X that does Y")
 - Progressive difficulty: Beginner → Intermediate → Advanced
@@ -646,6 +658,17 @@ ${JSON.stringify(data)}
       reviewMeta = { revised: false, issuesFound: critique.issues.length };
     }
     
+    // Defensive server-side sanitization
+    if (data && Array.isArray(data.nodes)) {
+      for (const node of data.nodes) {
+        if (Array.isArray(node.resources)) {
+          for (const resItem of node.resources) {
+            resItem.url = sanitizeResourceUrl(resItem.url, resItem.title, resItem.type);
+          }
+        }
+      }
+    }
+
     (data as any)._reviewMeta = reviewMeta;
     // --------------------
 

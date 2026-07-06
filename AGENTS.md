@@ -75,7 +75,8 @@ z.object({
 - Progressive difficulty
 - Last lesson must be a hands-on project
 - First lesson completable in under 30 minutes
-- Depth adapts to `experienceLevel`
+- Depth adapts to `experienceLevel` ( beginner/intermediate/advanced tailoring)
+- Course pacing and module density scale with `weeklyHours` commitment (ranging from casual to intensive)
 
 **Fallback:** `getLocalFallbackRoadmap()` — returns a hardcoded template if all Gemini models fail.
 
@@ -124,6 +125,11 @@ z.object({
 - At least 2 project nodes (portfolio-worthy builds)
 - Optional side-path nodes for going deeper
 - First lesson: 20 minutes. Final project: 2–4 hours.
+- **Strict Resource URL Safety:** The prompt strictly forbids fabricating specific deep-link URLs or deep paths. It enforces using stable official sites (e.g., developer.mozilla.org, docs.python.org, react.dev, freeCodeCamp, W3Schools, YouTube, GitHub) or falling back to homepage/search pages, explicitly outlawing dummy or placeholder domains such as `example.com`.
+
+**Defensive Sanitization & Client Fallback:**
+- Every generated node's resource URL is processed through `sanitizeResourceUrl` (defined in `src/lib/resource-link.ts`) before saving. If any URL matches known placeholder domains (e.g. `example.com`, `placeholder.com`, `yourdomain.com`) or is empty/malformed, it is automatically sanitized into a guaranteed-real Google Search query URL built dynamically from the resource title and type (`https://www.google.com/search?q=...`).
+- The same utility is executed as a client-side layer in `VisualRoadmapGraph.tsx` to handle historical roadmaps in the database.
 
 **Supports:** User's own Gemini API key via `x-user-key` header.
 

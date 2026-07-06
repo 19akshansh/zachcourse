@@ -77,6 +77,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
       return;
     }
     try {
+      const isFirst = memberships.length === 0;
       const res = await trpc.createCohort.mutate({
         name: createName,
         courseId: createCourseId || null,
@@ -89,6 +90,14 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
       setIsCreating(false);
       await loadCohorts();
       setActiveCohortId(res.id);
+      
+      if (isFirst) {
+        setTimeout(() => {
+          import("./tour/TourController").then(mod => {
+            mod.tourEventEmitter.dispatchEvent(new CustomEvent('startTour', { detail: { chapter: 'cohort-detail-tour' } }));
+          });
+        }, 500);
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to create cohort");
     }
@@ -189,12 +198,14 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
         </div>
         <div className="flex gap-3">
           <button 
+            data-tour="cohort-join-btn"
             onClick={() => { setIsJoining(true); setIsCreating(false); setPreviewCohort(null); }}
             className="px-4 py-2 bg-[#1E1A33] hover:bg-[#2A2443] border border-[#2A2443] text-[#FAF9FD] rounded-xl font-medium transition flex items-center gap-2"
           >
             <Hash className="w-4 h-4 text-emerald-400" /> Join
           </button>
           <button 
+            data-tour="cohort-create-btn"
             onClick={() => { setIsCreating(true); setIsJoining(false); }}
             className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-medium transition shadow-lg shadow-indigo-900/20 flex items-center gap-2"
           >
@@ -386,7 +397,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div data-tour="cohort-list" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {memberships.length === 0 ? (
           <div className="col-span-full py-12 text-center border-2 border-dashed border-[#2A2443] rounded-2xl bg-[#121021]/50 animate-fade-in">
             <Users className="w-12 h-12 text-[#2A2443] mx-auto mb-3" />
@@ -655,40 +666,42 @@ function CohortDetail({
           </div>
         </div>
 
-        {isOwner && (
-          <button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            className="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/30 hover:border-red-500/50 rounded-xl font-medium transition flex items-center gap-2 self-start sm:self-center disabled:opacity-50"
-          >
-            {isDeleting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Trash2 className="w-4 h-4" />
-            )}
-            Delete Cohort
-          </button>
-        )}
+        <div data-tour="cohort-member-actions" className="flex flex-col sm:flex-row gap-3 self-start sm:self-center">
+          {isOwner && (
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/30 hover:border-red-500/50 rounded-xl font-medium transition flex items-center gap-2 disabled:opacity-50"
+            >
+              {isDeleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4" />
+              )}
+              Delete Cohort
+            </button>
+          )}
 
-        {!isOwner && (
-          <button
-            onClick={handleLeave}
-            disabled={isLeaving}
-            className="px-4 py-2.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:border-amber-500/50 rounded-xl font-medium transition flex items-center gap-2 self-start sm:self-center disabled:opacity-50"
-          >
-            {isLeaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <LogOut className="w-4 h-4" />
-            )}
-            Leave Cohort
-          </button>
-        )}
+          {!isOwner && (
+            <button
+              onClick={handleLeave}
+              disabled={isLeaving}
+              className="px-4 py-2.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:border-amber-500/50 rounded-xl font-medium transition flex items-center gap-2 disabled:opacity-50"
+            >
+              {isLeaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <LogOut className="w-4 h-4" />
+              )}
+              Leave Cohort
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <div className="lg:col-span-2 space-y-6 min-w-0">
+        <div data-tour="cohort-leaderboard" className="lg:col-span-2 space-y-6 min-w-0">
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-amber-400" />
             <h2 className="text-xl font-bold text-[#FAF9FD]">Leaderboard</h2>
@@ -751,7 +764,7 @@ function CohortDetail({
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div data-tour="cohort-activity" className="space-y-6">
           <div className="flex items-center gap-2">
             <Activity className="w-5 h-5 text-indigo-400" />
             <h2 className="text-xl font-bold text-[#FAF9FD]">Recent Activity</h2>

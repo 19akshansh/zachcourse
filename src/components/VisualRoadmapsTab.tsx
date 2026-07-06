@@ -144,7 +144,7 @@ export default function VisualRoadmapsTab({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <form onSubmit={handleGenerate} className="space-y-8 bg-[#111118] border border-[#2A2443] rounded-2xl p-8 shadow-xl">
+          <form data-tour="vroadmap-form" onSubmit={handleGenerate} className="space-y-8 bg-[#111118] border border-[#2A2443] rounded-2xl p-8 shadow-xl">
             <div>
               <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
                 What do you want to master?
@@ -295,9 +295,9 @@ export default function VisualRoadmapsTab({
       </div>
 
       {/* Saved list row */}
-      {roadmaps.length > 0 && (
-        <div className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x px-1 shrink-0 hide-scrollbar">
-          {roadmaps.map((r) => {
+      <div data-tour="vroadmap-list" className="flex gap-4 overflow-x-auto pb-4 pt-2 snap-x px-1 shrink-0 hide-scrollbar">
+        {roadmaps.length > 0 ? (
+          roadmaps.map((r) => {
             const progress = getProgress(r);
             const isActive = activeVRoadmapId === r.id;
             return (
@@ -318,8 +318,8 @@ export default function VisualRoadmapsTab({
                       <Star className={`w-4 h-4 ${r.isFavorite ? 'fill-[#EAB308] text-[#EAB308]' : 'text-[#8E88AB]'}`} />
                     </button>
                     <button 
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setRoadmapToDelete({ id: r.id, topic: r.topic });
                       }}
                       className="p-1.5 hover:bg-rose-500/10 rounded-lg transition-colors text-[#8E88AB] hover:text-rose-400 cursor-pointer"
@@ -350,9 +350,13 @@ export default function VisualRoadmapsTab({
                 </div>
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        ) : (
+          <div className="w-full flex items-center justify-center py-8 bg-[#111118] border border-dashed border-[#2A2443] rounded-2xl text-[#8E88AB]">
+            <p>You don't have any saved roadmaps yet. Generate one to see it here!</p>
+          </div>
+        )}
+      </div>
 
       {totalPages > 1 && onPageChange && (
         <div className="shrink-0 pt-2">
@@ -365,7 +369,7 @@ export default function VisualRoadmapsTab({
       )}
 
       {/* Graph Area */}
-      <div className="w-full" style={{ contain: 'layout' }}>
+      <div data-tour="vroadmap-graph" className="w-full" style={{ contain: 'layout' }}>
         <div className="w-full h-[700px] border border-[#2A2443] rounded-2xl overflow-hidden bg-[#0F0D19]">
           {activeRoadmap ? (
             <VisualRoadmapGraph 

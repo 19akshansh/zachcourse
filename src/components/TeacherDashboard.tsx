@@ -182,7 +182,7 @@ export default function TeacherDashboard() {
 
       {!activeClassroom ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-          <div className="md:col-span-1 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl space-y-4">
+          <div data-tour="teacher-create-classroom" className="md:col-span-1 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl space-y-4">
             <h3 className="text-lg font-bold text-[#FAF9FD]">Create Classroom</h3>
             <form onSubmit={handleCreateClassroom} className="flex flex-col gap-4">
               <div>
@@ -238,7 +238,7 @@ export default function TeacherDashboard() {
             </form>
           </div>
 
-          <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div data-tour="teacher-classroom-list" className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {classrooms.map(cls => (
               <div key={cls.id} className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-6 shadow-xl flex flex-col justify-between hover:border-[#4F46E5]/50 transition">
                 <div>
@@ -304,9 +304,14 @@ export default function TeacherDashboard() {
               </div>
             )}
           </div>
+
+          {/* Hidden targets for Joyride onboarding flow to prevent TARGET_NOT_FOUND crashes */}
+          <div className="absolute top-0 left-0 pointer-events-none opacity-0 -z-10">
+            <div data-tour="teacher-roster" className="w-10 h-10"></div>
+          </div>
         </div>
       ) : !selectedStudent ? (
-        <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl shadow-xl overflow-hidden">
+        <div data-tour="teacher-roster" className="bg-[#1A172E] border border-[#2A2443] rounded-3xl shadow-xl overflow-hidden">
           <div className="p-6 border-b border-[#2A2443] flex items-center justify-between bg-[#151221]">
             <div className="flex items-center gap-4">
               <button onClick={() => setActiveClassroom(null)} className="text-[#8E88AB] hover:text-[#FAF9FD] transition">
@@ -385,7 +390,7 @@ export default function TeacherDashboard() {
           )}
         </div>
       ) : (
-        <div className="space-y-6">
+        <div data-tour="teacher-student-detail" className="space-y-6">
           <div className="flex items-center gap-4 border-b border-[#2A2443] pb-4">
             <button onClick={() => setSelectedStudent(null)} className="text-[#8E88AB] hover:text-[#FAF9FD] transition">
               <ChevronLeft className="w-6 h-6" />

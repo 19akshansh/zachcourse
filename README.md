@@ -110,28 +110,35 @@ ZachCourse is powered by a team of specialized AI agents working together:
 
 ```text
 .
-├── prisma
-│   ├── migrations
-│   └── schema.prisma
-├── public
-├── scripts
-│   ├── eval-lessons.ts
-│   └── setup-db.sh
-├── src
-│   ├── app/                # React.js App folders
-│   │   ├── (auth)/
-│   │   ├── api/
-│   │   ├── layout.tsx
-│   │   └── page.tsx
-│   ├── components/         # Reusable React components (Dashboards, Sidebar, Graphs)
+├── prisma/
+│   ├── migrations/         # Database migrations
+│   └── schema.prisma       # Prisma DB schema definition (Neon Postgres)
+├── public/                 # Static assets and icons
+├── scripts/
+│   ├── eval-lessons.ts     # Offline Judge Agent evaluation suite
+│   └── setup-db.sh         # Helper script for local DB setup
+├── src/
+│   ├── app/                # Main React web page wrappers & layout rules
+│   │   ├── (auth)/         # Better Auth login/signup pages
+│   │   ├── api/            # API pass-through rules
+│   │   ├── layout.tsx      # Global view wrapper
+│   │   └── page.tsx        # Base entry redirector
+│   ├── components/         # Reusable frontend components
+│   │   ├── tour/           # React Joyride tour onboarding modules
+│   │   ├── AppHeader.tsx   # Header controls & user profile dropdown
+│   │   ├── AppSidebar.tsx  # Dynamic course selection side menu
+│   │   └── VisualRoadmapGraph.tsx  # Interactive @xyflow/react canvas
 │   ├── features/
-│   │   └── auth/           # Authentication UI flows
-│   ├── lib/                # Shared helpers (tRPC client, auth setup)
-│   ├── server/             # Express server logic & schemas
-│   └── types/              # Common TypeScript type definitions
-├── mcp_server.ts           # Model Context Protocol (MCP) server
-├── server.ts               # Express & Vite unified backend entry point
-└── package.json
+│   │   └── auth/           # Better Auth logic & social connectors
+│   ├── lib/                # Core helper utilities
+│   │   ├── resource-link.ts # Safe resource URL verification & domain blocklist
+│   │   ├── SSRF-guard.ts   # Server-side request forgery safety rules
+│   │   └── mentor-tools.ts # Search and link-fetching tool specifications
+│   ├── server/             # tRPC database backend procedures & models
+│   └── types/              # Shared TypeScript definition types
+├── mcp_server.ts           # Standalone Model Context Protocol (MCP) tool server
+├── server.ts               # Unified Express backend & Vite middleware server
+└── package.json            # Application configuration & dependency tree
 ```
 
 ## 🚀 Getting Started

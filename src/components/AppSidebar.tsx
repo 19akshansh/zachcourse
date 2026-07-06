@@ -165,7 +165,7 @@ export default function AppSidebar({
         `}
       >
       {/* SIDEBAR HEADER */}
-      <div className="flex items-center justify-between p-4 border-b border-[#1E1E2E] h-14 shrink-0">
+      <div data-tour="sidebar-brand" className="flex items-center justify-between p-4 border-b border-[#1E1E2E] h-14 shrink-0">
         <div className={`flex-col min-w-0 ${effectivelyCollapsed ? 'flex md:hidden' : 'flex'}`}>
           <div className="flex items-center gap-2">
             <span className="text-xl select-none">🎓</span>
@@ -186,6 +186,7 @@ export default function AppSidebar({
           )}
           
           <button
+            data-tour="nav-visual-roadmaps"
             onClick={() => {
               setActiveCourseId(null);
               setActiveTab("visual-roadmaps");
@@ -213,6 +214,7 @@ export default function AppSidebar({
           </button>
           
           <button
+            data-tour="nav-cohorts"
             onClick={() => {
               setActiveCourseId(null);
               setActiveTab("cohorts");
@@ -237,6 +239,7 @@ export default function AppSidebar({
           </button>
 
           <button
+            data-tour="nav-analytics"
             onClick={() => {
               setActiveCourseId(null);
               setActiveTab("analytics");
@@ -262,6 +265,7 @@ export default function AppSidebar({
 
           {(session?.user as any)?.role === "teacher" && (
             <button
+              data-tour="nav-teacher"
               onClick={() => {
                 setActiveCourseId(null);
                 setActiveTab("teacher");
@@ -301,6 +305,7 @@ export default function AppSidebar({
           )}
           
           <button
+            data-tour="new-course-btn"
             onClick={handleNewCourseClick}
             className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer text-[#FAF9FD] bg-[#4F46E5]/10 hover:bg-[#4338CA]/20 border border-[#4F46E5]/20 mb-3
               ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
@@ -312,7 +317,7 @@ export default function AppSidebar({
             )}
           </button>
 
-          <div className="space-y-1">
+          <div data-tour="course-list" className="space-y-1">
             {isLoadingCourses ? (
               // Loading skeletons
               Array(3).fill(0).map((_, i) => (
@@ -444,7 +449,7 @@ export default function AppSidebar({
                 <span className="text-[10px] font-bold text-[#8E88AB] uppercase tracking-wider">Course Views</span>
               </div>
             )}
-            <nav className="space-y-1">
+            <nav data-tour="course-subnav" className="space-y-1">
               {navItems.map((item) => {
                 const IconComponent = item.icon;
                 const isActive = activeTab === item.id;
@@ -480,7 +485,7 @@ export default function AppSidebar({
 
       {/* SIDEBAR FOOTER */}
       <div className="p-3 border-t border-[#1E1E2E] shrink-0">
-        <div className={`flex items-center justify-between gap-2 bg-white/5 p-2 rounded-xl ${effectivelyCollapsed ? 'flex md:hidden' : 'flex'}`}>
+        <div data-tour="sidebar-account-card" className={`flex items-center justify-between gap-2 bg-white/5 p-2 rounded-xl ${effectivelyCollapsed ? 'flex md:hidden' : 'flex'}`}>
           <div className="flex items-center gap-2 min-w-0">
             {user?.image ? (
               <img
@@ -498,6 +503,7 @@ export default function AppSidebar({
               <div className="flex items-center gap-1.5 min-w-0">
                 <p className="text-xs font-bold text-[#FAF9FD] truncate leading-tight">{displayName}</p>
                 <button
+                  data-tour="sidebar-role-badge"
                   onClick={handleToggleRole}
                   disabled={isUpdating}
                   className="px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/25 rounded text-[9px] text-amber-400 font-extrabold hover:bg-amber-500/20 transition cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
@@ -514,6 +520,7 @@ export default function AppSidebar({
             </div>
           </div>
           <button
+            data-tour="sidebar-sign-out"
             onClick={onSignOut}
             className="text-[#8E88AB] hover:text-rose-400 p-1 rounded-lg hover:bg-rose-500/10 transition cursor-pointer shrink-0"
             title="Sign Out"

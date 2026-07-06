@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { trpc } from "../lib/trpc-client";
+import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
 import { Loader2, Flame, BookOpen, Clock, Target, Award, ArrowUpRight, BarChart2, TrendingUp } from "lucide-react";
 
@@ -30,10 +31,31 @@ export default function AnalyticsDashboard() {
 
   if (!metrics || metrics.activityDataAvailable === false) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center min-h-[500px]">
-        <p className="text-[#8E88AB] font-medium text-center max-w-md px-4">
-          No learning activity data available yet. Keep learning, chatting with your mentor, and taking quizzes to see your stats here!
-        </p>
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[500px] gap-8 px-4 relative">
+        <div className="p-10 bg-gradient-to-b from-[#121021] to-[#0A0914] border border-[#2A2443] rounded-3xl text-center shadow-xl max-w-2xl w-full relative z-10">
+          <div className="w-20 h-20 bg-gradient-to-tr from-indigo-900/40 to-purple-900/40 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#2A2443]">
+            <BarChart2 className="w-10 h-10 text-indigo-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#FAF9FD] mb-3">No Analytics Available Yet</h2>
+          <p className="text-[#8E88AB] text-lg leading-relaxed mb-8">
+            Keep learning, chatting with your mentor, and taking quizzes to see your stats here! You don't have any certificates or analytics yet. Complete a course 100% to earn your first certificate.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+             <div className="px-5 py-2.5 rounded-xl bg-[#1E1A33] border border-[#2A2443] text-[#8E88AB] text-sm flex items-center gap-2 font-medium shadow-sm">
+                <Target className="w-4 h-4 text-emerald-400" /> Take Quizzes
+             </div>
+             <div className="px-5 py-2.5 rounded-xl bg-[#1E1A33] border border-[#2A2443] text-[#8E88AB] text-sm flex items-center gap-2 font-medium shadow-sm">
+                <Award className="w-4 h-4 text-amber-400" /> Earn Certificates
+             </div>
+          </div>
+        </div>
+
+        {/* Hidden targets strictly for Joyride onboarding flow to prevent TARGET_NOT_FOUND crashes */}
+        <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-0 flex flex-col justify-between -z-10">
+          <div data-tour="analytics-stats" className="w-full h-10"></div>
+          <div data-tour="analytics-charts" className="w-full h-10"></div>
+          <div data-tour="analytics-certificates-btn" className="w-full h-10"></div>
+        </div>
       </div>
     );
   }
@@ -49,7 +71,7 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* KPI Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div data-tour="analytics-stats" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[#121021] border border-[#2A2443] rounded-2xl p-5 shadow-lg relative overflow-hidden group">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-orange-500/10 rounded-full blur-xl group-hover:bg-orange-500/20 transition-all"></div>
           <div className="flex items-center gap-3 mb-2 relative">
@@ -108,7 +130,7 @@ export default function AnalyticsDashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div data-tour="analytics-charts" className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
         {/* Weekly Activity */}
         <div className="bg-[#121021] border border-[#2A2443] rounded-2xl p-6 shadow-lg">
@@ -191,8 +213,15 @@ export default function AnalyticsDashboard() {
               <p className="text-[#8E88AB] text-sm mt-1">You've fully completed {metrics.completedCoursesCount} courses so far.</p>
             </div>
           </div>
-          <button 
-            disabled={metrics.completedCoursesCount === 0}
+          <button
+            data-tour="analytics-certificates-btn"
+            onClick={() => {
+              if (metrics.completedCoursesCount === 0) {
+                toast.error("You don't have any certificates yet. Complete a course 100% to earn one! 🏆", { duration: 4000 });
+              } else {
+                toast.success("To view your certificates, open a completed course and go to its 'My Progress' tab! 🏆", { duration: 4000 });
+              }
+            }}
             className={`px-5 py-2.5 font-semibold rounded-xl transition-colors shadow-lg flex items-center gap-2 ${
               metrics.completedCoursesCount > 0 
                 ? "bg-[#4F46E5] hover:bg-[#4338CA] text-white shadow-indigo-900/20" 
