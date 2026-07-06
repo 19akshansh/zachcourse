@@ -8,6 +8,10 @@
 
 > **Video:** https://youtu.be/sBsXeVhbKHE
 
+> **Github:** https://github.com/19akshansh/zachcourse
+
+> **Submission:** https://www.kaggle.com/competitions/vibecoding-agents-capstone-project/writeups/zachcourse
+
 ---
 
 ## Key Concepts Demonstrated
