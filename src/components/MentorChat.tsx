@@ -89,7 +89,7 @@ export const MentorChat: React.FC<MentorChatProps> = ({
       </div>
 
       {/* Chat Box (span 8) */}
-      <div className="lg:col-span-8 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col h-[80vh] min-h-[600px] md:h-[600px] lg:h-[700px]">
+      <div className="lg:col-span-8 bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col h-[calc(100vh-100px)] min-h-[500px] md:h-[600px] lg:h-[700px]">
         <div className="flex items-center gap-3 border-b border-[#2A2443] pb-4 mb-4">
           <span className="text-3xl select-none">🧑‍🏫</span>
           <div className="flex-1">

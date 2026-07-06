@@ -2,11 +2,19 @@ import React, { useState, useEffect } from "react";
 import { trpc } from "../lib/trpc-client";
 import { BookOpen, Users, Download, TrendingUp, ChevronLeft, Map, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { Pagination } from "./Pagination";
 
 export default function TeacherDashboard() {
   const [classrooms, setClassrooms] = useState<any[]>([]);
+  const [classroomsPage, setClassroomsPage] = useState(1);
+  const [classroomsTotalPages, setClassroomsTotalPages] = useState(1);
+
   const [activeClassroom, setActiveClassroom] = useState<any | null>(null);
+  
   const [roster, setRoster] = useState<any[]>([]);
+  const [rosterPage, setRosterPage] = useState(1);
+  const [rosterTotalPages, setRosterTotalPages] = useState(1);
+
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [studentDetails, setStudentDetails] = useState<any | null>(null);
 
@@ -21,10 +29,15 @@ export default function TeacherDashboard() {
   const [classroomToDelete, setClassroomToDelete] = useState<{ id: string; name: string } | null>(null);
   const [isDeletingClassroom, setIsDeletingClassroom] = useState(false);
 
-  const loadClassrooms = async () => {
+  const loadClassrooms = async (page = 1) => {
     try {
-      const data = await trpc.getTeacherClassrooms.query();
-      setClassrooms(data);
+      const data = await trpc.getTeacherClassrooms.query({ page, pageSize: 8 });
+      if (Array.isArray(data)) {
+        setClassrooms(data);
+      } else {
+        setClassrooms(data.items);
+        setClassroomsTotalPages(data.totalPages);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -36,17 +49,20 @@ export default function TeacherDashboard() {
     try {
       const [coursesRes, roadmapsRes] = await Promise.all([
         trpc.getCourses.query(),
-        trpc.getVisualRoadmaps.query()
+        trpc.getVisualRoadmaps.query({ pageSize: 100 })
       ]);
       setCourses(coursesRes || []);
-      setRoadmaps(roadmapsRes || []);
+      setRoadmaps(roadmapsRes?.items || []);
     } catch (e) {
       console.error("Failed to load content for classroom selection", e);
     }
   };
 
   useEffect(() => {
-    loadClassrooms();
+    loadClassrooms(classroomsPage);
+  }, [classroomsPage]);
+
+  useEffect(() => {
     loadTeacherContent();
   }, []);
 
@@ -73,17 +89,28 @@ export default function TeacherDashboard() {
     }
   };
 
-  const loadRoster = async (classroom: any) => {
+  const loadRoster = async (classroom: any, page = 1) => {
     setActiveClassroom(classroom);
     setSelectedStudent(null);
     try {
-      const data = await trpc.getClassroomRoster.query({ classroomId: classroom.id });
-      setRoster(data);
+      const data = await trpc.getClassroomRoster.query({ classroomId: classroom.id, page, pageSize: 10 });
+      if (Array.isArray(data)) {
+        setRoster(data);
+      } else {
+        setRoster(data.items);
+        setRosterTotalPages(data.totalPages);
+      }
     } catch (err) {
       console.error(err);
       toast.error("Failed to load roster");
     }
   };
+
+  useEffect(() => {
+    if (activeClassroom) {
+      loadRoster(activeClassroom, rosterPage);
+    }
+  }, [rosterPage]);
 
   const loadStudentDetail = async (studentId: string, studentName: string) => {
     setSelectedStudent({ id: studentId, name: studentName });
@@ -131,7 +158,12 @@ export default function TeacherDashboard() {
   };
 
   if (loading) {
-    return <div className="p-8 text-[#CECADF]">Loading dashboard...</div>;
+    return (
+      <div className="p-8 text-[#CECADF] flex flex-col items-center justify-center gap-3 h-[60vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+        <span>Loading dashboard...</span>
+      </div>
+    );
   }
 
   return (
@@ -261,6 +293,16 @@ export default function TeacherDashboard() {
                 No classrooms created yet. Create one to get an invite code for your students.
               </div>
             )}
+
+            {classroomsTotalPages > 1 && (
+              <div className="sm:col-span-2 pt-4 border-t border-[#2A2443] mt-2">
+                <Pagination
+                  currentPage={classroomsPage}
+                  totalPages={classroomsTotalPages}
+                  onPageChange={setClassroomsPage}
+                />
+              </div>
+            )}
           </div>
         </div>
       ) : !selectedStudent ? (
@@ -331,6 +373,16 @@ export default function TeacherDashboard() {
               </tbody>
             </table>
           </div>
+
+          {rosterTotalPages > 1 && (
+            <div className="p-4 border-t border-[#2A2443]">
+              <Pagination
+                currentPage={rosterPage}
+                totalPages={rosterTotalPages}
+                onPageChange={setRosterPage}
+              />
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

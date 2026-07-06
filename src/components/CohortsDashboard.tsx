@@ -4,6 +4,7 @@ import { Users, Plus, Hash, Trophy, Activity, ArrowRight, Loader2, BookOpen, Map
 import { DiscordIcon } from "./DiscordIcon";
 import { toast } from "sonner";
 import { useSession } from "../lib/auth-client";
+import { Pagination } from "./Pagination";
 
 interface CohortsDashboardProps {
   onNavigateToCourse?: (courseId: string) => void;
@@ -15,6 +16,8 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
   const userId = sessionData?.user?.id;
 
   const [memberships, setMemberships] = useState<any[] | null>(null);
+  const [cohortsPage, setCohortsPage] = useState(1);
+  const [cohortsTotalPages, setCohortsTotalPages] = useState(1);
   const [activeCohortId, setActiveCohortId] = useState<string | null>(null);
 
   const [isCreating, setIsCreating] = useState(false);
@@ -31,10 +34,15 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isJoinLoading, setIsJoinLoading] = useState(false);
 
-  const loadCohorts = async () => {
+  const loadCohorts = async (page = 1) => {
     try {
-      const res = await trpc.getUserCohorts.query();
-      setMemberships(res);
+      const res = await trpc.getUserCohorts.query({ page, pageSize: 8 });
+      if (Array.isArray(res)) {
+        setMemberships(res);
+      } else {
+        setMemberships(res.items);
+        setCohortsTotalPages(res.totalPages);
+      }
     } catch (e: any) {
       toast.error(e.message || "Failed to load cohorts");
     }
@@ -44,17 +52,20 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
     try {
       const [coursesRes, roadmapsRes] = await Promise.all([
         trpc.getCourses.query(),
-        trpc.getVisualRoadmaps.query()
+        trpc.getVisualRoadmaps.query({ pageSize: 100 })
       ]);
       setCourses(coursesRes || []);
-      setRoadmaps(roadmapsRes || []);
+      setRoadmaps(roadmapsRes?.items || []);
     } catch (e) {
       console.error("Failed to load user content", e);
     }
   };
 
   useEffect(() => {
-    loadCohorts();
+    loadCohorts(cohortsPage);
+  }, [cohortsPage]);
+
+  useEffect(() => {
     loadUserContent();
   }, []);
 
@@ -448,6 +459,16 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
           })
         )}
       </div>
+
+      {cohortsTotalPages > 1 && (
+        <div className="pt-2">
+          <Pagination
+            currentPage={cohortsPage}
+            totalPages={cohortsTotalPages}
+            onPageChange={setCohortsPage}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -482,7 +503,13 @@ function CohortDetail({
   onNavigateToRoadmap?: (visualRoadmapId: string) => void
 }) {
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
+  const [leaderboardPage, setLeaderboardPage] = useState(1);
+  const [leaderboardTotalPages, setLeaderboardTotalPages] = useState(1);
+
   const [activity, setActivity] = useState<any[] | null>(null);
+  const [activityPage, setActivityPage] = useState(1);
+  const [activityTotalPages, setActivityTotalPages] = useState(1);
+
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -508,14 +535,28 @@ function CohortDetail({
   };
 
   useEffect(() => {
-    trpc.getCohortLeaderboard.query({ cohortId })
-      .then(res => setLeaderboard(res))
+    trpc.getCohortLeaderboard.query({ cohortId, page: leaderboardPage, pageSize: 10 })
+      .then(res => {
+        if (Array.isArray(res)) setLeaderboard(res);
+        else {
+          setLeaderboard(res.items);
+          setLeaderboardTotalPages(res.totalPages);
+        }
+      })
       .catch(err => console.error("Failed to load leaderboard", err));
-    
-    trpc.getCohortActivity.query({ cohortId })
-      .then(res => setActivity(res))
+  }, [cohortId, leaderboardPage]);
+
+  useEffect(() => {
+    trpc.getCohortActivity.query({ cohortId, page: activityPage, pageSize: 10 })
+      .then(res => {
+        if (Array.isArray(res)) setActivity(res);
+        else {
+          setActivity(res.items);
+          setActivityTotalPages(res.totalPages);
+        }
+      })
       .catch(err => console.error("Failed to load activity", err));
-  }, [cohortId]);
+  }, [cohortId, activityPage]);
 
   const handleDelete = () => {
     setShowDeleteConfirm(true);
@@ -647,7 +688,7 @@ function CohortDetail({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 min-w-0">
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-amber-400" />
             <h2 className="text-xl font-bold text-[#FAF9FD]">Leaderboard</h2>
@@ -697,6 +738,16 @@ function CohortDetail({
               </tbody>
             </table>
             </div>
+
+            {leaderboardTotalPages > 1 && (
+              <div className="p-4 border-t border-[#2A2443]">
+                <Pagination
+                  currentPage={leaderboardPage}
+                  totalPages={leaderboardTotalPages}
+                  onPageChange={setLeaderboardPage}
+                />
+              </div>
+            )}
           </div>
         </div>
 
@@ -742,6 +793,16 @@ function CohortDetail({
             
             {activity && activity.length === 0 && (
               <p className="text-sm text-[#8E88AB] text-center py-4">No recent activity.</p>
+            )}
+
+            {activityTotalPages > 1 && (
+              <div className="pt-2 border-t border-[#2A2443] mt-4">
+                <Pagination
+                  currentPage={activityPage}
+                  totalPages={activityTotalPages}
+                  onPageChange={setActivityPage}
+                />
+              </div>
             )}
           </div>
         </div>

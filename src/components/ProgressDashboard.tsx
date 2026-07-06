@@ -1,5 +1,7 @@
-import React from "react";
-import { Trophy, CheckCircle } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Trophy, CheckCircle, Download, X } from "lucide-react";
+import { Pagination } from "./Pagination";
+import { useSession } from "../lib/auth-client";
 
 interface ProgressDashboardProps {
   completionPercentage: number;
@@ -20,6 +22,31 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
   currentRoadmap,
   streakDays = 1,
 }) => {
+  const { data: sessionData } = useSession();
+  const userName = sessionData?.user?.name || "Student";
+  const [showCertificate, setShowCertificate] = useState(false);
+  
+  const certId = useMemo(() => {
+    return 'ZC-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+  }, []);
+
+  const [lessonsPage, setLessonsPage] = useState(1);
+  const lessonsPerPage = 5;
+  const totalLessonPages = Math.ceil(completedLessons.length / lessonsPerPage);
+  const paginatedLessons = completedLessons.slice(
+    (lessonsPage - 1) * lessonsPerPage,
+    lessonsPage * lessonsPerPage
+  );
+
+  const [quizzesPage, setQuizzesPage] = useState(1);
+  const quizzesPerPage = 5;
+  const quizEntries = Object.entries(completedQuizzes);
+  const totalQuizPages = Math.ceil(quizEntries.length / quizzesPerPage);
+  const paginatedQuizzes = quizEntries.slice(
+    (quizzesPage - 1) * quizzesPerPage,
+    quizzesPage * quizzesPerPage
+  );
+
   // Render SVG circular progress inside the component to keep it modular
   const renderProgressRing = (pct: number, size: number = 84, strokeWidth: number = 7) => {
     const radius = (size - strokeWidth) / 2;
@@ -117,9 +144,9 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
               <p className="text-sm text-[#8E88AB] font-medium mb-2">
                 You have completed {Object.keys(completedQuizzes).length} quizzes.
               </p>
-              {Object.entries(completedQuizzes).length > 0 && (
+              {quizEntries.length > 0 && (
                 <div className="space-y-2 mt-2">
-                  {Object.entries(completedQuizzes).map(([lessonId, score]) => {
+                  {paginatedQuizzes.map(([lessonId, score]) => {
                     const allLessons = (currentRoadmap as any)?.modules?.flatMap((m: any) => m.lessons) || [];
                     const lessonTitle = allLessons.find((l: any) => l.id === lessonId)?.title || "Lesson Quiz";
                     return (
@@ -131,6 +158,11 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
                       </div>
                     );
                   })}
+                  <Pagination 
+                    currentPage={quizzesPage} 
+                    totalPages={totalQuizPages} 
+                    onPageChange={setQuizzesPage} 
+                  />
                 </div>
               )}
             </div>
@@ -138,12 +170,23 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
 
           {/* Completed Lessons checklist */}
           <div className="border-t border-[#2A2443] pt-5 space-y-3">
-            <h4 className="text-base font-bold text-[#FAF9FD]">Mastered Lessons Log:</h4>
+            <div className="flex justify-between items-center">
+              <h4 className="text-base font-bold text-[#FAF9FD]">Mastered Lessons Log:</h4>
+              {completionPercentage === 100 && totalLessons > 0 && (
+                <button
+                  onClick={() => setShowCertificate(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-lg text-xs font-bold transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Certificate
+                </button>
+              )}
+            </div>
             {completedLessons.length === 0 ? (
               <p className="text-sm text-[#8E88AB] italic">No lessons marked completed yet. Start learning in the Roadmap tab! 🧭</p>
             ) : (
               <div className="grid grid-cols-1 gap-2">
-                {completedLessons.map((id) => {
+                {paginatedLessons.map((id) => {
                   const allLessons = currentRoadmap?.modules?.flatMap((m: any) => m.lessons) || [];
                   const foundTitle = allLessons.find((l: any) => l.id === id)?.title || "Custom lesson node";
 
@@ -154,11 +197,111 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
                     </div>
                   );
                 })}
+                <Pagination 
+                  currentPage={lessonsPage} 
+                  totalPages={totalLessonPages} 
+                  onPageChange={setLessonsPage} 
+                />
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Certificate Modal */}
+      {showCertificate && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 print:p-0 print:bg-white print:static print:h-auto print:w-full print:block">
+          <style>
+            {`
+              @media print {
+                body > *:not(#certificate-modal-container) {
+                  display: none !important;
+                }
+                #certificate-modal-container {
+                  display: block !important;
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  width: 100%;
+                  height: 100%;
+                  margin: 0;
+                  padding: 0;
+                }
+                @page {
+                  size: landscape;
+                  margin: 0;
+                }
+              }
+            `}
+          </style>
+          
+          <div id="certificate-modal-container" className="relative w-full max-w-4xl bg-white text-slate-900 rounded-3xl shadow-2xl overflow-hidden print:shadow-none print:rounded-none flex flex-col">
+            {/* Action Bar (hidden in print) */}
+            <div className="flex items-center justify-between p-4 bg-slate-100 border-b border-slate-200 print:hidden">
+              <h2 className="text-lg font-bold text-slate-800">Certificate of Completion</h2>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-sm font-bold transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Save as PDF
+                </button>
+                <button
+                  onClick={() => setShowCertificate(false)}
+                  className="p-2 hover:bg-slate-200 rounded-xl transition text-slate-500"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Certificate Content */}
+            <div className="p-12 md:p-16 lg:p-24 flex-1 flex flex-col justify-center relative bg-white min-h-[600px] print:min-h-screen border-[16px] border-[#1A172E] print:border-[#1A172E]">
+              {/* Background Accents */}
+              <div className="absolute top-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-br-[120px]" />
+              <div className="absolute bottom-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-tl-[120px]" />
+              
+              <div className="relative z-10 text-center space-y-8">
+                <div>
+                  <h1 className="text-5xl md:text-6xl font-black text-[#1A172E] tracking-tight uppercase" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
+                    Certificate of Completion
+                  </h1>
+                  <p className="text-lg text-slate-500 mt-4 uppercase tracking-[0.2em] font-semibold">
+                    ZachCourse Learning Platform
+                  </p>
+                </div>
+
+                <div className="py-8 border-y-2 border-slate-100">
+                  <p className="text-xl text-slate-600 font-medium mb-4">This certifies that</p>
+                  <h2 className="text-4xl md:text-5xl font-bold text-indigo-600 mb-4">{userName}</h2>
+                  <p className="text-xl text-slate-600 font-medium mt-4">
+                    has successfully completed the course
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-3xl font-bold text-[#1A172E] mb-12">
+                    {currentRoadmap?.title || "Custom Course"}
+                  </h3>
+                  
+                  <div className="flex flex-col md:flex-row items-center justify-between w-full max-w-2xl mx-auto pt-8 border-t-2 border-slate-100 text-left">
+                    <div>
+                      <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Date Completed</p>
+                      <p className="text-lg font-bold text-slate-800">{new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    </div>
+                    
+                    <div className="mt-6 md:mt-0 md:text-right">
+                      <p className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Certificate ID</p>
+                      <p className="text-lg font-mono font-bold text-slate-800 tracking-wider">{certId}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

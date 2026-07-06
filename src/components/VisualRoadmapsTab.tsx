@@ -5,10 +5,13 @@ import { toast } from "sonner";
 import VisualRoadmapGraph from "./VisualRoadmapGraph";
 import { DocumentUpload } from "./DocumentUpload";
 import { apiFetch } from "../lib/api";
-
+import { Pagination } from "./Pagination";
 
 export interface VisualRoadmapsTabProps {
   roadmaps: any[];
+  currentPage?: number;
+  totalPages?: number;
+  onPageChange?: (page: number) => void;
   activeVRoadmapId: string | null;
   setActiveVRoadmapId: (id: string | null) => void;
   hasKey: boolean;
@@ -20,6 +23,9 @@ export interface VisualRoadmapsTabProps {
 
 export default function VisualRoadmapsTab({
   roadmaps,
+  currentPage = 1,
+  totalPages = 1,
+  onPageChange,
   activeVRoadmapId,
   setActiveVRoadmapId,
   hasKey,
@@ -345,6 +351,16 @@ export default function VisualRoadmapsTab({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {totalPages > 1 && onPageChange && (
+        <div className="shrink-0 pt-2">
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+          />
         </div>
       )}
 

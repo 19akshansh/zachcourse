@@ -252,15 +252,22 @@ export default function App() {
 
   // Visual Roadmaps states
   const [vroadmaps, setVRoadmaps] = useState<any[]>([]);
+  const [vroadmapsPage, setVroadmapsPage] = useState(1);
+  const [vroadmapsTotalPages, setVroadmapsTotalPages] = useState(1);
   const [activeVRoadmapId, setActiveVRoadmapId] = useState<string | null>(null);
 
-  // Load visual roadmaps on mount
+  // Load visual roadmaps on mount and page change
   useEffect(() => {
     if (!sessionData?.user) return;
-    trpc.getVisualRoadmaps.query().then(data => {
-      setVRoadmaps(data);
+    trpc.getVisualRoadmaps.query({ page: vroadmapsPage, pageSize: 6 }).then(data => {
+      if (Array.isArray(data)) {
+        setVRoadmaps(data);
+      } else {
+        setVRoadmaps(data.items);
+        setVroadmapsTotalPages(data.totalPages);
+      }
     }).catch(console.error);
-  }, [sessionData]);
+  }, [sessionData, vroadmapsPage]);
 
   // Derived states from activeCourse
   const currentRoadmap = activeCourse?.roadmapData;
@@ -1473,6 +1480,9 @@ ${lessonContent}`;
             {activeTab === "visual-roadmaps" && (
               <VisualRoadmapsTab
                 roadmaps={vroadmaps}
+                currentPage={vroadmapsPage}
+                totalPages={vroadmapsTotalPages}
+                onPageChange={setVroadmapsPage}
                 hasKey={hasKey}
                 onRoadmapGenerated={async (roadmapData, meta) => {
                   const saved = await trpc.saveVisualRoadmap.mutate({

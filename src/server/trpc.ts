@@ -522,27 +522,48 @@ Return ONLY valid JSON matching this schema:
         data: { title: input.title }
       });
     }),
-  getVisualRoadmaps: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.prisma.visualRoadmap.findMany({
-      where: { userId: ctx.user.id },
-      orderBy: [
-        { isFavorite: "desc" },
-        { updatedAt: "desc" }
-      ],
-      select: {
-        id: true,
-        title: true,
-        topic: true,
-        difficulty: true,
-        experienceLevel: true,
-        totalDuration: true,
-        isFavorite: true,
-        completedNodeIds: true,
-        roadmapData: true,
-        createdAt: true,
-      }
-    })
-  }),
+  getVisualRoadmaps: protectedProcedure
+    .input(z.object({
+      page: z.number().default(1),
+      pageSize: z.number().default(6),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      const page = input?.page || 1;
+      const pageSize = input?.pageSize || 6;
+      
+      const [items, totalCount] = await Promise.all([
+        ctx.prisma.visualRoadmap.findMany({
+          where: { userId: ctx.user.id },
+          orderBy: [
+            { isFavorite: "desc" },
+            { updatedAt: "desc" }
+          ],
+          select: {
+            id: true,
+            title: true,
+            topic: true,
+            difficulty: true,
+            experienceLevel: true,
+            totalDuration: true,
+            isFavorite: true,
+            completedNodeIds: true,
+            roadmapData: true,
+            createdAt: true,
+          },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        ctx.prisma.visualRoadmap.count({
+          where: { userId: ctx.user.id }
+        })
+      ]);
+
+      return {
+        items,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize)
+      };
+    }),
 
   getVisualRoadmap: protectedProcedure
     .input(z.object({ id: z.string() }))
@@ -705,8 +726,15 @@ Return ONLY JSON matching this schema:
     }),
 
   getCohortActivity: protectedProcedure
-    .input(z.object({ cohortId: z.string() }))
+    .input(z.object({ 
+      cohortId: z.string(),
+      page: z.number().default(1),
+      pageSize: z.number().default(10)
+    }))
     .query(async ({ ctx, input }) => {
+      const page = input.page;
+      const pageSize = input.pageSize;
+
       const isMember = await ctx.prisma.cohortMember.findUnique({
         where: { cohortId_userId: { cohortId: input.cohortId, userId: ctx.user.id } }
       });
@@ -717,24 +745,43 @@ Return ONLY JSON matching this schema:
       });
       const memberIds = members.map(m => m.userId);
 
-      const recentProgress = await ctx.prisma.userProgress.findMany({
-        where: { userId: { in: memberIds } },
-        include: { user: true },
-        orderBy: { updatedAt: 'desc' },
-        take: 20
-      });
+      const [recentProgress, totalCount] = await Promise.all([
+        ctx.prisma.userProgress.findMany({
+          where: { userId: { in: memberIds } },
+          include: { user: true },
+          orderBy: { updatedAt: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize
+        }),
+        ctx.prisma.userProgress.count({
+          where: { userId: { in: memberIds } }
+        })
+      ]);
 
-      return recentProgress.map(p => ({
+      const items = recentProgress.map(p => ({
         userId: p.userId,
         userName: p.user.name,
         action: p.currentCourse ? `Studied ${p.currentCourse}` : 'Logged activity',
         time: p.updatedAt
       }));
+
+      return {
+        items,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize)
+      };
     }),
 
   getCohortLeaderboard: protectedProcedure
-    .input(z.object({ cohortId: z.string() }))
+    .input(z.object({ 
+      cohortId: z.string(),
+      page: z.number().default(1),
+      pageSize: z.number().default(10)
+    }))
     .query(async ({ ctx, input }) => {
+      const page = input.page;
+      const pageSize = input.pageSize;
+
       const isMember = await ctx.prisma.cohortMember.findUnique({
         where: { cohortId_userId: { cohortId: input.cohortId, userId: ctx.user.id } }
       });
@@ -748,6 +795,10 @@ Return ONLY JSON matching this schema:
         }
       });
       if (!cohort) throw new TRPCError({ code: "NOT_FOUND", message: "Cohort not found" });
+
+      const totalCount = await ctx.prisma.cohortMember.count({
+        where: { cohortId: input.cohortId }
+      });
 
       const members = await ctx.prisma.cohortMember.findMany({
         where: { cohortId: input.cohortId },
@@ -811,7 +862,14 @@ Return ONLY JSON matching this schema:
         })
       );
 
-      return leaderboard.sort((a, b) => b.estimatedProficiency - a.estimatedProficiency);
+      const sortedLeaderboard = leaderboard.sort((a, b) => b.estimatedProficiency - a.estimatedProficiency);
+      const items = sortedLeaderboard.slice((page - 1) * pageSize, page * pageSize);
+
+      return {
+        items,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize)
+      };
     }),
 
   previewCohortByInviteCode: protectedProcedure
@@ -1017,20 +1075,41 @@ Return ONLY JSON matching this schema:
       return cohort;
     }),
 
-  getUserCohorts: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.prisma.cohortMember.findMany({
-      where: { userId: ctx.user.id },
-      include: {
-        cohort: {
+  getUserCohorts: protectedProcedure
+    .input(z.object({
+      page: z.number().default(1),
+      pageSize: z.number().default(8),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      const page = input?.page || 1;
+      const pageSize = input?.pageSize || 8;
+      
+      const [items, totalCount] = await Promise.all([
+        ctx.prisma.cohortMember.findMany({
+          where: { userId: ctx.user.id },
           include: {
-            course: true,
-            visualRoadmap: true,
-            _count: { select: { members: true } }
-          }
-        }
-      }
-    });
-  }),
+            cohort: {
+              include: {
+                course: true,
+                visualRoadmap: true,
+                _count: { select: { members: true } }
+              }
+            }
+          },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        ctx.prisma.cohortMember.count({
+          where: { userId: ctx.user.id }
+        })
+      ]);
+
+      return {
+        items,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize)
+      };
+    }),
 
   deleteCohort: protectedProcedure
     .input(z.object({ cohortId: z.string() }))
@@ -1114,8 +1193,15 @@ Return ONLY JSON matching this schema:
     }),
 
   getClassroomRoster: protectedProcedure
-    .input(z.object({ classroomId: z.string() }))
+    .input(z.object({ 
+      classroomId: z.string(),
+      page: z.number().default(1),
+      pageSize: z.number().default(10)
+    }))
     .query(async ({ ctx, input }) => {
+      const page = input.page;
+      const pageSize = input.pageSize;
+
       if ((ctx.user as any).role !== "teacher") throw new TRPCError({ code: "FORBIDDEN" });
       const classroom = await ctx.prisma.cohort.findUnique({
         where: { id: input.classroomId },
@@ -1125,6 +1211,10 @@ Return ONLY JSON matching this schema:
         }
       });
       if (!classroom || classroom.ownerId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+
+      const totalCount = await ctx.prisma.cohortMember.count({
+        where: { cohortId: input.classroomId }
+      });
 
       const members = await ctx.prisma.cohortMember.findMany({
         where: { cohortId: input.classroomId },
@@ -1191,7 +1281,15 @@ Return ONLY JSON matching this schema:
           };
         })
       );
-      return roster;
+      
+      const sortedRoster = roster.sort((a, b) => b.estimatedProficiency - a.estimatedProficiency);
+      const items = sortedRoster.slice((page - 1) * pageSize, page * pageSize);
+
+      return {
+        items,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize)
+      };
     }),
 
   getStudentDetail: protectedProcedure
@@ -1223,17 +1321,39 @@ Return ONLY JSON matching this schema:
       return { courses, weakTopics, progress };
     }),
 
-  getTeacherClassrooms: protectedProcedure.query(async ({ ctx }) => {
-    if ((ctx.user as any).role !== "teacher") throw new TRPCError({ code: "FORBIDDEN" });
-    return await ctx.prisma.cohort.findMany({
-      where: { ownerId: ctx.user.id, isClassroom: true },
-      include: {
-        course: true,
-        visualRoadmap: true,
-        _count: { select: { members: true } }
-      }
-    });
-  }),
+  getTeacherClassrooms: protectedProcedure
+    .input(z.object({
+      page: z.number().default(1),
+      pageSize: z.number().default(8),
+    }).optional())
+    .query(async ({ ctx, input }) => {
+      const page = input?.page || 1;
+      const pageSize = input?.pageSize || 8;
+      
+      if ((ctx.user as any).role !== "teacher") throw new TRPCError({ code: "FORBIDDEN" });
+      
+      const [items, totalCount] = await Promise.all([
+        ctx.prisma.cohort.findMany({
+          where: { ownerId: ctx.user.id, isClassroom: true },
+          include: {
+            course: true,
+            visualRoadmap: true,
+            _count: { select: { members: true } }
+          },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        }),
+        ctx.prisma.cohort.count({
+          where: { ownerId: ctx.user.id, isClassroom: true }
+        })
+      ]);
+
+      return {
+        items,
+        totalCount,
+        totalPages: Math.ceil(totalCount / pageSize)
+      };
+    }),
 
   updateMyBio: protectedProcedure
     .input(z.object({ bio: z.string().max(160, "Bio must be 160 characters or less") }))
@@ -1343,7 +1463,7 @@ Return ONLY JSON matching this schema:
         if (cohort.ownerId === input.userId) {
           role = cohort.isClassroom ? "Teacher" : "Owner";
         } else {
-          role = cohort.isClassroom ? "Student" : "Member";
+          role = cohort.isClassroom ? "Student" : "Student";
         }
       }
 
