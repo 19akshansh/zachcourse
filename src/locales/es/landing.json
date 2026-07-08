@@ -1,0 +1,140 @@
+{
+  "logo": "ZachCourse",
+  "signIn": "Iniciar Sesión",
+  "getStartedFree": "Comenzar Gratis",
+  "heroBadge": "El compañero de estudio autocorrector ✨",
+  "heroTitlePart1": "Deja de coleccionar cursos.",
+  "heroTitlePart2": "Empieza a terminarlos.",
+  "heroSubtitle": "Transforma cualquier programa de estudios, esquema de libro de texto o documento en una guía de aprendizaje semanal totalmente registrada. Guiado por mentores de IA autocorrectores y evaluaciones adaptativas para garantizar el dominio.",
+  "featuresBadge": "Diseñado para el Dominio",
+  "featuresTitle": "Un ecosistema completo diseñado para ayudarte a tener éxito",
+  "featuresSubtitle": "ZachCourse combina flujos de trabajo multiagente avanzados, gráficos visuales interactivos y estructuras de estudio social.",
+  "testimonialsBadge": "Casos de Éxito",
+  "testimonialsTitle": "Lo que dicen nuestros estudiantes",
+  "testimonialsSubtitle": "Únete a miles de estudiantes que han transformado sus hábitos de aprendizaje.",
+  "ctaBadge": "¿Listo para empezar?",
+  "ctaTitle": "Tu compañero de aprendizaje personalizado te está esperando",
+  "ctaSubtitle": "Crea un curso en segundos y empieza a aprender con tu propio mentor de IA.",
+  "ctaButton": "Crear mi primer curso",
+  "footerText": "ZachCourse. Todos los derechos reservados. Curación autocorrectora impulsada por bucles de agentes.",
+  "testimonials": [
+    {
+      "initials": "JD",
+      "name": "Jordan Davies",
+      "role": "Desarrollador autodidacta",
+      "quote": "¡ZachCourse tomó el abrumador programa de estudios de Coursera y lo convirtió en una guía diaria de 6 semanas fácil de digerir. Terminé un curso por primera vez en mi vida!"
+    },
+    {
+      "initials": "AM",
+      "name": "Aisha Miller",
+      "role": "Cambio de Carrera",
+      "quote": "Las pruebas adaptativas se aseguraron de que realmente entendiera las relaciones de base de datos antes de permitirme avanzar. El mentor de IA se sintió como tener un tutor privado y amigable las 24 horas, los 7 días de la semana."
+    },
+    {
+      "initials": "TL",
+      "name": "Takahiro Lee",
+      "role": "Estudiante de Ciencias de la Computación",
+      "quote": "Poder pegar cualquier enlace de programa de estudios y obtener un espacio de trabajo estructurado de inmediato es un superpoder. ¡El mejor compañero de estudio que existe!"
+    }
+  ],
+  "features": [
+    {
+      "emoji": "🗺️",
+      "title": "Creador de Guías con IA",
+      "description": "Genera objetivos semanales personalizados, hitos y listas de seguimiento diario a partir de cualquier programa de estudios o esquema."
+    },
+    {
+      "emoji": "💬",
+      "title": "Chat de Mentor Inteligente",
+      "description": "Haz preguntas, obtén explicaciones de código paso a paso o solicita pistas en tiempo real adaptadas a tu lección activa."
+    },
+    {
+      "emoji": "🧠",
+      "title": "Pruebas Adaptativas",
+      "description": "Evalúa automáticamente tu comprensión en cada hito con respuestas claras y comentarios personalizados."
+    },
+    {
+      "emoji": "📈",
+      "title": "Seguimiento de Progreso",
+      "description": "Registra horas, marca elementos completados, gana insignias de logros y mira cómo crece tu racha de estudio diario."
+    },
+    {
+      "emoji": "📎",
+      "title": "Entrada de URL y Texto",
+      "description": "Importa tu esquema de curso pegando un enlace del programa de estudios, texto plano en markdown o el índice de un libro."
+    },
+    {
+      "emoji": "📚",
+      "title": "Soporte Multi-Curso",
+      "description": "Organiza todo tu viaje de aprendizaje. Cambia entre múltiples cursos sin perder tu progreso."
+    },
+    {
+      "emoji": "🗺️",
+      "title": "Gráficos Visuales Interactivos",
+      "description": "Explora tu plan de estudios como un gráfico visual de nodos con rutas secundarias y módulos paralelos personalizados por React Flow."
+    },
+    {
+      "emoji": "🛠️",
+      "title": "Proyectos de Módulo Prácticos",
+      "description": "Aplica tus conocimientos a desarrollos prácticos para principiantes, generados dinámicamente según tu nivel y progreso de aprendizaje semanal."
+    },
+    {
+      "emoji": "👥",
+      "title": "Cohortes y Aulas",
+      "description": "Crea grupos de estudio compartidos, previsualiza y clona planes de estudio de cursos, sincroniza tablas de clasificación y monitorea las listas de estudiantes de aulas activas."
+    },
+    {
+      "emoji": "🛡️",
+      "title": "Bucles de Control de Calidad Autocorrectores",
+      "description": "Los agentes de Crítica y Juez evalúan de manera síncrona las lecciones y el orden de las guías de aprendizaje para una precisión y claridad óptimas antes de la entrega."
+    },
+    {
+      "emoji": "🔒",
+      "title": "Canal de Documentos Protegido",
+      "description": "El sistema seguro de carga de archivos escanea en busca de inyecciones de comandos y patrones maliciosos, bloqueando por completo los riesgos de SSRF en el servidor."
+    },
+    {
+      "emoji": "🔌",
+      "title": "Servidor de Herramientas MCP",
+      "description": "Servidor de Protocolo de Contexto de Modelo independiente que expone capacidades robustas de búsqueda y extracción a Cursor, Claude Desktop y agentes externos."
+    }
+  ],
+  "startLearningFree": "Comenzar a aprender gratis",
+  "noCreditCard": "No se requiere tarjeta de crédito • Plan gratuito para siempre • Configuración en 2 minutos",
+  "simulatedConfig": "roadmap_core_v1.config",
+  "activeStudyBlock": "Bloque de estudio activo",
+  "myActiveCourse": "Mi curso activo",
+  "weeklyProgress": "Progreso semanal",
+  "percentDone": "{{count}}% completado",
+  "courseMilestones": "Hitos del curso",
+  "week1Fundamentals": "Semana 1: Fundamentos",
+  "completedLessons": "Completado • 4 lecciones",
+  "week2NeuralNets": "Semana 2: Redes neuronales",
+  "inProgressQuizUnlocked": "En progreso • Cuestionario desbloqueado",
+  "week3DeepArchitectures": "Semana 3: Arquitecturas profundas",
+  "lockedLessons": "Bloqueado • 5 lecciones",
+  "lesson23": "Lección 2.3",
+  "backpropagationDemystified": "Retropropagación desmitificada",
+  "understandingErrorGradients": "Comprensión de gradientes de error y regla de la cadena",
+  "understandingErrorGradientsDesc": "Para calcular las actualizaciones de las capas más profundas, aplicamos la regla de la cadena del cálculo para hallar cómo cambia la pérdida en respuesta a cada peso de conexión...",
+  "aiCompanionMentor": "Mentor de IA de ZachCourse:",
+  "aiMentorQuote": "“Piensa en la propagación de errores como en la distribución de calificaciones en un proyecto grupal: ¡rastreamos hacia atrás para ver exactamente quién contribuyó a cada resultado final!”",
+  "readyForWeeklyQuiz": "Listo para el cuestionario semanal",
+  "takeQuiz": "Realizar cuestionario (10 preguntas) →",
+  "methodology": "Metodología",
+  "howItWorksPart1": "De perdido a encaminado en 3 pasos",
+  "howItWorksPart2": "Reducimos la brecha entre guardar contenido de aprendizaje y comprenderlo realmente.",
+  "howItWorksStep1Title": "Pega un curso o tema",
+  "howItWorksStep1Desc": "Proporciona la URL de un sitio web, el texto de un programa, una lista de capítulos o simplemente escribe el tema que deseas dominar desde cero.",
+  "howItWorksStep2Title": "Obtén tu mapa de ruta personal",
+  "howItWorksStep2Desc": "Nuestro motor de IA divide instantáneamente el contenido en objetivos semanales estructurados, metas de lecciones y listas de tareas.",
+  "howItWorksStep3Title": "Aprende, responde cuestionarios y realiza un seguimiento",
+  "howItWorksStep3Desc": "Habla con tu tutor de IA integrado para explicar módulos difíciles, aprueba cuestionarios de conceptos y acumula rachas de estudio.",
+  "joinLearners": "Únete a más de 2400 estudiantes que ya están encaminados",
+  "readyToFinish": "¿Listo para terminar realmente ese curso?",
+  "readyToFinishDesc": "Deja de acumular marcadores sin leer. Crea tu mapa de ruta personalizado semana a semana, sincroniza tus objetivos de estudio y domina tus materias.",
+  "freePlanIncludes": "El plan gratuito incluye 1 curso activo y 3 cuestionarios por semana",
+  "github": "GitHub",
+  "kaggleSubmission": "Entrega de Kaggle",
+  "builtForGoogle": "Creado para Google x Kaggle AI Agents Vibecoding 2026"
+}

@@ -1,19 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { trpc } from "../lib/trpc-client";
 import { Trophy, Download, Award, Loader2, Home, ExternalLink } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface PublicCertificatePageProps {
   certId: string;
 }
 
 export const PublicCertificatePage: React.FC<PublicCertificatePageProps> = ({ certId }) => {
+  const { t, i18n } = useTranslation(["certificate"]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [certificate, setCertificate] = useState<any>(null);
 
   useEffect(() => {
     if (!certId) {
-      setError("No certificate ID provided.");
+      setError(t("noCertId", { defaultValue: "No certificate ID provided." }));
       setLoading(false);
       return;
     }
@@ -26,17 +28,17 @@ export const PublicCertificatePage: React.FC<PublicCertificatePageProps> = ({ ce
       })
       .catch((err: any) => {
         console.error("Error fetching certificate:", err);
-        setError(err.message || "Certificate not found.");
+        setError(err.message || t("certNotFound", { defaultValue: "Certificate not found." }));
         setLoading(false);
       });
-  }, [certId]);
+  }, [certId, t]);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0F0D19] flex flex-col items-center justify-center text-[#CECADF] p-6 text-center">
         <Loader2 className="w-12 h-12 text-[#4F46E5] animate-spin mb-4" />
-        <h2 className="text-xl font-bold tracking-tight">Retrieving Certificate...</h2>
-        <p className="text-sm text-[#8E88AB] mt-1 font-medium">Verifying credentials from ZachCourse database.</p>
+        <h2 className="text-xl font-bold tracking-tight">{t("retrievingCert", { defaultValue: "Retrieving Certificate..." })}</h2>
+        <p className="text-sm text-[#8E88AB] mt-1 font-medium">{t("verifyingCredentials", { defaultValue: "Verifying credentials from ZachCourse database." })}</p>
       </div>
     );
   }
@@ -47,22 +49,22 @@ export const PublicCertificatePage: React.FC<PublicCertificatePageProps> = ({ ce
         <div className="w-16 h-16 bg-red-950/20 text-red-400 flex items-center justify-center rounded-2xl border border-red-500/20 mb-4 shadow-lg">
           <Award className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold tracking-tight text-white">Invalid Certificate</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-white">{t("invalidCert", { defaultValue: "Invalid Certificate" })}</h2>
         <p className="text-[#8E88AB] mt-2 max-w-md font-medium text-sm">
-          {error || "The certificate ID you are trying to access does not exist or has been modified."}
+          {error || t("invalidCertDesc", { defaultValue: "The certificate ID you are trying to access does not exist or has been modified." })}
         </p>
         <button
           onClick={() => { window.location.href = "/"; }}
           className="mt-6 flex items-center gap-2 px-5 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-white rounded-xl text-sm font-bold transition-all border border-[#2A2443]"
         >
           <Home className="w-4 h-4" />
-          Go to Home
+          {t("goToHome", { defaultValue: "Go to Home" })}
         </button>
       </div>
     );
   }
 
-  const formattedDate = new Date(certificate.completionDate).toLocaleDateString(undefined, {
+  const formattedDate = new Date(certificate.completionDate).toLocaleDateString(i18n.language, {
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -117,7 +119,7 @@ export const PublicCertificatePage: React.FC<PublicCertificatePageProps> = ({ ce
             Zach<span className="text-[#4F46E5] group-hover:text-white transition-colors duration-200">Course</span>
           </span>
           <span className="bg-[#1E1A33] border border-[#2A2443] text-[#8E88AB] text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider hidden sm:inline">
-            Verification Core
+            {t("verificationCore", { defaultValue: "Verification Core" })}
           </span>
         </div>
 
@@ -126,7 +128,7 @@ export const PublicCertificatePage: React.FC<PublicCertificatePageProps> = ({ ce
             href="/"
             className="flex items-center gap-1.5 px-3.5 py-2 bg-[#1E1A33] hover:bg-[#2A2443] text-[#FAF9FD] rounded-xl text-sm font-bold transition-all border border-[#2A2443]"
           >
-            <span>Platform</span>
+            <span>{t("platform", { defaultValue: "Platform" })}</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
         </div>
@@ -147,19 +149,19 @@ export const PublicCertificatePage: React.FC<PublicCertificatePageProps> = ({ ce
               {/* Header block */}
               <div>
                 <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-[#1A172E] tracking-tight uppercase" style={{ fontFamily: "Space Grotesk, sans-serif" }}>
-                  Certificate of Completion
+                  {t("title", { defaultValue: "Certificate of Completion" })}
                 </h1>
                 <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-semibold mt-1">
-                  ZachCourse Learning Platform
+                  {t("learningPlatform", { defaultValue: "ZachCourse Learning Platform" })}
                 </p>
               </div>
 
               {/* Recipient block */}
               <div className="py-2.5 my-2 border-y border-slate-100">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">This certifies that</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">{t("thisCertifiesThat", { defaultValue: "This certifies that" })}</p>
                 <h2 className="text-lg sm:text-xl md:text-2xl font-black text-indigo-600 leading-tight">{certificate.userName}</h2>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">
-                  has successfully completed the course
+                  {t("forCompleting", { defaultValue: "has successfully completed the course" })}
                 </p>
               </div>
 
@@ -171,12 +173,12 @@ export const PublicCertificatePage: React.FC<PublicCertificatePageProps> = ({ ce
                   
                 <div className="flex items-center justify-between w-full max-w-lg mx-auto pt-2.5 border-t border-slate-100 text-left mt-auto">
                   <div>
-                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Date Completed</p>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">{t("dateCompleted", { defaultValue: "Date Completed" })}</p>
                     <p className="text-[11px] sm:text-xs font-bold text-slate-800">{formattedDate}</p>
                   </div>
                      
                   <div className="text-right">
-                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Certificate ID</p>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">{t("certId", { defaultValue: "Certificate ID" })}</p>
                     <p className="text-[11px] sm:text-xs font-mono font-bold text-indigo-600 tracking-wider">{certificate.certId}</p>
                   </div>
                 </div>
@@ -189,21 +191,21 @@ export const PublicCertificatePage: React.FC<PublicCertificatePageProps> = ({ ce
             <div className="w-20 h-20 bg-emerald-100 text-emerald-600 flex items-center justify-center rounded-full mb-4 shadow-lg">
                <Trophy className="w-10 h-10" />
             </div>
-            <h3 className="text-2xl font-bold text-slate-800">Certificate Verified!</h3>
+            <h3 className="text-2xl font-bold text-slate-800">{t("certVerified", { defaultValue: "Certificate Verified!" })}</h3>
             <p className="text-slate-600 text-sm max-w-[280px] leading-relaxed">
-              <strong>{certificate.userName}</strong> has successfully completed <strong>{certificate.courseTitle}</strong> on ZachCourse!
+              <strong>{certificate.userName}</strong> {t("hasSuccessfullyCompletedSimple", { defaultValue: "has successfully completed" })} <strong>{certificate.courseTitle}</strong> {t("onZachCourse", { defaultValue: "on ZachCourse!" })}
             </p>
             <div className="w-full border-t border-slate-200 pt-4 mt-2 text-left space-y-3">
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Recipient Name</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("recipientName", { defaultValue: "Recipient Name" })}</p>
                 <p className="text-sm font-bold text-slate-800">{certificate.userName}</p>
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Date Completed</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("dateCompleted", { defaultValue: "Date Completed" })}</p>
                 <p className="text-sm font-bold text-slate-800">{formattedDate}</p>
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Certificate ID</p>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("certId", { defaultValue: "Certificate ID" })}</p>
                 <p className="text-sm font-mono font-bold text-indigo-600 tracking-wider">{certificate.certId}</p>
               </div>
             </div>
@@ -217,13 +219,13 @@ export const PublicCertificatePage: React.FC<PublicCertificatePageProps> = ({ ce
             className="flex items-center justify-center gap-2.5 px-6 py-3.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl text-sm font-bold transition-all shadow-lg hover:shadow-[#4F46E5]/20 hover:scale-[1.02] active:scale-95 duration-200 w-full sm:w-auto"
           >
             <Download className="w-4 h-4" />
-            <span>Download Certificate (PDF)</span>
+            <span>{t("downloadPdf", { defaultValue: "Download Certificate (PDF)" })}</span>
           </button>
         </div>
       </main>
 
       <footer className="no-print mt-auto py-6 text-center text-xs text-[#8E88AB] border-t border-[#131124]">
-        <p>© {new Date().getFullYear()} ZachCourse. All rights reserved. Secured with cryptographic credentials verification.</p>
+        <p>{t("footerText", { year: new Date().getFullYear(), defaultValue: "© {{year}} ZachCourse. All rights reserved. Secured with cryptographic credentials verification.", interpolation: { escapeValue: false } })}</p>
       </footer>
     </div>
   );

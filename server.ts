@@ -21,7 +21,7 @@ import { retrieveRelevantMemories, storeMentorExchange } from "./src/lib/memory"
 import { isBlockedUrl, isBlockedUrlResolved } from "./src/lib/ssrf-guard";
 import { getLocalFallbackRoadmap, getLocalFallbackLesson, getLocalFallbackQuiz, getLocalFallbackMentorReply } from "./src/lib/local-fallbacks";
 import { generateRoadmapContent, generateVisualRoadmapContent } from "./src/server/agents/roadmap-agent";
-import { TONE_INSTRUCTIONS } from "./src/lib/tone-options";
+import { TONE_INSTRUCTIONS, LANGUAGE_INSTRUCTIONS } from "./src/lib/tone-options";
 import { fetchUrlTool, searchWebTool } from "./src/lib/mentor-tools";
 import { sanitizeResourceUrl } from "./src/lib/resource-link";
 
@@ -75,13 +75,10 @@ app.set("trust proxy", true);
 const PORT = 3000;
 
 // Server-side Google provider using env key
-const serverGoogle = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY || "",
-});
+
 
 // Helper to get a model — easy to swap
-const getServerModel = (modelId = "gemini-2.5-flash") => 
-  serverGoogle(modelId);
+
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -218,7 +215,8 @@ async function callAI(
   
   for (const modelId of models) {
     try {
-      const googleClient = options.apiKey ? createGoogleGenerativeAI({ apiKey: options.apiKey }) : serverGoogle;
+      if (!options.apiKey) throw new Error("MISSING_API_KEY");
+      const googleClient = createGoogleGenerativeAI({ apiKey: options.apiKey });
       const model = googleClient(modelId);
       
       if (options.schema) {
@@ -381,7 +379,17 @@ app.post(
 // ============================================================================
 // 1. API: Generate Roadmap
 app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
-  const { topic, sourceUrl, textContent, documentContext } = req.body;
+  const { topic, sourceUrl, textContent, documentContext, language } = req.body;
+  let userKey = req.headers["x-user-key"] as string | undefined;
+  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
+    if (!userKey) {
+      res.status(403).json({ error: "Missing API key" });
+      return;
+    }
+  if (!userKey) {
+    res.status(403).json({ error: "Missing API key" });
+    return;
+  }
   if (topic && topic.length > 500) {
     res.status(400).json({ error: "Topic too long. Max 500 characters." });
     return;
@@ -410,6 +418,8 @@ app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
       textContent,
       documentContext,
       tone,
+      language,
+      userKey,
     });
 
     res.json({ roadmap: roadmapData });
@@ -434,10 +444,11 @@ app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
 //   graphs without risking timeouts.
 // ============================================================================
 app.post("/api/generate-visual-roadmap", aiRateLimit, async (req, res) => {
-  const { topic, experienceLevel, backgroundContext, weeklyHours, sourceUrl, documentContext, tone } = req.body
+  const { topic, experienceLevel, backgroundContext, weeklyHours, sourceUrl, documentContext, tone, language } = req.body
   
   try {
-    const userKey = req.headers["x-user-key"] as string | undefined;
+    let userKey = req.headers["x-user-key"] as string | undefined;
+  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
     const data = await generateVisualRoadmapContent({
       topic,
       experienceLevel,
@@ -445,9 +456,7 @@ app.post("/api/generate-visual-roadmap", aiRateLimit, async (req, res) => {
       weeklyHours,
       sourceUrl,
       documentContext,
-      tone,
-      userKey,
-    });
+      tone, language, userKey, });
 
     if (!data) {
       res.status(500).json({ error: "Generation failed" })
@@ -476,7 +485,13 @@ app.post("/api/generate-visual-roadmap", aiRateLimit, async (req, res) => {
 // ============================================================================
 // 2. API: Generate Study Guide Content
 app.post("/api/generate-lesson", requireAuth, async (req, res) => {
-  const { roadmapKey, moduleId, lessonId, lessonTitle, concepts, courseContext, documentContext, courseId, experienceLevel, backgroundContext, tone } = req.body;
+  const { roadmapKey, moduleId, lessonId, lessonTitle, concepts, courseContext, documentContext, courseId, experienceLevel, backgroundContext, tone, language } = req.body;
+  let userKey = req.headers["x-user-key"] as string | undefined;
+  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
+  if (!userKey) {
+    res.status(403).json({ error: "Missing API key" });
+    return;
+  }
   try {
     if (!lessonTitle) {
       res.status(400).json({ error: "Missing lessonTitle" });
@@ -488,6 +503,7 @@ app.post("/api/generate-lesson", requireAuth, async (req, res) => {
       : "";
 
     const toneInstruction = TONE_INSTRUCTIONS[tone || "friendly"] ?? TONE_INSTRUCTIONS.friendly;
+    const languageInstruction = LANGUAGE_INSTRUCTIONS[language || "en"] ?? LANGUAGE_INSTRUCTIONS.en;
 
     const prompt = `You are an expert tutor. Write a complete, 
 engaging study guide for:
@@ -495,6 +511,7 @@ Lesson: "${lessonTitle}"
 Concepts: ${JSON.stringify(concepts || [])}
 Target Level: ${experienceLevel || "beginner"}
 Content tone: ${toneInstruction}
+Language Requirement: ${languageInstruction}
 ${backgroundContext ? `Learner Background: ${backgroundContext}` : ""}
 ${safeDocContext ? `
 Relevant source material for this lesson:
@@ -512,7 +529,7 @@ Format in Markdown with sections:
 
 Be thorough, friendly, and practical.`;
 
-    let contentText = await callAI(prompt)
+    let contentText = await callAI(prompt, { apiKey: userKey })
       ?? getLocalFallbackLesson(lessonTitle, concepts);
 
     const judgeSchema = z.object({
@@ -539,7 +556,7 @@ Concepts: ${JSON.stringify(concepts || [])}
 Generated Content:
 ${contentToEvaluate}
 `;
-      return await callAI(judgePrompt, { schema: judgeSchema });
+      return await callAI(judgePrompt, { schema: judgeSchema, apiKey: userKey });
     };
 
     let evaluation = await evaluateLesson(contentText);
@@ -548,7 +565,7 @@ ${contentToEvaluate}
       console.log(`[Judge Agent] Lesson "${lessonTitle}" failed evaluation. Retrying...`);
       const revisionPrompt = prompt + `\n\nNOTE: A reviewer evaluated your previous attempt and found the following issues:\n${evaluation.feedback}\n\nPlease revise the lesson to address these issues. Ensure all previous constraints are met.`;
       
-      contentText = await callAI(revisionPrompt) ?? contentText; // Fallback to old if it fails completely
+      contentText = await callAI(revisionPrompt, { apiKey: userKey }) ?? contentText; // Fallback to old if it fails completely
       evaluation = await evaluateLesson(contentText); // Re-evaluate
     }
 
@@ -593,7 +610,13 @@ ${contentToEvaluate}
 // ============================================================================
 // 3. API: Generate Quiz
 app.post("/api/generate-quiz", requireAuth, async (req, res) => {
-  const { lessonTitle, lessonContent, tone } = req.body;
+  const { lessonTitle, lessonContent, tone, language } = req.body;
+  let userKey = req.headers["x-user-key"] as string | undefined;
+  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
+  if (!userKey) {
+    res.status(403).json({ error: "Missing API key" });
+    return;
+  }
   try {
     if (!lessonTitle) {
       res.status(400).json({ error: "Missing lessonTitle" });
@@ -611,11 +634,12 @@ app.post("/api/generate-quiz", requireAuth, async (req, res) => {
     });
 
     const toneInstruction = TONE_INSTRUCTIONS[tone || "friendly"] ?? TONE_INSTRUCTIONS.friendly;
-
+    const languageInstruction = LANGUAGE_INSTRUCTIONS[language || "en"] ?? LANGUAGE_INSTRUCTIONS.en;
     const prompt = `Generate exactly 3 multiple-choice quiz 
 questions to test understanding of: "${lessonTitle}"
 ${lessonContent ? "Content summary: " + lessonContent.slice(0, 600) : ""}
 Content tone (especially for explanations): ${toneInstruction}
+Language Requirement: ${languageInstruction}
 
 Requirements:
 - Test understanding not memorization
@@ -623,7 +647,7 @@ Requirements:
 - Include clear explanation for correct answer
 - Vary difficulty: 1 easy, 1 medium, 1 hard`;
 
-    const quizData = await callAI(prompt, { schema })
+    const quizData = await callAI(prompt, { schema, apiKey: userKey })
       ?? getLocalFallbackQuiz(lessonTitle, req.body.concepts || []);
 
     res.json(quizData);
@@ -661,7 +685,8 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
       currentCourseTitle, 
       currentLessonTitle,
       courseId,
-      currentLessonId
+      currentLessonId,
+      language
     } = req.body;
 
     if (!message || typeof message !== "string") {
@@ -716,9 +741,13 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
         }\n`
       : "";
 
-    // Check if user passed their own key
-    const userKey = req.headers["x-user-key"] as string | undefined;
-    const googleClient = userKey ? createGoogleGenerativeAI({ apiKey: userKey }) : createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY });
+    let userKey = req.headers["x-user-key"] as string | undefined;
+  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
+    if (!userKey) {
+      res.status(403).json({ error: "Missing API key" });
+      return;
+    }
+    const googleClient = createGoogleGenerativeAI({ apiKey: userKey });
     const model = googleClient("gemini-2.5-flash");
 
     res.setHeader("Content-Type", "text/event-stream");
@@ -729,11 +758,13 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
 
     const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.friendly;
 
+    const languageInstruction = LANGUAGE_INSTRUCTIONS[language || "en"] ?? LANGUAGE_INSTRUCTIONS.en;
     const systemPrompt = `You are ZachCourse Assistant — a brilliant, warm, highly knowledgeable AI mentor.
 
 PRIMARY FOCUS: Help the student with "${currentCourseTitle || 'General Learning'}"
 ${currentLessonTitle ? `Current lesson: "${currentLessonTitle}"` : ""}
 Target Level: ${experienceLevel}
+Language Requirement: ${languageInstruction}
 Content tone: ${toneInstruction}
 ${backgroundContext ? `Learner Background: ${backgroundContext}` : ""}
 ${memoryContext}
@@ -817,13 +848,14 @@ app.post("/api/ai", aiRateLimit, async (req, res) => {
       return;
     }
 
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      res.status(500).json({ error: "SERVER_CONFIGURATION_ERROR", message: "Gemini API key is not configured." });
+    let userKey = req.headers["x-user-key"] as string | undefined;
+  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
+    if (!userKey) {
+      res.status(403).json({ error: "Missing API key" });
       return;
     }
 
-    const text = await callAI(prompt, { systemPrompt });
+    const text = await callAI(prompt, { systemPrompt, apiKey: userKey });
     res.json({ reply: text || "" });
   } catch (error: any) {
     console.error("Error in Express /api/ai proxy:", error);

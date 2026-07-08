@@ -1,0 +1,19 @@
+{
+  "companionTitle": "Begleiter Helpdesk",
+  "companionInstructions": "Klicken Sie auf eine dieser Vorlagen, um mir Fragen zu Ihrem aktuellen Lernmaterial zu stellen:",
+  "analogyPromptText": "Können Sie mir eine intuitive Analogie aus der realen Welt für diese Lektion geben?",
+  "analogyButtonText": "💡 \"Gib mir eine Analogie aus der realen Welt.\"",
+  "simplePromptText": "Können Sie dieses Thema für mich in viel einfacheren Begriffen aufschlüsseln?",
+  "simpleButtonText": "🧸 \"Bitte einfacher erklären.\"",
+  "projectPromptText": "Was ist ein lustiges interaktives Mini-Projekt, das ich bauen kann, um dieses Thema zu üben?",
+  "projectButtonText": "🛠️ \"Gib mir eine lustige Mini-Projektidee.\"",
+  "activeContextTitle": "Aktiver Kontext",
+  "noTopicActive": "Kein Thema aktiv — wählen Sie eine Lektion in der Registerkarte Roadmap, um unsere Fragen zu fokussieren.",
+  "tutorTitle": "Ihr freundlicher Lern-Tutor",
+  "tutorSubtitle": "Bereit zum Chatten und Ihnen zu helfen zu verstehen!",
+  "toastMemoryCleared": "Speicher für diesen Kurs gelöscht",
+  "toastMemoryClearFailed": "Fehler beim Löschen des Speichers",
+  "clearHistory": "Speicher löschen",
+  "tutorWriting": "Tutor schreibt...",
+  "inputPlaceholder": "Fragen Sie alles — fügen Sie eine URL ein und ich werde sie lesen 🔗"
+}

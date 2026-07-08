@@ -1,0 +1,11 @@
+{
+  "title": "Teacher Dashboard",
+  "classroomTitle": "Manage Classrooms",
+  "rosterTitle": "Student Roster",
+  "inviteStudents": "Invite Students",
+  "analytics": "Classroom Analytics",
+  "coursesAssigned": "Courses Assigned",
+  "avgQuizScore": "Avg Quiz Score",
+  "activeStudents": "Active Students",
+  "emptyState": "You have no active classrooms. Create one to start monitoring student progress!"
+}

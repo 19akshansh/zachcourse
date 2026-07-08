@@ -4,8 +4,10 @@ import { Loader2, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { authClient } from "../../lib/auth-client";
 import { navigate } from "../../lib/router";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export default function SignUpForm() {
+  const { t } = useTranslation("auth");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -24,7 +26,7 @@ export default function SignUpForm() {
 
   const getPasswordStrength = (pass: string) => {
     if (!pass) return { score: 0, text: "", color: "bg-[#1E1E2E]" };
-    if (pass.length < 6) return { score: 1, text: "Weak", color: "bg-rose-500 w-1/3" };
+    if (pass.length < 6) return { score: 1, text: t("passwordStrength_Weak", { defaultValue: "Weak" }), color: "bg-rose-500 w-1/3" };
 
     const hasLetters = /[a-zA-Z]/.test(pass);
     const hasNumbers = /[0-9]/.test(pass);
@@ -33,12 +35,12 @@ export default function SignUpForm() {
     const hasLowercase = /[a-z]/.test(pass);
 
     if (pass.length >= 8 && hasLetters && hasNumbers && hasSpecial && hasUppercase && hasLowercase) {
-      return { score: 3, text: "Strong", color: "bg-emerald-500 w-full" };
+      return { score: 3, text: t("passwordStrength_Strong", { defaultValue: "Strong" }), color: "bg-emerald-500 w-full" };
     }
     if (pass.length >= 6 && hasLetters && hasNumbers) {
-      return { score: 2, text: "Medium", color: "bg-amber-500 w-2/3" };
+      return { score: 2, text: t("passwordStrength_Medium", { defaultValue: "Medium" }), color: "bg-amber-500 w-2/3" };
     }
-    return { score: 1, text: "Weak", color: "bg-rose-500 w-1/3" };
+    return { score: 1, text: t("passwordStrength_Weak", { defaultValue: "Weak" }), color: "bg-rose-500 w-1/3" };
   };
 
   const strength = getPasswordStrength(password);
@@ -47,19 +49,19 @@ export default function SignUpForm() {
     e.preventDefault();
 
     if (!name || !email || !password || !confirmPassword) {
-      toast.error("Please fill in all fields");
+      toast.error(t("toastFillAllFields", { defaultValue: "Please fill in all fields" }));
       return;
     }
     if (password !== confirmPassword) {
-      toast.error("Passwords don't match");
+      toast.error(t("toastPasswordsDontMatch", { defaultValue: "Passwords don't match" }));
       return;
     }
     if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
+      toast.error(t("toastPasswordMinLength", { defaultValue: "Password must be at least 8 characters" }));
       return;
     }
     if (!terms) {
-      toast.error("You must agree to the Terms of Service");
+      toast.error(t("toastAgreeTerms", { defaultValue: "You must agree to the Terms of Service" }));
       return;
     }
 
@@ -97,15 +99,15 @@ export default function SignUpForm() {
           code === "USER_ALREADY_EXISTS" ||
           status === 422
         ) {
-          toast.error("This email is already registered", {
-            description: "Try signing in or reset your password.",
+          toast.error(t("toastEmailAlreadyRegistered", { defaultValue: "This email is already registered" }), {
+            description: t("toastTrySigningIn", { defaultValue: "Try signing in or reset your password." }),
             duration: 8000,
             action: {
-              label: "Sign in →",
+              label: t("signInArrow", { defaultValue: "Sign in →" }),
               onClick: () => { window.location.href = "/sign-in"; }
             }
           });
-          setGlobalError("This email is already registered — sign in instead.");
+          setGlobalError(t("toastEmailAlreadyRegisteredGeneric", { defaultValue: "This email is already registered — sign in instead." }));
           return;
         }
 
@@ -114,13 +116,13 @@ export default function SignUpForm() {
           msg.toLowerCase().includes("password") &&
           msg.toLowerCase().includes("weak")
         ) {
-          toast.error("Password is too weak — use 8+ chars with numbers");
+          toast.error(t("toastPasswordTooWeak", { defaultValue: "Password is too weak — use 8+ chars with numbers" }));
           setGlobalError(msg);
           return;
         }
 
-        toast.error(msg || "Sign up failed");
-        setGlobalError(msg || "Something went wrong");
+        toast.error(msg || t("toastSignUpFailed", { defaultValue: "Sign up failed" }));
+        setGlobalError(msg || t("toastSomethingWentWrong", { defaultValue: "Something went wrong" }));
         return;
       }
 
@@ -134,32 +136,32 @@ export default function SignUpForm() {
         
         // If user was created more than 30 seconds ago, it's a duplicate
         if (secondsAgo > 30) {
-          toast.error("This email is already registered", {
-            description: "A verification email was resent. Check your inbox.",
+          toast.error(t("toastEmailAlreadyRegistered", { defaultValue: "This email is already registered" }), {
+            description: t("toastResentVerificationInbox", { defaultValue: "A verification email was resent. Check your inbox." }),
             duration: 8000,
             action: {
-              label: "Sign in →",
+              label: t("signInArrow", { defaultValue: "Sign in →" }),
               onClick: () => { window.location.href = "/sign-in"; }
             }
           });
-          setGlobalError("This email is already registered.");
+          setGlobalError(t("toastEmailAlreadyRegisteredSimple", { defaultValue: "This email is already registered." }));
           return;
         }
       }
 
       if (!data?.user) {
-        toast.error("Could not create account — try again");
-        setGlobalError("Account creation failed.");
+        toast.error(t("toastCouldNotCreateAccount", { defaultValue: "Could not create account — try again" }));
+        setGlobalError(t("toastAccountCreationFailed", { defaultValue: "Account creation failed." }));
         return;
       }
 
       // Genuine new account
       setEmailSent(true);
-      toast.success("Account created successfully! 🎉", {
-        description: "Please go to your mailbox and verify your email before logging in.",
+      toast.success(t("toastAccountCreatedSuccess", { defaultValue: "Account created successfully! 🎉" }), {
+        description: t("toastVerifyEmailFirst", { defaultValue: "Please go to your mailbox and verify your email before logging in." }),
         duration: 10000,
         action: {
-          label: "Go to Sign in",
+          label: t("goToSignIn", { defaultValue: "Go to Sign in" }),
           onClick: () => { window.location.href = "/sign-in"; }
         }
       });
@@ -185,13 +187,13 @@ export default function SignUpForm() {
         errorCallbackURL: "/sign-in?error=oauth_failed",
       });
       if (res?.error) {
-        toast.error(res.error.message || `Failed to authenticate with ${provider}.`);
-        setGlobalError(res.error.message || `Failed to authenticate with ${provider}.`);
+        toast.error(res.error.message || t("failedToAuthenticateWith", { defaultValue: `Failed to authenticate with ${provider}.`, provider }));
+        setGlobalError(res.error.message || t("failedToAuthenticateWith", { defaultValue: `Failed to authenticate with ${provider}.`, provider }));
         setLoading(false);
       }
     } catch (err: any) {
-      toast.error(err.message || "Connection issue — please try again");
-      setGlobalError(err.message || `Failed to authenticate with ${provider}.`);
+      toast.error(err.message || t("connectionIssue", { defaultValue: "Connection issue — please try again" }));
+      setGlobalError(err.message || t("failedToAuthenticateWith", { defaultValue: `Failed to authenticate with ${provider}.`, provider }));
       setLoading(false);
     }
   };
@@ -209,15 +211,14 @@ export default function SignUpForm() {
             <Mail className="w-10 h-10 text-emerald-400" />
           </div>
 
-          <h2 className="text-2xl font-extrabold text-[#FAF9FD] tracking-tight mb-3">Check your email</h2>
+          <h2 className="text-2xl font-extrabold text-[#FAF9FD] tracking-tight mb-3">{t("checkEmailTitle", { defaultValue: "Check your email" })}</h2>
           <p className="text-sm text-[#8E88AB] leading-relaxed max-w-xs mb-6 font-medium">
-            We've sent a verification link to <span className="text-[#FAF9FD] font-semibold">{email}</span>. 
-            Please click the link in that email to activate your learning portal account.
+            {t("checkEmailSubtitle", { defaultValue: "We've sent a verification link to {{email}}. Please click the link in that email to activate your learning portal account.", email })}
           </p>
 
-          <div className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl p-4 text-xs text-[#8E88AB] font-medium leading-relaxed">
+          <div className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl p-4 text-xs text-[#8E88AB] font-medium leading-relaxed text-left">
             <p>
-              Can't find the email? Check your spam folder, or make sure the email address was entered correctly.
+              {t("cantFindEmail", { defaultValue: "Can't find the email? Check your spam folder, or make sure the email address was entered correctly." })}
             </p>
           </div>
 
@@ -225,7 +226,7 @@ export default function SignUpForm() {
             href="/sign-in"
             className="mt-8 text-sm font-bold text-[#818CF8] hover:text-[#4F46E5] transition"
           >
-            Return to Sign In →
+            {t("returnToSignIn", { defaultValue: "Return to Sign In →" })}
           </a>
         </div>
       </div>
@@ -240,8 +241,8 @@ export default function SignUpForm() {
 
       <div className="text-center mb-6 relative">
         <span className="text-4xl select-none">🎓</span>
-        <h2 className="text-3xl font-extrabold text-[#FAF9FD] tracking-tight mt-3">ZachCourse</h2>
-        <p className="text-sm text-[#8E88AB] mt-1 font-medium">Create your learning portal account</p>
+        <h2 className="text-3xl font-extrabold text-[#FAF9FD] tracking-tight mt-3">{t("signUpTitle", { defaultValue: "ZachCourse" })}</h2>
+        <p className="text-sm text-[#8E88AB] mt-1 font-medium">{t("createAccountSubtitle", { defaultValue: "Create your learning portal account" })}</p>
       </div>
 
       {globalError && (
@@ -254,7 +255,7 @@ export default function SignUpForm() {
         {/* Full Name */}
         <div>
           <label className="block text-xs font-semibold text-[#CECADF] uppercase tracking-wider mb-1.5">
-            Full Name
+            {t("fullNameLabel", { defaultValue: "Full Name" })}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
@@ -263,7 +264,7 @@ export default function SignUpForm() {
             <input
               type="text"
               id="signup-name"
-              placeholder="Zachary Smith"
+              placeholder={t("fullNamePlaceholder", { defaultValue: "Zachary Smith" })}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-2.5 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
@@ -274,7 +275,7 @@ export default function SignUpForm() {
         {/* Email Address */}
         <div>
           <label className="block text-xs font-semibold text-[#CECADF] uppercase tracking-wider mb-1.5">
-            Email Address
+            {t("emailLabel", { defaultValue: "Email Address" })}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
@@ -283,7 +284,7 @@ export default function SignUpForm() {
             <input
               type="email"
               id="signup-email"
-              placeholder="you@example.com"
+              placeholder={t("emailPlaceholder", { defaultValue: "you@example.com" })}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-2.5 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
@@ -294,7 +295,7 @@ export default function SignUpForm() {
         {/* Password */}
         <div>
           <label className="block text-xs font-semibold text-[#CECADF] uppercase tracking-wider mb-1.5">
-            Password
+            {t("passwordLabel", { defaultValue: "Password" })}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
@@ -303,7 +304,7 @@ export default function SignUpForm() {
             <input
               type={showPassword ? "text" : "password"}
               id="signup-password"
-              placeholder="••••••••"
+              placeholder={t("passwordPlaceholder", { defaultValue: "••••••••" })}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-2.5 pl-10 pr-10 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
@@ -324,10 +325,10 @@ export default function SignUpForm() {
                 <div className={`h-full transition-all duration-300 ${strength.color}`} />
               </div>
               <p className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                <span className="text-[#8E88AB]">Password Strength:</span>
+                <span className="text-[#8E88AB]">{t("passwordStrength", { defaultValue: "Password Strength:" })}</span>
                 <span className={
-                  strength.text === "Weak" ? "text-rose-400" :
-                  strength.text === "Medium" ? "text-amber-400" : "text-emerald-400"
+                  strength.text === t("passwordStrength_Weak", { defaultValue: "Weak" }) ? "text-rose-400" :
+                  strength.text === t("passwordStrength_Medium", { defaultValue: "Medium" }) ? "text-amber-400" : "text-emerald-400"
                 }>
                   {strength.text}
                 </span>
@@ -339,7 +340,7 @@ export default function SignUpForm() {
         {/* Confirm Password */}
         <div>
           <label className="block text-xs font-semibold text-[#CECADF] uppercase tracking-wider mb-1.5">
-            Confirm Password
+            {t("confirmPasswordLabel", { defaultValue: "Confirm Password" })}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
@@ -348,7 +349,7 @@ export default function SignUpForm() {
             <input
               type={showConfirmPassword ? "text" : "password"}
               id="signup-confirm-password"
-              placeholder="••••••••"
+              placeholder={t("confirmPasswordPlaceholder", { defaultValue: "••••••••" })}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-2.5 pl-10 pr-10 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
@@ -373,7 +374,7 @@ export default function SignUpForm() {
             className="w-4 h-4 rounded border-[#1E1E2E] bg-[#1A1A2E] text-[#4F46E5] focus:ring-[#4F46E5]/20 mt-0.5 cursor-pointer accent-[#4F46E5]"
           />
           <label htmlFor="terms" className="text-xs text-[#8E88AB] font-medium leading-relaxed select-none cursor-pointer">
-            I agree to the <span className="text-[#CECADF] hover:underline font-semibold">Terms of Service</span> and <span className="text-[#CECADF] hover:underline font-semibold">Privacy Policy</span>
+            {t("iAgreeToTerms", { defaultValue: "I agree to the Terms of Service and Privacy Policy" })}
           </label>
         </div>
 
@@ -386,10 +387,10 @@ export default function SignUpForm() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin text-white" />
-              <span>Creating account...</span>
+              <span>{t("creatingAccountBtn", { defaultValue: "Creating account..." })}</span>
             </>
           ) : (
-            "Create Account"
+            t("createAccountBtn", { defaultValue: "Create Account" })
           )}
         </button>
       </form>
@@ -401,7 +402,7 @@ export default function SignUpForm() {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-[#111118] px-3.5 text-[#8E88AB]/60 font-semibold tracking-wider">
-            or continue with
+            {t("orContinueWith", { defaultValue: "or continue with" })}
           </span>
         </div>
       </div>
@@ -420,7 +421,7 @@ export default function SignUpForm() {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
           </svg>
-          <span>Google</span>
+          <span>{t("google", { defaultValue: "Google" })}</span>
         </button>
         <button
           type="button"
@@ -431,19 +432,19 @@ export default function SignUpForm() {
           <svg className="w-4 h-4 shrink-0 fill-current" viewBox="0 0 24 24">
             <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
           </svg>
-          <span>GitHub</span>
+          <span>{t("github", { defaultValue: "GitHub" })}</span>
         </button>
       </div>
 
       {/* Switch Page */}
       <div className="mt-6 text-center text-sm text-[#8E88AB] font-medium relative">
         <p>
-          Already registered?{" "}
+          {t("alreadyRegistered", { defaultValue: "Already registered?" })}{" "}
           <a
             href="/sign-in"
             className="text-[#818CF8] hover:text-[#4F46E5] font-bold transition"
           >
-            Sign in
+            {t("signInLink", { defaultValue: "Sign in" })}
           </a>
         </p>
       </div>

@@ -6,6 +6,7 @@ import "katex/dist/katex.min.css";
 import { Loader2, Send } from "lucide-react";
 import { trpc } from "../lib/trpc-client";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -36,6 +37,7 @@ export const MentorChat: React.FC<MentorChatProps> = ({
   setActiveCourse,
   handleSendMentorMessage,
 }) => {
+  const { t } = useTranslation("mentorChat");
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative overflow-hidden min-h-[400px]">
       {/* Quick Helper Prompts (span 4) */}
@@ -43,46 +45,48 @@ export const MentorChat: React.FC<MentorChatProps> = ({
         <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl">
           <h3 className="text-lg font-bold text-[#FAF9FD] mb-2 flex items-center gap-2">
             <span>🧑‍🏫</span>
-            <span>Companion Help desk</span>
+            <span>{t("companionTitle", { defaultValue: "Companion Help desk" })}</span>
           </h3>
           <p className="text-sm text-[#8E88AB] mb-4 leading-relaxed">
-            Click any of these helper templates to ask me questions about your current study material:
+            {t("companionInstructions", { defaultValue: "Click any of these helper templates to ask me questions about your current study material:" })}
           </p>
 
           <div className="space-y-2">
             <button
               type="button"
-              onClick={() => setMentorInput("Can you give me an intuitive real-world analogy for this lesson?")}
+              onClick={() => setMentorInput(t("analogyPromptText", { defaultValue: "Can you give me an intuitive real-world analogy for this lesson?" }))}
               className="w-full text-left p-3.5 bg-[#121021] hover:bg-[#151227] border border-[#2A2443] text-[#CECADF] text-sm font-semibold rounded-2xl transition cursor-pointer hover:-translate-y-0.5"
             >
-              💡 "Give me a real-world analogy."
+              {t("analogyButtonText", { defaultValue: "💡 \"Give me a real-world analogy.\"" })}
             </button>
             <button
               type="button"
-              onClick={() => setMentorInput("Can you break down this topic in much simpler terms for me?")}
+              onClick={() => setMentorInput(t("simplePromptText", { defaultValue: "Can you break down this topic in much simpler terms for me?" }))}
               className="w-full text-left p-3.5 bg-[#121021] hover:bg-[#151227] border border-[#2A2443] text-[#CECADF] text-sm font-semibold rounded-2xl transition cursor-pointer hover:-translate-y-0.5"
             >
-              🧸 "Explain it simpler, please."
+              {t("simpleButtonText", { defaultValue: "🧸 \"Explain it simpler, please.\"" })}
             </button>
             <button
               type="button"
-              onClick={() => setMentorInput("What is a fun interactive mini-project I can build to practice this topic?")}
+              onClick={() => setMentorInput(t("projectPromptText", { defaultValue: "What is a fun interactive mini-project I can build to practice this topic?" }))}
               className="w-full text-left p-3.5 bg-[#121021] hover:bg-[#151227] border border-[#2A2443] text-[#CECADF] text-sm font-semibold rounded-2xl transition cursor-pointer hover:-translate-y-0.5"
             >
-              🛠️ "Give me a fun mini-project idea."
+              {t("projectButtonText", { defaultValue: "🛠️ \"Give me a fun mini-project idea.\"" })}
             </button>
           </div>
         </div>
 
         {/* Course Context Card */}
         <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-4 sm:p-6 shadow-xl">
-          <h4 className="text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-2">Active Context</h4>
+          <h4 className="text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-2">{t("activeContextTitle", { defaultValue: "Active Context" })}</h4>
           <div className="space-y-2">
             <p className="text-base font-semibold text-[#FAF9FD] truncate">📚 {currentRoadmap?.title}</p>
             {selectedLesson ? (
-              <p className="text-sm text-[#818CF8] font-medium">🎯 Selected Topic: {selectedLesson.title}</p>
+              <p className="text-sm text-[#818CF8] font-medium">
+                {t("selectedTopic", { title: selectedLesson.title, defaultValue: "🎯 Selected Topic: {{title}}", interpolation: { escapeValue: false } })}
+              </p>
             ) : (
-              <p className="text-sm text-[#8E88AB] italic">No topic active—select a lesson in the roadmap tab to focus our questions.</p>
+              <p className="text-sm text-[#8E88AB] italic">{t("noTopicActive", { defaultValue: "No topic active—select a lesson in the roadmap tab to focus our questions." })}</p>
             )}
           </div>
         </div>
@@ -93,10 +97,10 @@ export const MentorChat: React.FC<MentorChatProps> = ({
         <div className="flex items-center gap-3 border-b border-[#2A2443] pb-4 mb-4">
           <span className="text-3xl select-none">🧑‍🏫</span>
           <div className="flex-1">
-            <h3 className="text-xl font-bold text-[#FAF9FD]">Your Friendly Learning Tutor</h3>
+            <h3 className="text-xl font-bold text-[#FAF9FD]">{t("tutorTitle", { defaultValue: "Your Friendly Learning Tutor" })}</h3>
             <p className="text-sm text-[#10B981] font-medium flex items-center gap-1">
               <span className="w-2.5 h-2.5 bg-[#10B981] rounded-full animate-pulse"></span>
-              Ready to chat and help you understand!
+              {t("tutorSubtitle", { defaultValue: "Ready to chat and help you understand!" })}
             </p>
           </div>
           <button
@@ -105,15 +109,15 @@ export const MentorChat: React.FC<MentorChatProps> = ({
               try {
                 if (!activeCourseId) return;
                 await trpc.clearChatMemory.mutate({ courseId: activeCourseId });
-                toast.success("Memory cleared for this course");
+                toast.success(t("toastMemoryCleared", { defaultValue: "Memory cleared for this course" }));
                 setActiveCourse((prev: any) => prev ? { ...prev, messages: [] } : prev);
               } catch (e) {
-                toast.error("Failed to clear memory");
+                toast.error(t("toastMemoryClearFailed", { defaultValue: "Failed to clear memory" }));
               }
             }}
             className="px-3 py-1.5 bg-[#121021] hover:bg-[#151227] border border-[#2A2443] rounded-lg text-sm text-[#8E88AB] transition-colors cursor-pointer"
           >
-            🧠 Clear memory
+            🧠 {t("clearHistory", { defaultValue: "Clear memory" })}
           </button>
         </div>
 
@@ -159,7 +163,7 @@ export const MentorChat: React.FC<MentorChatProps> = ({
                 </div>
                 <div className="bg-[#121021] border border-[#2A2443] p-4 rounded-3xl rounded-tl-none shadow-md flex items-center gap-2">
                   <Loader2 className="w-4 h-4 text-[#818CF8] animate-spin" />
-                  <span className="text-sm text-[#8E88AB] font-medium">Tutor is writing...</span>
+                  <span className="text-sm text-[#8E88AB] font-medium">{t("tutorWriting", { defaultValue: "Tutor is writing..." })}</span>
                 </div>
               </div>
             </div>
@@ -173,7 +177,7 @@ export const MentorChat: React.FC<MentorChatProps> = ({
               type="text"
               value={mentorInput}
               onChange={(e) => setMentorInput(e.target.value)}
-              placeholder="Ask anything — paste a URL and I'll read it 🔗"
+              placeholder={t("inputPlaceholder", { defaultValue: "Ask anything — paste a URL and I'll read it 🔗" })}
               className="flex-1 bg-[#121021] border border-[#2A2443] rounded-2xl py-3 px-4 text-sm md:text-base text-[#FAF9FD] focus:outline-none focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10 font-medium placeholder:text-[#8E88AB]/60"
             />
             <button

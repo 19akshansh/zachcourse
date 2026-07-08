@@ -1,0 +1,11 @@
+{
+  "title": "教师控制台",
+  "classroomTitle": "管理教室",
+  "rosterTitle": "学生名单",
+  "inviteStudents": "邀请学生",
+  "analytics": "教室数据分析",
+  "coursesAssigned": "已分配课程",
+  "avgQuizScore": "测验平均分",
+  "activeStudents": "活跃学生",
+  "emptyState": "您没有活跃的教室。创建一个以开始监控学生进度！"
+}

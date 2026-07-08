@@ -1,0 +1,20 @@
+{
+  "title": "上传学习资料",
+  "dragDrop": "拖放文件到此处，或点击选择文件",
+  "supportedFormats": "支持的格式：PDF, TXT（最大 5MB）",
+  "processing": "正在处理文档...",
+  "successMsg": "文档处理成功！正在生成学习路线图...",
+  "errorMsg": "处理文档失败",
+  "toastMaxFiles": "最多允许上传3个文件。",
+  "toastSizeLimit": "文件 {{name}} 超过了10MB的限制",
+  "toastSafetyFlagged": "⚠️ 文档触发安全策略 — 无法处理",
+  "toastInvalidType": "仅支持 PDF、.txt 和 .md 格式",
+  "toastUploadFailed": "上传失败",
+  "toastSuccess": "📄 文档处理完成 — AI 将使用其作为背景上下文",
+  "toastNetworkError": "上传过程中发生网络错误",
+  "documentsReady": "文档准备就绪",
+  "clearAll": "清除全部",
+  "dropFiles": "拖放 PDF、.txt 或 .md 文件到此处",
+  "maxFilesHint": "每个文件最大 10MB • 最多 3 个文件",
+  "neverStoredHint": "内容仅在内存中处理，绝不存储"
+}

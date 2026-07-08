@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { authClient } from "../lib/auth-client";
 import { TourLauncher } from "./tour/TourLauncher";
 import { tourEventEmitter } from "./tour/TourController";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 interface AppHeaderProps {
   onMenuClick: () => void;
@@ -17,6 +19,7 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, onSignOut }: AppHeaderProps) {
+  const { t } = useTranslation(["header", "common"]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -67,27 +70,28 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
     setIsSavingBio(true);
     try {
       await trpc.updateMyBio.mutate({ bio });
-      toast.success("Bio updated successfully! ✓");
+      toast.success(t("bioUpdatedSuccess", { defaultValue: "Bio updated successfully! ✓" }));
     } catch (err: any) {
-      toast.error(err.message || "Failed to update bio");
+      toast.error(err.message || t("bioUpdateFailed", { defaultValue: "Failed to update bio" }));
     } finally {
       setIsSavingBio(false);
     }
   };
 
   const handleDisconnect = async (provider: "github" | "discord") => {
-    if (!confirm(`Are you sure you want to disconnect your ${provider === "github" ? "GitHub" : "Discord"} account?`)) {
+    const providerName = provider === "github" ? "GitHub" : "Discord";
+    if (!confirm(t("disconnectConfirm", { defaultValue: `Are you sure you want to disconnect your ${providerName} account?`, provider: providerName }))) {
       return;
     }
     setIsUnlinking(prev => ({ ...prev, [provider]: true }));
     try {
       await trpc.unlinkSocialProvider.mutate({ provider });
-      toast.success(`Successfully disconnected your ${provider === "github" ? "GitHub" : "Discord"} account.`);
+      toast.success(t("disconnectSuccess", { defaultValue: `Successfully disconnected your ${providerName} account.`, provider: providerName }));
       const data = await trpc.getMySocialLinks.query();
       setBio(data.bio || "");
       setSocialLinks(data.socialLinks || []);
     } catch (err: any) {
-      toast.error(err.message || `Failed to disconnect ${provider}`);
+      toast.error(err.message || t("disconnectFailed", { defaultValue: `Failed to disconnect ${providerName}`, provider: providerName }));
     } finally {
       setIsUnlinking(prev => ({ ...prev, [provider]: false }));
     }
@@ -114,12 +118,12 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
     setIsUpdating(true);
     try {
       await trpc.setUserRole.mutate({ role: nextRole });
-      toast.success(`Role switched to ${nextRole}! Refreshing...`);
+      toast.success(t("roleSwitched", { defaultValue: `Role switched to ${nextRole}! Refreshing...`, role: nextRole }));
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     } catch (err: any) {
-      toast.error(err.message || "Failed to update role");
+      toast.error(err.message || t("roleUpdateFailed", { defaultValue: "Failed to update role" }));
     } finally {
       setIsUpdating(false);
     }
@@ -145,7 +149,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
           data-tour="sidebar-collapse"
           onClick={onMenuClick}
           className="p-1.5 rounded-lg hover:bg-white/5 border border-[#1E1E2E] text-[#8E88AB] hover:text-[#FAF9FD] transition cursor-pointer"
-          aria-label="Toggle Navigation Menu"
+          aria-label={t("toggleMenu", { defaultValue: "Toggle Navigation Menu" })}
         >
           {/* Mobile Icon */}
           <span className="md:hidden">
@@ -166,6 +170,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
 
       {/* RIGHT SIDE */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <LanguageSwitcher />
         <TourLauncher />
         <div data-tour="header-key-badge">
           <KeyStatusBadge />
@@ -176,7 +181,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
             data-tour="header-avatar-menu"
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className="w-8 h-8 rounded-full overflow-hidden hover:ring-2 hover:ring-indigo-500/50 transition cursor-pointer"
-            aria-label="User Account Menu"
+            aria-label={t("userMenu", { defaultValue: "User Account Menu" })}
           >
             {user?.image ? (
               <img
@@ -210,7 +215,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#8E88AB] hover:text-[#FAF9FD] hover:bg-[#1E1E2E]/50 rounded-lg transition cursor-pointer text-left mb-1.5"
               >
                 <User className="w-4 h-4 text-indigo-400 shrink-0" />
-                <span>My Profile</span>
+                <span>{t("myProfile")}</span>
               </button>
 
               <button
@@ -220,12 +225,12 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
               >
                 <div className="flex items-center gap-2.5">
                   <GraduationCap className="w-4 h-4 text-amber-500 shrink-0" />
-                  <span>Role: <span className="capitalize text-amber-400 font-bold">{currentRole}</span></span>
+                  <span>{t("switchRole", { role: t(`common:${currentRole}`, { defaultValue: currentRole }) })}</span>
                 </div>
                 {isUpdating ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-[#8E88AB] shrink-0" />
                 ) : (
-                  <span className="text-[10px] text-amber-500/80 underline font-normal hover:text-amber-400">Switch</span>
+                  <span className="text-[10px] text-amber-500/80 underline font-normal hover:text-amber-400">{t("switch")}</span>
                 )}
               </button>
 
@@ -240,7 +245,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#8E88AB] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer text-left"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                <span>{t("signOut")}</span>
               </button>
             </div>
           )}
@@ -255,7 +260,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
             <button
               onClick={() => setProfileOpen(false)}
               className="absolute top-4 right-4 text-[#8E88AB] hover:text-white transition cursor-pointer text-sm font-bold"
-              aria-label="Close Profile Modal"
+              aria-label={t("closeProfileModal", { defaultValue: "Close Profile Modal" })}
             >
               ✕
             </button>
@@ -265,33 +270,33 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                 <User className="w-5.5 h-5.5" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[#FAF9FD]">My Profile</h3>
-                <p className="text-xs text-[#8E88AB] mt-0.5 font-medium">Verify your developer presence and customize your learning identity.</p>
+                <h3 className="text-xl font-bold text-[#FAF9FD]">{t("myProfile")}</h3>
+                <p className="text-xs text-[#8E88AB] mt-0.5 font-medium">{t("profileSubtitle", { defaultValue: "Verify your developer presence and customize your learning identity." })}</p>
               </div>
             </div>
 
             {isProfileLoading ? (
               <div className="py-12 flex flex-col justify-center items-center gap-2 text-sm text-[#8E88AB]">
                 <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
-                <span>Loading settings...</span>
+                <span>{t("loadingSettings", { defaultValue: "Loading settings..." })}</span>
               </div>
             ) : (
               <div className="space-y-6">
                 {/* Bio section */}
                 <div className="space-y-2">
                   <label htmlFor="modal-bio" className="block text-sm font-bold text-[#CECADF]">
-                    My Bio (Optional)
+                    {t("bioLabel", { defaultValue: "My Bio (Optional)" })}
                   </label>
                   <textarea
                     id="modal-bio"
                     value={bio}
                     onChange={(e) => setBio(e.target.value.slice(0, 160))}
-                    placeholder="Share a bit about your engineering interests, goals, or coding experience..."
+                    placeholder={t("bioPlaceholder", { defaultValue: "Share a bit about your engineering interests, goals, or coding experience..." })}
                     className="w-full bg-[#1A172E] border border-[#2A2443] hover:border-[#4F46E5]/50 focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] rounded-2xl p-4 text-sm text-[#FAF9FD] placeholder-[#5C5578] outline-none min-h-[100px] resize-none transition"
                   />
                   <div className="flex justify-between items-center text-xs">
                     <span className={bio.length >= 160 ? "text-amber-500 font-bold" : "text-[#8E88AB] font-medium"}>
-                      {bio.length}/160 characters
+                      {t("bioCount", { defaultValue: "{{length}}/160 characters", length: bio.length })}
                     </span>
                     <button
                       type="button"
@@ -302,12 +307,12 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                       {isSavingBio ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          Saving...
+                          {t("saving", { defaultValue: "Saving..." })}
                         </>
                       ) : (
                         <>
                           <Save className="w-3.5 h-3.5" />
-                          Save Bio
+                          {t("saveBio", { defaultValue: "Save Bio" })}
                         </>
                       )}
                     </button>
@@ -317,9 +322,9 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                 {/* Socials connections */}
                 <div className="space-y-3">
                   <div>
-                    <h4 className="text-sm font-bold text-[#CECADF]">Verified Social Badges</h4>
+                    <h4 className="text-sm font-bold text-[#CECADF]">{t("verifiedBadges", { defaultValue: "Verified Social Badges" })}</h4>
                     <p className="text-[11px] text-[#8E88AB] leading-relaxed mt-0.5">
-                      Authentication is completed securely via official providers. No manual URL input is supported.
+                      {t("badgesNote", { defaultValue: "Authentication is completed securely via official providers. No manual URL input is supported." })}
                     </p>
                   </div>
 
@@ -334,9 +339,9 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                             <div className="flex items-center gap-3">
                               <Github className="w-5 h-5 text-neutral-100" />
                               <div className="text-left">
-                                <span className="text-[10px] font-semibold text-[#8E88AB] block uppercase tracking-wider">GitHub</span>
+                                <span className="text-[10px] font-semibold text-[#8E88AB] block uppercase tracking-wider">{t("githubBadge", { defaultValue: "GITHUB" })}</span>
                                 <span className="text-sm font-bold text-[#FAF9FD]">
-                                  Connected as {link.externalUsername ? `@${link.externalUsername}` : "Verified User"}
+                                  {t("connectedAs", { defaultValue: "Connected as {{username}}", username: link.externalUsername ? `@${link.externalUsername}` : "Verified User" })}
                                 </span>
                               </div>
                             </div>
@@ -345,17 +350,17 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                               onClick={() => handleDisconnect("github")}
                               disabled={unlinking}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl transition cursor-pointer border border-rose-500/20 text-xs font-bold"
-                              title="Disconnect GitHub"
+                              title={t("disconnectGitHub", { defaultValue: "Disconnect GitHub" })}
                             >
                               {unlinking ? (
                                 <>
                                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  Disconnecting...
+                                  {t("disconnecting", { defaultValue: "Disconnecting..." })}
                                 </>
                               ) : (
                                 <>
                                   <Trash2 className="w-3.5 h-3.5" />
-                                  Disconnect
+                                  {t("disconnect", { defaultValue: "Disconnect" })}
                                 </>
                               )}
                             </button>
@@ -366,28 +371,28 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                         <div className="flex items-center justify-between p-3 bg-[#1A172E] border border-[#2A2443]/60 rounded-2xl">
                           <div className="flex items-center gap-3">
                             <Github className="w-5 h-5 text-[#8E88AB]" />
-                            <span className="text-sm font-medium text-[#8E88AB]">GitHub Account</span>
+                            <span className="text-sm font-medium text-[#8E88AB]">{t("githubAccount", { defaultValue: "GitHub Account" })}</span>
                           </div>
                           <button
                             type="button"
                             onClick={async () => {
                               try {
-                                toast.info("Redirecting to GitHub auth...");
+                                toast.info(t("redirectingGithub", { defaultValue: "Redirecting to GitHub auth..." }));
                                 const { error } = await authClient.linkSocial({
                                   provider: "github",
                                   callbackURL: window.location.href,
                                 });
                                 if (error) {
-                                  toast.error(error.message || "Failed to link GitHub — check provider configuration");
+                                  toast.error(error.message || t("linkGithubFailed", { defaultValue: "Failed to link GitHub — check provider configuration" }));
                                   return;
                                 }
                               } catch (err: any) {
-                                toast.error(err.message || "Failed to link GitHub");
+                                toast.error(err.message || t("linkGithubError", { defaultValue: "Failed to link GitHub" }));
                               }
                             }}
                             className="px-4 py-2 bg-neutral-800 hover:bg-neutral-900 border border-neutral-700 text-neutral-100 text-xs font-bold transition rounded-xl cursor-pointer"
                           >
-                            Connect
+                            {t("connect", { defaultValue: "Connect" })}
                           </button>
                         </div>
                       );
@@ -403,9 +408,9 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                             <div className="flex items-center gap-3">
                               <DiscordIcon className="w-5 h-5 text-[#5865F2]" />
                               <div className="text-left">
-                                <span className="text-[10px] font-semibold text-[#8E88AB] block uppercase tracking-wider">Discord</span>
+                                <span className="text-[10px] font-semibold text-[#8E88AB] block uppercase tracking-wider">{t("discordBadge", { defaultValue: "DISCORD" })}</span>
                                 <span className="text-sm font-bold text-[#FAF9FD]">
-                                  Connected as {link.externalUsername ? `@${link.externalUsername}` : "Verified User"}
+                                  {t("connectedAs", { defaultValue: "Connected as {{username}}", username: link.externalUsername ? `@${link.externalUsername}` : "Verified User" })}
                                 </span>
                               </div>
                             </div>
@@ -414,17 +419,17 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                               onClick={() => handleDisconnect("discord")}
                               disabled={unlinking}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl transition cursor-pointer border border-rose-500/20 text-xs font-bold"
-                              title="Disconnect Discord"
+                              title={t("disconnectDiscord", { defaultValue: "Disconnect Discord" })}
                             >
                               {unlinking ? (
                                 <>
                                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                  Disconnecting...
+                                  {t("disconnecting", { defaultValue: "Disconnecting..." })}
                                 </>
                               ) : (
                                 <>
                                   <Trash2 className="w-3.5 h-3.5" />
-                                  Disconnect
+                                  {t("disconnect", { defaultValue: "Disconnect" })}
                                 </>
                               )}
                             </button>
@@ -435,28 +440,28 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                         <div className="flex items-center justify-between p-3 bg-[#1A172E] border border-[#2A2443]/60 rounded-2xl">
                           <div className="flex items-center gap-3">
                             <DiscordIcon className="w-5 h-5 text-[#8E88AB]" />
-                            <span className="text-sm font-medium text-[#8E88AB]">Discord Account</span>
+                            <span className="text-sm font-medium text-[#8E88AB]">{t("discordAccount", { defaultValue: "Discord Account" })}</span>
                           </div>
                           <button
                             type="button"
                             onClick={async () => {
                               try {
-                                toast.info("Redirecting to Discord auth...");
+                                toast.info(t("redirectingDiscord", { defaultValue: "Redirecting to Discord auth..." }));
                                 const { error } = await authClient.linkSocial({
                                   provider: "discord",
                                   callbackURL: window.location.href,
                                 });
                                 if (error) {
-                                  toast.error(error.message || "Failed to link Discord — check provider configuration");
+                                  toast.error(error.message || t("linkDiscordFailed", { defaultValue: "Failed to link Discord — check provider configuration" }));
                                   return;
                                 }
                               } catch (err: any) {
-                                toast.error(err.message || "Failed to link Discord");
+                                toast.error(err.message || t("linkDiscordError", { defaultValue: "Failed to link Discord" }));
                               }
                             }}
                             className="px-4 py-2 bg-neutral-800 hover:bg-neutral-900 border border-neutral-700 text-neutral-100 text-xs font-bold transition rounded-xl cursor-pointer"
                           >
-                            Connect
+                            {t("connect", { defaultValue: "Connect" })}
                           </button>
                         </div>
                       );
@@ -470,7 +475,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                     onClick={() => setProfileOpen(false)}
                     className="px-5 py-2.5 bg-[#1A172E] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer w-full text-center"
                   >
-                    Close
+                    {t("close", { defaultValue: "Close" })}
                   </button>
                 </div>
               </div>

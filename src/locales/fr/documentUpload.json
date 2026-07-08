@@ -1,0 +1,20 @@
+{
+  "title": "Uploader vos Matériaux",
+  "dragDrop": "Glissez et déposez vos fichiers ici, ou cliquez pour sélectionner",
+  "supportedFormats": "Formats supportés : PDF, TXT (Max 5Mo)",
+  "processing": "Traitement des documents...",
+  "successMsg": "Document traité avec succès ! Génération de la feuille de route...",
+  "errorMsg": "Échec du traitement",
+  "toastMaxFiles": "Maximum 3 fichiers autorisés.",
+  "toastSizeLimit": "Le fichier {{name}} dépasse la limite de 10Mo",
+  "toastSafetyFlagged": "⚠️ Document signalé pour sécurité — impossible à traiter",
+  "toastInvalidType": "Seuls les fichiers PDF, .txt et .md sont autorisés",
+  "toastUploadFailed": "Échec de l'upload",
+  "toastSuccess": "📄 Documents traités — l'IA les utilisera comme contexte",
+  "toastNetworkError": "Erreur réseau lors de l'upload",
+  "documentsReady": "Documents Prêts",
+  "clearAll": "Tout effacer",
+  "dropFiles": "Déposez des fichiers PDF, .txt ou .md ici",
+  "maxFilesHint": "Max 10Mo par fichier • 3 fichiers maximum",
+  "neverStoredHint": "Contenu traité en mémoire, jamais stocké"
+}

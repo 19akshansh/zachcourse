@@ -4,8 +4,10 @@ import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { authClient } from "../../lib/auth-client";
 import { navigate } from "../../lib/router";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export default function SignInForm() {
+  const { t } = useTranslation("auth");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -16,23 +18,23 @@ export default function SignInForm() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (params.get("error") === "oauth_failed") {
-        toast.error("OAuth authentication failed. Please try again or use another login method.", {
+        toast.error(t("oauthFailedToast", { defaultValue: "OAuth authentication failed. Please try again or use another login method." }), {
           id: "oauth-fail-toast"
         });
-        setGlobalError("OAuth authentication failed. An account with this email may already exist under a different login method, or the connection was interrupted.");
+        setGlobalError(t("oauthFailedError", { defaultValue: "OAuth authentication failed. An account with this email may already exist under a different login method, or the connection was interrupted." }));
         // Clean up url query param
         const url = new URL(window.location.href);
         url.searchParams.delete("error");
         window.history.replaceState({}, "", url.pathname + url.search);
       }
     }
-  }, []);
+  }, [t]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     
     if (!email || !password) {
-      toast.error("Please fill in all fields");
+      toast.error(t("toastFillAllFields", { defaultValue: "Please fill in all fields" }));
       return;
     }
 
@@ -49,23 +51,23 @@ export default function SignInForm() {
       console.log("[signin] result:", { data, error });
 
       if (!error && !data) {
-        toast.error("Sign in failed — no response from server");
+        toast.error(t("toastSignInFailedNoResponse", { defaultValue: "Sign in failed — no response from server" }));
         return;
       }
 
       if (error) {
         const msg = error.message?.toLowerCase() ?? "";
         if (msg.includes("verif") || (error as any).code === "EMAIL_NOT_VERIFIED") {
-          toast.error("We've sent a mail to your registered Email, please verify before first login", {
+          toast.error(t("toastEmailNotVerified", { defaultValue: "We've sent a mail to your registered Email, please verify before first login" }), {
             duration: 6000,
             action: {
-              label: "Resend",
+              label: t("resend", { defaultValue: "Resend" }),
               onClick: async () => {
                 await authClient.sendVerificationEmail({
                   email,
                   callbackURL: "/dashboard",
                 });
-                toast.success("Verification email resent!");
+                toast.success(t("toastVerificationResent", { defaultValue: "Verification email resent!" }));
               },
             },
           });
@@ -75,16 +77,16 @@ export default function SignInForm() {
           msg.includes("invalid") ||
           msg.includes("email")
         ) {
-          toast.error("Incorrect email or password");
+          toast.error(t("toastIncorrectCredentials", { defaultValue: "Incorrect email or password" }));
         } else {
-          toast.error(error.message || "Sign in failed");
+          toast.error(error.message || t("toastSignInFailed", { defaultValue: "Sign in failed" }));
         }
-        setGlobalError(error.message || "Failed to sign in. Verify credentials.");
+        setGlobalError(error.message || t("toastSignInFailedGeneric", { defaultValue: "Failed to sign in. Verify credentials." }));
         return;
       }
 
       if (data) {
-        toast.success("Welcome back! 🎉");
+        toast.success(t("toastWelcomeBack", { defaultValue: "Welcome back! 🎉" }));
         if (data.token) {
           localStorage.setItem("session_token", data.token);
         } else if ((data as any).session?.token) {
@@ -94,8 +96,8 @@ export default function SignInForm() {
       }
     } catch (err: any) {
       console.error("Sign in error:", err);
-      toast.error("Something went wrong — please try again");
-      setGlobalError(err.message || "An error occurred.");
+      toast.error(t("toastSomethingWentWrong", { defaultValue: "Something went wrong — please try again" }));
+      setGlobalError(err.message || t("toastSomethingWentWrong", { defaultValue: "Something went wrong — please try again" }));
     } finally {
       setLoading(false);
     }
@@ -111,13 +113,13 @@ export default function SignInForm() {
         errorCallbackURL: "/sign-in?error=oauth_failed",
       });
       if (res?.error) {
-        toast.error(res.error.message || `Failed to authenticate with ${provider}.`);
-        setGlobalError(res.error.message || `Failed to authenticate with ${provider}.`);
+        toast.error(res.error.message || t("failedToAuthenticateWith", { defaultValue: `Failed to authenticate with ${provider}.`, provider }));
+        setGlobalError(res.error.message || t("failedToAuthenticateWith", { defaultValue: `Failed to authenticate with ${provider}.`, provider }));
         setLoading(false);
       }
     } catch (err: any) {
-      toast.error(err.message || "Connection issue — please try again");
-      setGlobalError(err.message || `Failed to authenticate with ${provider}.`);
+      toast.error(err.message || t("connectionIssue", { defaultValue: "Connection issue — please try again" }));
+      setGlobalError(err.message || t("failedToAuthenticateWith", { defaultValue: `Failed to authenticate with ${provider}.`, provider }));
       setLoading(false);
     }
   };
@@ -130,8 +132,8 @@ export default function SignInForm() {
 
       <div className="text-center mb-8 relative">
         <span className="text-4xl select-none" id="brand-logo">🎓</span>
-        <h2 className="text-3xl font-extrabold text-[#FAF9FD] tracking-tight mt-3">ZachCourse</h2>
-        <p className="text-sm text-[#8E88AB] mt-1 font-medium">Continue your learning journey</p>
+        <h2 className="text-3xl font-extrabold text-[#FAF9FD] tracking-tight mt-3">{t("signInTitle", { defaultValue: "ZachCourse" })}</h2>
+        <p className="text-sm text-[#8E88AB] mt-1 font-medium">{t("continueJourney", { defaultValue: "Continue your learning journey" })}</p>
       </div>
 
       {globalError && (
@@ -144,7 +146,7 @@ export default function SignInForm() {
         {/* Email Field */}
         <div>
           <label className="block text-xs font-semibold text-[#CECADF] uppercase tracking-wider mb-2">
-            Email Address
+            {t("emailLabel", { defaultValue: "Email Address" })}
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
@@ -153,7 +155,7 @@ export default function SignInForm() {
             <input
               type="email"
               id="signin-email"
-              placeholder="you@example.com"
+              placeholder={t("emailPlaceholder", { defaultValue: "you@example.com" })}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
@@ -165,13 +167,13 @@ export default function SignInForm() {
         <div>
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs font-semibold text-[#CECADF] uppercase tracking-wider">
-              Password
+              {t("passwordLabel", { defaultValue: "Password" })}
             </label>
             <a
               href="/forgot-password"
               className="text-xs text-[#818CF8] hover:text-[#4F46E5] font-semibold transition"
             >
-              Forgot password?
+              {t("forgotPasswordLink", { defaultValue: "Forgot password?" })}
             </a>
           </div>
           <div className="relative">
@@ -181,7 +183,7 @@ export default function SignInForm() {
             <input
               type={showPassword ? "text" : "password"}
               id="signin-password"
-              placeholder="••••••••"
+              placeholder={t("passwordPlaceholder", { defaultValue: "••••••••" })}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-10 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
@@ -205,10 +207,10 @@ export default function SignInForm() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin text-white" />
-              <span>Signing in...</span>
+              <span>{t("signingInBtn", { defaultValue: "Signing in..." })}</span>
             </>
           ) : (
-            "Sign In"
+            t("signInBtn", { defaultValue: "Sign In" })
           )}
         </button>
       </form>
@@ -220,7 +222,7 @@ export default function SignInForm() {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-[#111118] px-3.5 text-[#8E88AB]/60 font-semibold tracking-wider">
-            or continue with
+            {t("orContinueWith", { defaultValue: "or continue with" })}
           </span>
         </div>
       </div>
@@ -239,7 +241,7 @@ export default function SignInForm() {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
           </svg>
-          <span>Google</span>
+          <span>{t("google", { defaultValue: "Google" })}</span>
         </button>
         <button
           type="button"
@@ -250,22 +252,22 @@ export default function SignInForm() {
           <svg className="w-4 h-4 shrink-0 fill-current" viewBox="0 0 24 24">
             <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z" />
           </svg>
-          <span>GitHub</span>
+          <span>{t("github", { defaultValue: "GitHub" })}</span>
         </button>
       </div>
 
       {/* Switch Page */}
       <div className="mt-8 text-center relative space-y-2">
         <p className="text-sm text-[#8E88AB] font-medium">
-          Don't have an account?{" "}
+          {t("dontHaveAccount", { defaultValue: "Don't have an account?" })}{" "}
           <a href="/sign-up" className="text-[#818CF8] hover:text-[#4F46E5] font-bold transition">
-            Sign up
+            {t("signUpLink", { defaultValue: "Sign up" })}
           </a>
         </p>
         <p className="text-sm text-[#8E88AB] font-medium">
-          Forgot your password?{" "}
+          {t("forgotYourPassword", { defaultValue: "Forgot your password?" })}{" "}
           <a href="/forgot-password" className="text-[#818CF8] hover:text-[#4F46E5] font-bold transition">
-            Reset it here
+            {t("resetItHere", { defaultValue: "Reset it here" })}
           </a>
         </p>
       </div>

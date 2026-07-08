@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useSession, signIn, signUp, signOut, authClient } from "./lib/auth-client";
 import { trpc } from "./lib/trpc-client";
 import { usePath, navigate } from "./lib/router";
@@ -180,6 +181,7 @@ const MOTIVATIONAL_QUOTES = [
 import { TourController } from "./components/tour/TourController";
 
 export default function App() {
+  const { t, i18n } = useTranslation();
   const { data: sessionData, isPending: isSessionPending, refetch: refetchSession } = useSession();
   const path = usePath();
 
@@ -211,7 +213,9 @@ export default function App() {
 
   useEffect(() => {
     const handleQuota = () => {
-      toast.error("API Key Quota Exceeded! Check your usage at aistudio.google.com");
+      localStorage.removeItem("zc_user_key");
+      setHasKey(false);
+      toast.error(t("toast.apiKeyQuotaExceededCheckYourUsageAtAistudiogooglecom", { defaultValue: "API Key is missing or invalid! Please provide a new key." }));
     };
     window.addEventListener("zc-quota-exceeded", handleQuota);
     return () => window.removeEventListener("zc-quota-exceeded", handleQuota);
@@ -297,7 +301,7 @@ export default function App() {
         console.error("tRPC getCourses error:", err);
         setIsLoadingCourses(false);
         if (!err?.message?.includes("UNAUTHORIZED")) {
-          toast.error("Couldn't load your courses — please refresh");
+          toast.error(t("toast.couldntLoadYourCoursesPleaseRefresh", { defaultValue: "Couldn't load your courses — please refresh" }));
         }
       });
   }, [sessionData]);
@@ -330,9 +334,9 @@ export default function App() {
         const cached = await localforage.getItem(`course-${activeCourseId}`);
         if (cached) {
           setActiveCourse(cached as any);
-          toast.success("Loaded offline version 📶");
+          toast.success(t("toast.loadedOfflineVersion", { defaultValue: "Loaded offline version 📶" }));
         } else {
-          toast.error("You are offline and this course is not cached.");
+          toast.error(t("toast.youAreOfflineAndThisCourseIsNotCached", { defaultValue: "You are offline and this course is not cached." }));
         }
         setIsLoadingCourse(false);
       }
@@ -358,7 +362,7 @@ export default function App() {
         // Only show toast if it's not an auth error
         // (auth errors are expected when session is loading)
         if (!err?.message?.includes("UNAUTHORIZED")) {
-          toast.error("Failed to load progress — retrying...");
+          toast.error(t("toast.failedToLoadProgressRetrying", { defaultValue: "Failed to load progress — retrying..." }));
           // Retry once after 2 seconds
           setTimeout(() => {
             if (cancelled) return;
@@ -428,15 +432,16 @@ export default function App() {
 
   const [hasKey, setHasKey] = useState(() => {
     if (typeof window !== "undefined") {
-      return !!localStorage.getItem("zc_user_key");
+      const k = localStorage.getItem("zc_user_key");
+      return !!k && k !== "null" && k !== "undefined" && k.trim() !== "";
     }
     return false;
   });
-  const [skippedKey, setSkippedKey] = useState(false);
 
   useEffect(() => {
     const handleKeyChange = () => {
-      setHasKey(!!localStorage.getItem("zc_user_key"));
+      const k = localStorage.getItem("zc_user_key");
+      setHasKey(!!k && k !== "null" && k !== "undefined" && k.trim() !== "");
     };
     window.addEventListener("zc-key-status-changed", handleKeyChange);
     return () => window.removeEventListener("zc-key-status-changed", handleKeyChange);
@@ -456,7 +461,7 @@ export default function App() {
           try {
             await trpc.updateCourseProgress.mutate(item.data);
             trpc.getUserProgress.query().then(data => { if (data) setUserDbProgress(data); }).catch(() => {});
-            toast.success("Offline progress synced successfully! ☁️");
+            toast.success(t("toast.offlineProgressSyncedSuccessfully", { defaultValue: "Offline progress synced successfully! ☁️" }));
           } catch (err) {
             console.error("Failed to sync item", item, err);
             remainingQueue.push(item);
@@ -493,7 +498,7 @@ export default function App() {
     return (
       <main className="min-h-screen bg-[#0F0D19] flex flex-col items-center justify-center">
         <Loader2 className="w-10 h-10 text-[#4F46E5] animate-spin mb-4" />
-        <p className="text-[#A59ECA] font-medium">Warming up your space...</p>
+        <p className="text-[#A59ECA] font-medium">{t("warmingUpSpace", { defaultValue: "Warming up your space..." })}</p>
       </main>
     );
   }
@@ -586,7 +591,8 @@ Rules:
             experienceLevel,
             backgroundContext,
             tone,
-            weeklyHours
+            weeklyHours,
+            language: i18n.language
           })
         });
 
@@ -618,12 +624,24 @@ Rules:
           tone: tone,
           weeklyHours: weeklyHours,
           roadmapData: roadmapDataResult,
+          language: i18n.language,
         });
+
+        const greetings: Record<string, string> = {
+          en: "Hey! 👋 I'm your ZachCourse mentor for **{{title}}**. I've built your personalized roadmap — click any lesson on the left to start learning. I'm here to answer any questions about the course or anything else on your mind! What would you like to explore first? 🚀",
+          es: "¡Hola! 👋 Soy tu mentor de ZachCourse para **{{title}}**. He creado tu hoja de ruta personalizada. Haz clic en cualquier lección de la izquierda para empezar a aprender. ¡Estoy aquí para responder cualquier pregunta sobre el curso o lo que tengas en mente! ¿Qué te gustaría explorar primero? 🚀",
+          fr: "Salut ! 👋 Je suis votre mentor ZachCourse pour **{{title}}**. J'ai créé votre feuille de route personnalisée — cliquez sur n'importe quelle leçon à gauche pour commencer à apprendre. Je suis là pour répondre à toutes vos questions sur le cours ou tout autre sujet en tête ! Qu'aimeriez-vous explorer en premier ? 🚀",
+          de: "Hallo! 👋 Ich bin dein ZachCourse-Mentor für **{{title}}**. Ich habe deine personalisierte Roadmap erstellt – klicke links auf eine beliebige Lektion, um mit dem Lernen zu beginnen. Ich bin hier, um all deine Fragen zum Kurs oder zu allem anderen zu beantworten! Was möchtest du als Erstes erkunden? 🚀",
+          hi: "अरे! 👋 मैं **{{title}}** के लिए आपका ZachCourse मेंटर हूँ। मैंने आपका व्यक्तिगत रोडमैप तैयार किया है — सीखना शुरू करने के लिए बाईं ओर किसी भी पाठ पर क्लिक करें। मैं यहाँ पाठ्यक्रम या आपके मन में मौजूद किसी भी चीज़ के बारे में आपके प्रश्नों का उत्तर देने के लिए हूँ! आप सबसे पहले क्या तलाशना चाहेंगे? 🚀",
+          zh: "嘿！👋 我是你的 ZachCourse 导师，负责 **{{title}}**。我已经为你制定了量身定制的路线图——点击左侧的任意一课即可开始学习。我在这里为你解答有关课程或你脑海中任何其他问题的疑问！你最想先探索什么？ 🚀"
+        };
+        const template = greetings[i18n.language || "en"] || greetings.en;
+        const greetingText = template.replace("{{title}}", roadmapDataResult.title);
 
         const welcomeMessage = {
           id: Date.now().toString(),
           role: "assistant",
-          content: `Hey! 👋 I'm your ZachCourse mentor for **${roadmapDataResult.title}**. I've built your personalized roadmap — click any lesson on the left to start learning. I'm here to answer any questions about the course or anything else on your mind! What would you like to explore first? 🚀`,
+          content: greetingText,
           createdAt: new Date(),
           courseId: newCourse.id
         };
@@ -631,7 +649,7 @@ Rules:
         setCourses(prev => [newCourse as any as CourseListItem, ...prev]);
         setActiveCourseId(newCourse.id);
         setActiveCourse({ ...newCourse, messages: [welcomeMessage] });
-        toast.success("Roadmap saved! Your course is ready 🗺️");
+        toast.success(t("toast.roadmapSavedYourCourseIsReady", { defaultValue: "Roadmap saved! Your course is ready 🗺️" }));
       }
       
       setTopicInput("");
@@ -643,7 +661,7 @@ Rules:
       
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Connection issue — please try again");
+      toast.error(err.message || t("toast.connectionIssuePleaseTryAgain", { defaultValue: "Connection issue — please try again" }));
     } finally {
       setGeneratingRoadmap(false);
     }
@@ -663,7 +681,7 @@ Rules:
 
     try {
       if (activeCourseId && currentRoadmap) {
-        const project = await trpc.getModuleProject.query({ courseId: activeCourseId, moduleId });
+        const project = await trpc.getModuleProject.query({ courseId: activeCourseId, moduleId, language: i18n.language });
         if (project) {
           setSelectedProject(project);
           setGeneratingLesson(false);
@@ -676,14 +694,15 @@ Rules:
           moduleId,
           moduleTitle,
           topic: currentRoadmap.title,
-          level: currentRoadmap.difficulty || "Beginner"
+          level: currentRoadmap.difficulty || "Beginner",
+          language: i18n.language
         });
         setSelectedProject(newProj);
-        toast.success(`Project generated for ${moduleTitle}!`);
+        toast.success(t("toast.projectGenerated", { defaultValue: "Project generated for {{moduleTitle}}!", moduleTitle }));
       }
     } catch (err: any) {
       console.error("Project error", err);
-      toast.error(err.message || "Failed to load project");
+      toast.error(err.message || t("toast.failedToLoadProject", { defaultValue: "Failed to load project" }));
     } finally {
       setGeneratingLesson(false);
     }
@@ -705,10 +724,7 @@ Rules:
         let savedContent = null;
         try {
           if (!navigator.onLine) throw new Error("Offline");
-          savedContent = await trpc.getLessonContent.query({
-            courseId: activeCourseId,
-            lessonId: lesson.id
-          });
+          savedContent = await trpc.getLessonContent.query({ courseId: activeCourseId, lessonId: lesson.id, language: i18n.language });
           // Cache it if found
           if (savedContent && savedContent.content) {
             await localforage.setItem(`lesson-${activeCourseId}-${lesson.id}`, savedContent);
@@ -717,7 +733,7 @@ Rules:
           // If offline, check cache
           savedContent = await localforage.getItem(`lesson-${activeCourseId}-${lesson.id}`);
           if (savedContent) {
-            toast.success("Loaded cached lesson 📶");
+            toast.success(t("toast.loadedCachedLesson", { defaultValue: "Loaded cached lesson 📶" }));
           } else if (!navigator.onLine) {
             throw new Error("You are offline and this lesson is not cached.");
           }
@@ -770,7 +786,8 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
             experienceLevel: activeCourse?.experienceLevel || "beginner",
             backgroundContext: activeCourse?.backgroundContext || "",
             tone: activeCourse?.tone || "friendly",
-            documentContext
+            documentContext,
+            language: i18n.language
           })
         });
 
@@ -816,7 +833,8 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
           lessonId: lesson.id,
           content: content,
           topic: currentRoadmap?.title || "",
-          level: currentRoadmap?.difficulty || "Beginner"
+          level: currentRoadmap?.difficulty || "Beginner",
+          language: i18n.language
         }).then(evalResult => {
           setLessonQualityScore(evalResult.clarityScore);
           setLessonEvaluationData(evalResult);
@@ -827,7 +845,7 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
 
     } catch (err) {
       console.error(err);
-      toast.error("Connection issue — please try again");
+      toast.error(t("toast.connectionIssuePleaseTryAgain", { defaultValue: "Connection issue — please try again" }));
       setLessonContent(`### Study Guide: ${lesson.title} 📚\n\n*Oops! We couldn't fetch a live guide, but here is your tutor's handy study reference:*\n\n- **Main Goal**: Master these key ideas: ${lesson.concepts.join(", ")}\n\n- **Intuitive Analogy**: Think of this concept like reading a map before starting a hike—it ensures you don't take a wrong turn with variables!\n\n### Core Lessons:\n${lesson.concepts.map(c => `#### 🌟 ${c}\nThis is a beautiful foundational block. When we structure this nicely, our programs run smoothly and securely.`).join("\n\n")}`);
     } finally {
       setGeneratingLesson(false);
@@ -843,13 +861,14 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
         lessonId: selectedLesson.id,
         content: lessonContent,
         topic: currentRoadmap?.title || "",
-        level: currentRoadmap?.difficulty || "Beginner"
+        level: currentRoadmap?.difficulty || "Beginner",
+        language: i18n.language
       });
       setLessonQualityScore(evalResult.clarityScore);
       setLessonEvaluationData(evalResult);
-      toast.success("Lesson re-validated!");
+      toast.success(t("toast.lessonRevalidated", { defaultValue: "Lesson re-validated!" }));
     } catch (err) {
-      toast.error("Failed to re-validate lesson");
+      toast.error(t("toast.failedToRevalidateLesson", { defaultValue: "Failed to re-validate lesson" }));
     } finally {
       setRevalidating(false);
     }
@@ -870,7 +889,7 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
       return { ...prev, completedLessons: updatedLessons };
     });
     
-    toast.success("Progress saved ✓");
+    toast.success(t("toast.progressSaved", { defaultValue: "Progress saved ✓" }));
 
     if (sessionData?.user && activeCourseId) {
       try {
@@ -892,9 +911,10 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
                 moduleId: mod.id,
                 moduleTitle: mod.title,
                 topic: currentRoadmap.title,
-                level: currentRoadmap.difficulty || "Beginner"
+                level: currentRoadmap.difficulty || "Beginner",
+                language: i18n.language
               }).then(() => {
-                toast.success(`Project generated for module: ${mod.title}!`);
+                toast.success(t("toast.projectGeneratedMod", { defaultValue: "Project generated for module: {{modTitle}}!", modTitle: mod.title }));
               }).catch(err => {
                 console.error("Failed to auto-generate project", err);
               });
@@ -903,7 +923,7 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
         }
       } catch (err) {
         console.error("Error saving complete lesson state:", err);
-        toast.error("Connection issue — please try again");
+        toast.error(t("toast.connectionIssuePleaseTryAgain", { defaultValue: "Connection issue — please try again" }));
         // Revert optimistic UI on error
         setActiveCourse(prev => {
             if (!prev) return prev;
@@ -966,7 +986,8 @@ ${lessonContent}`;
           body: JSON.stringify({
             lessonTitle: selectedLesson.title,
             lessonContent: lessonContent.slice(0, 800),
-            concepts: selectedLesson.concepts
+            concepts: selectedLesson.concepts,
+            language: i18n.language
           })
         });
 
@@ -984,7 +1005,7 @@ ${lessonContent}`;
       setQuizData(data);
     } catch (err) {
       console.error(err);
-      toast.error("Connection issue — please try again");
+      toast.error(t("toast.connectionIssuePleaseTryAgain", { defaultValue: "Connection issue — please try again" }));
       // Fallback simple quiz
       setQuizData({
         questions: [
@@ -1054,7 +1075,7 @@ ${lessonContent}`;
     });
 
     const scorePct = Math.round((correctCount / quizData.questions.length) * 100);
-    toast.success(`Quiz done! You scored ${scorePct}% 🎯`);
+    toast.success(t("toast.quizDone", { defaultValue: "Quiz done! You scored {{scorePct}}% 🎯", scorePct }));
 
     if (selectedLesson && activeCourseId) {
       const updatedScores = {
@@ -1095,6 +1116,7 @@ ${lessonContent}`;
             lessonId: selectedLesson.id,
             score: scorePct,
             topic: selectedLesson.title,
+            language: i18n.language,
           });
           setQuizAnalysis(analysis);
         } catch (err) {
@@ -1110,7 +1132,7 @@ ${lessonContent}`;
             }
           });
           await localforage.setItem('sync-queue', queue);
-          toast.info("Offline — progress saved locally. Will sync when online! 🔄");
+          toast.info(t("toast.offlineProgressSavedLocallyWillSyncWhenOnline", { defaultValue: "Offline — progress saved locally. Will sync when online! 🔄" }));
         }
       }
     }
@@ -1161,6 +1183,7 @@ ${lessonContent}`;
           courseId: activeCourseId,
           currentLessonId: selectedLesson?.id,
           currentLessonTitle: selectedLesson?.title,
+          language: i18n.language,
           currentCourseTitle: activeCourse?.title,
           history: mentorMessages.slice(-10).map(m => ({
             role: m.role,
@@ -1231,7 +1254,7 @@ ${lessonContent}`;
           messages: prev.messages.filter(m => m.id !== assistantMsgId)
         }
       });
-      toast.error(err.message || "Mentor failed to respond");
+      toast.error(err.message || t("toast.mentorFailedToRespond", { defaultValue: "Mentor failed to respond" }));
     } finally {
       setMentorLoading(false);
     }
@@ -1355,8 +1378,8 @@ ${lessonContent}`;
     return (
       <main className="min-h-screen bg-[#0A0A0F] flex flex-col items-center justify-center text-[#FAF9FD] p-6 text-center">
         <Loader2 className="w-12 h-12 text-[#4F46E5] animate-spin mb-4" />
-        <h2 className="text-xl font-bold tracking-tight">Syncing with companion core...</h2>
-        <p className="text-sm text-[#8E88AB] mt-1 font-medium">Please wait while we establish your secure study connection.</p>
+        <h2 className="text-xl font-bold tracking-tight">{t("syncingCompanionCore", { defaultValue: "Syncing with companion core..." })}</h2>
+        <p className="text-sm text-[#8E88AB] mt-1 font-medium">{t("pleaseWaitSecureConnection", { defaultValue: "Please wait while we establish your secure study connection." })}</p>
       </main>
     );
   }
@@ -1419,18 +1442,18 @@ ${lessonContent}`;
             if (activeCourseId === id) {
                setActiveCourseId(courses.find(c => c.id !== id)?.id || null);
             }
-            toast.success("Course deleted successfully");
+            toast.success(t("toast.courseDeletedSuccessfully", { defaultValue: "Course deleted successfully" }));
           } catch (e: any) {
-            toast.error(e.message || "Failed to delete course");
+            toast.error(e.message || t("toast.failedToDeleteCourse", { defaultValue: "Failed to delete course" }));
           }
         }}
         onRenameCourse={async (id, title) => {
           try {
             await trpc.renameCourse.mutate({ courseId: id, title });
             setCourses(prev => prev.map(c => c.id === id ? { ...c, title } : c));
-            toast.success("Course renamed successfully");
+            toast.success(t("toast.courseRenamedSuccessfully", { defaultValue: "Course renamed successfully" }));
           } catch (e: any) {
-            toast.error(e.message || "Failed to rename course");
+            toast.error(e.message || t("toast.failedToRenameCourse", { defaultValue: "Failed to rename course" }));
           }
         }}
       />
@@ -1464,7 +1487,7 @@ ${lessonContent}`;
           {/* Motivational quote - moved here from header */}
           <div className="bg-[#141223] border-b border-[#231E35] py-3 px-4 md:px-6">
             <p className="text-sm text-[#CECADF] font-medium italic text-center">
-              💡 "{MOTIVATIONAL_QUOTES[quoteIndex]}"
+              💡 "{t(`quotes.quote${quoteIndex + 1}`, { defaultValue: MOTIVATIONAL_QUOTES[quoteIndex] })}"
             </p>
           </div>
           
@@ -1538,7 +1561,7 @@ ${lessonContent}`;
                   const isFirst = vroadmaps.length === 0;
                   setVRoadmaps(prev => [saved, ...prev]);
                   setActiveVRoadmapId(saved.id);
-                  toast.success("Roadmap saved! ✨");
+                  toast.success(t("toast.roadmapSaved", { defaultValue: "Roadmap saved! ✨" }));
                   
                   if (isFirst) {
                     setTimeout(() => {
@@ -1557,10 +1580,10 @@ ${lessonContent}`;
                     if (activeVRoadmapId === id) {
                       setActiveVRoadmapId(null);
                     }
-                    toast.success("Roadmap deleted");
+                    toast.success(t("toast.roadmapDeleted", { defaultValue: "Roadmap deleted" }));
                   } catch (err: any) {
                     console.error("Delete roadmap error:", err);
-                    toast.error("Failed to delete — please try again");
+                    toast.error(t("toast.failedToDeletePleaseTryAgain", { defaultValue: "Failed to delete — please try again" }));
                   }
                 }}
                 onToggleFavorite={async (id, isFavorite) => {
@@ -1587,7 +1610,7 @@ ${lessonContent}`;
                     trpc.getUserProgress.query().then(data => { if (data) setUserDbProgress(data); }).catch(() => {});
                   } catch (err) {
                     setVRoadmaps(prev => prev.map(r => r.id === roadmapId ? { ...r, completedNodeIds: current } : r));
-                    toast.error("Failed to save progress");
+                    toast.error(t("toast.failedToSaveProgress", { defaultValue: "Failed to save progress" }));
                   }
                 }}
               />
@@ -1607,21 +1630,21 @@ ${lessonContent}`;
                 <div className="flex items-center gap-3 mb-6">
                   <span className="text-3xl select-none">✨</span>
                   <div>
-                    <h2 className="text-2xl font-bold text-[#FAF9FD] tracking-tight">Create a New Learning Adventure</h2>
-                    <p className="text-base text-[#8E88AB] mt-1">What would you like to explore today? Your companion tutor will customize the perfect path.</p>
+                    <h2 className="text-2xl font-bold text-[#FAF9FD] tracking-tight">{t("createNewLearningAdventure", { defaultValue: "Create a New Learning Adventure" })}</h2>
+                    <p className="text-base text-[#8E88AB] mt-1">{t("createNewLearningAdventureDesc", { defaultValue: "What would you like to explore today? Your companion tutor will customize the perfect path." })}</p>
                   </div>
                 </div>
 
                 <form onSubmit={(e) => handleGenerateRoadmap(e)} className="flex flex-col gap-6">
                   <div>
                     <label className="block text-base font-bold text-[#CECADF] mb-2">
-                      Topic or Skill you want to learn:
+                      {t("topicSkillLabel", { defaultValue: "Topic or Skill you want to learn:" })}
                     </label>
                     <div className="relative" data-tour="course-topic-input">
                       <Search className="absolute left-4 top-3.5 w-5 h-5 text-[#8E88AB]" />
                       <input
                         type="text"
-                        placeholder="e.g. Python Programming, UI Design, Photography..."
+                        placeholder={t("topicPlaceholder", { defaultValue: "e.g. Python Programming, UI Design, Photography..." })}
                         value={topicInput}
                         onChange={(e) => setTopicInput(e.target.value)}
                         className="w-full bg-[#121021] border border-[#2A2443] rounded-2xl py-3.5 pl-12 pr-4 text-base text-[#FAF9FD] placeholder:text-[#8E88AB]/60 focus:outline-none focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10 transition-all font-medium"
@@ -1632,7 +1655,7 @@ ${lessonContent}`;
 
                   {/* Suggestion Chips */}
                   <div>
-                    <p className="text-sm font-semibold text-[#8E88AB] mb-2.5">Try popular topics:</p>
+                    <p className="text-sm font-semibold text-[#8E88AB] mb-2.5">{t("tryPopularTopics", { defaultValue: "Try popular topics:" })}</p>
                     <div className="flex flex-wrap gap-2" data-tour="course-topic-pills">
                       <button
                         type="button"
@@ -1640,7 +1663,7 @@ ${lessonContent}`;
                         className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#4338CA]/15 hover:border-[#4F46E5] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
                       >
                         <span>🐍</span>
-                        <span>Python</span>
+                        <span>{t("python", { defaultValue: "Python" })}</span>
                       </button>
                       <button
                         type="button"
@@ -1648,7 +1671,7 @@ ${lessonContent}`;
                         className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#4338CA]/15 hover:border-[#4F46E5] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
                       >
                         <span>🤖</span>
-                        <span>AI Basics</span>
+                        <span>{t("aiBasics", { defaultValue: "AI Basics" })}</span>
                       </button>
                       <button
                         type="button"
@@ -1656,7 +1679,7 @@ ${lessonContent}`;
                         className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#4338CA]/15 hover:border-[#4F46E5] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
                       >
                         <span>📊</span>
-                        <span>Data Science</span>
+                        <span>{t("dataScience", { defaultValue: "Data Science" })}</span>
                       </button>
                       <button
                         type="button"
@@ -1664,7 +1687,7 @@ ${lessonContent}`;
                         className="bg-[#151221] border border-[#2B2446] text-[#D8D4EC] text-sm font-semibold px-4 py-2 rounded-full hover:bg-[#4338CA]/15 hover:border-[#4F46E5] hover:text-[#FAF9FD] transition-all flex items-center gap-1.5 cursor-pointer hover:-translate-y-0.5"
                       >
                         <span>🎨</span>
-                        <span>UI Design</span>
+                        <span>{t("uiDesign", { defaultValue: "UI Design" })}</span>
                       </button>
                     </div>
                   </div>
@@ -1679,7 +1702,7 @@ ${lessonContent}`;
                     >
                       <div className="flex items-center gap-2 flex-1">
                         <span className="shrink-0">📎</span>
-                        <span>Add a course link or textbook syllabus (optional)</span>
+                        <span>{t("addCourseLinkSyllabus", { defaultValue: "Add a course link or textbook syllabus (optional)" })}</span>
                       </div>
                       {showUrlInputs ? <ChevronUp className="w-4 h-4 shrink-0" /> : <ChevronDown className="w-4 h-4 shrink-0" />}
                     </button>
@@ -1688,11 +1711,11 @@ ${lessonContent}`;
                       <div className="grid grid-cols-1 gap-4 mt-4 p-4 bg-[#121021] rounded-2xl border border-[#2A2443]">
                         <div>
                           <label className="block text-sm font-bold text-[#CECADF] mb-1.5">
-                            Syllabus Website Link:
+                            {t("syllabusWebsiteLink", { defaultValue: "Syllabus Website Link:" })}
                           </label>
                           <input
                             type="url"
-                            placeholder="https://your-syllabus-link.com"
+                            placeholder={t("syllabusLinkPlaceholder", { defaultValue: "https://your-syllabus-link.com" })}
                             value={sourceUrlInput}
                             onChange={(e) => setSourceUrlInput(e.target.value)}
                             className="w-full bg-[#1A172E] border border-[#2A2443] rounded-xl py-2.5 px-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/50 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
@@ -1700,11 +1723,11 @@ ${lessonContent}`;
                         </div>
                         <div>
                           <label className="block text-sm font-bold text-[#CECADF] mb-1.5">
-                            Or paste outline text:
+                            {t("orPasteOutlineText", { defaultValue: "Or paste outline text:" })}
                           </label>
                           <textarea
                             rows={3}
-                            placeholder="Paste syllabus key points..."
+                            placeholder={t("pasteSyllabusKeyPoints", { defaultValue: "Paste syllabus key points..." })}
                             value={textContentInput}
                             onChange={(e) => setTextContentInput(e.target.value)}
                             className="w-full bg-[#1A172E] border border-[#2A2443] rounded-xl py-2.5 px-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/50 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
@@ -1739,7 +1762,7 @@ ${lessonContent}`;
 
                     <div>
                       <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
-                        Weekly Commitment: <span className="text-white">{weeklyHours} hours</span>
+                        {t("weeklyCommitment", { hours: weeklyHours, defaultValue: "Weekly Commitment: {{hours}} hours", interpolation: { escapeValue: false } })}
                       </label>
                       <input
                         type="range"
@@ -1750,9 +1773,9 @@ ${lessonContent}`;
                         className="w-full accent-[#4F46E5]"
                       />
                       <div className="flex justify-between text-xs font-medium text-[#4B5563] mt-2">
-                        <span>Casual (1h)</span>
-                        <span>Part-time (15h)</span>
-                        <span>Intensive (30h)</span>
+                        <span>{t("weeklyCommitmentCasual", { defaultValue: "Casual (1h)" })}</span>
+                        <span>{t("weeklyCommitmentPartTime", { defaultValue: "Part-time (15h)" })}</span>
+                        <span>{t("weeklyCommitmentIntensive", { defaultValue: "Intensive (30h)" })}</span>
                       </div>
                     </div>
                   </div>
@@ -1767,12 +1790,12 @@ ${lessonContent}`;
                     {generatingRoadmap ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin text-white" />
-                        <span>Cooking up your roadmap... 🍳</span>
+                        <span>{t("cookingUpRoadmap", { defaultValue: "Cooking up your roadmap... 🍳" })}</span>
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-5 h-5 text-white" />
-                        <span>Build My Learning Path →</span>
+                        <span>{t("buildMyLearningPath", { defaultValue: "Build My Learning Path →" })}</span>
                       </>
                     )}
                   </button>
@@ -1787,11 +1810,11 @@ ${lessonContent}`;
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-2xl">🔥</span>
                     <span className="text-base font-bold text-amber-500">
-                      {(userDbProgress?.streakDays || 1) === 1 ? "1-day study streak!" : `${userDbProgress?.streakDays || 1}-day study streak!`}
+                      {t("progressDashboard:streakText", { count: userDbProgress?.streakDays || 1 })}
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-[#FAF9FD]">You're doing fantastic!</h3>
-                  <p className="text-sm text-[#8E88AB] mt-1">Keep it up! Completed {completedLessonsCount} of {totalLessons} topics so far.</p>
+                  <h3 className="text-lg font-bold text-[#FAF9FD]">{t("doingFantastic", { defaultValue: "You're doing fantastic!" })}</h3>
+                  <p className="text-sm text-[#8E88AB] mt-1">{t("keepItUpCompleted", { defaultValue: "Keep it up! Completed {{completed}} of {{total}} topics so far.", completed: completedLessonsCount, total: totalLessons })}</p>
                 </div>
                 {renderProgressRing(completionPercentage)}
               </div>
@@ -1927,7 +1950,7 @@ ${lessonContent}`;
                         >
                           <div className="flex items-center gap-3">
                             <FileText className={`w-5 h-5 ${selectedModuleId === mod.id && selectedProject ? "text-amber-400" : "text-[#8E88AB]"}`} />
-                            <span className="font-semibold">Module Project</span>
+                            <span className="font-semibold">{t("moduleProject", { defaultValue: "Module Project" })}</span>
                           </div>
                           <ChevronRight className={`w-5 h-5 transition-transform ${selectedModuleId === mod.id && selectedProject ? "translate-x-1" : ""}`} />
                         </button>
@@ -1953,7 +1976,7 @@ ${lessonContent}`;
                       <div className="flex flex-wrap items-center gap-2 mb-1.5">
                         <span className="text-xs font-bold text-[#818CF8] uppercase tracking-wider bg-indigo-950/40 border border-[#4F46E5]/20 px-2.5 py-1 rounded-full">{lessonModuleTitle}</span>
                         <span className="w-1.5 h-1.5 rounded-full bg-[#4F46E5]"></span>
-                        <span className="text-sm font-medium text-[#8E88AB]">{selectedLesson.duration} study time</span>
+                        <span className="text-sm font-medium text-[#8E88AB]">{t("studyTime", { duration: selectedLesson.duration, defaultValue: `${selectedLesson.duration} study time` })}</span>
                       </div>
                       <h2 className="text-2xl font-bold text-[#FAF9FD] tracking-tight">{selectedLesson.title}</h2>
                     </div>
@@ -1971,12 +1994,12 @@ ${lessonContent}`;
                         {completedLessons.includes(selectedLesson.id) ? (
                           <>
                             <Check className="w-4.5 h-4.5 text-[#818CF8]" />
-                            <span>Finished!</span>
+                            <span>{t("finished", { defaultValue: "Finished!" })}</span>
                           </>
                         ) : (
                           <>
                             <Circle className="w-4.5 h-4.5 text-[#8E88AB]" />
-                            <span>Mark Learned</span>
+                            <span>{t("markLearned", { defaultValue: "Mark Learned" })}</span>
                           </>
                         )}
                       </button>
@@ -1987,7 +2010,7 @@ ${lessonContent}`;
                         id="btn-take-quiz"
                       >
                         <Award className="w-4.5 h-4.5" />
-                        <span>Take Quick Quiz</span>
+                        <span>{t("takeQuickQuiz", { defaultValue: "Take Quick Quiz" })}</span>
                       </button>
                     </div>
                   </div>
@@ -2002,8 +2025,8 @@ ${lessonContent}`;
                           <Sparkles className="w-5 h-5 text-amber-400 absolute -top-1 -right-1 animate-pulse" />
                         </div>
                         <div className="text-center">
-                          <p className="text-lg text-[#FAF9FD] font-bold">Writing your study guide... ✏️</p>
-                          <p className="text-sm text-[#8E88AB] mt-2 max-w-sm">Generating custom explanations, friendly real-world analogies, and safe examples to help you understand.</p>
+                          <p className="text-lg text-[#FAF9FD] font-bold">{t("writingStudyGuide", { defaultValue: "Writing your study guide... ✏️" })}</p>
+                          <p className="text-sm text-[#8E88AB] mt-2 max-w-sm">{t("writingStudyGuideDesc", { defaultValue: "Generating custom explanations, friendly real-world analogies, and safe examples to help you understand." })}</p>
                         </div>
                       </div>
                     ) : (
@@ -2013,7 +2036,7 @@ ${lessonContent}`;
                         {/* Interactive concept pills */}
                         <div className="flex flex-col gap-3 bg-[#121021] p-3.5 rounded-2xl border border-[#2A2443]">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-bold text-[#8E88AB]">Key terms we'll cover:</span>
+                            <span className="text-sm font-bold text-[#8E88AB]">{t("keyTermsCover", { defaultValue: "Key terms we'll cover:" })}</span>
                             {selectedLesson.concepts.map((concept, idx) => (
                               <span 
                                 key={idx}
@@ -2028,29 +2051,29 @@ ${lessonContent}`;
                             <div className="flex flex-col gap-2 mt-1 border-t border-[#2A2443] pt-3">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold text-[#8E88AB]">Content Quality QA:</span>
+                                  <span className="text-sm font-bold text-[#8E88AB]">{t("contentQualityQA", { defaultValue: "Content Quality QA:" })}</span>
                                   <div className="relative group">
                                     <span className={`text-sm px-2 py-0.5 rounded-full font-bold cursor-default ${
                                       lessonEvaluationData?.isApproved ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-500/30' :
                                       'bg-red-950/50 text-red-400 border border-red-500/30'
                                     }`}>
-                                      {lessonEvaluationData?.isApproved ? "Approved ✓" : "Flagged ⚠"}
+                                      {lessonEvaluationData?.isApproved ? t("approvedCheck", { defaultValue: "Approved ✓" }) : t("flaggedWarning", { defaultValue: "Flagged ⚠" })}
                                     </span>
                                     {lessonEvaluationData && (
                                       <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-72 bg-[#1E1A33] border border-[#2A2443] rounded-lg p-3 shadow-xl z-10 text-xs text-[#CECADF]">
                                         <div className="grid grid-cols-2 gap-2 mb-2 pb-2 border-b border-[#2A2443]">
                                           <div>
-                                            <p className="text-[#8E88AB] font-semibold">Clarity Score</p>
+                                            <p className="text-[#8E88AB] font-semibold">{t("clarityScore", { defaultValue: "Clarity Score" })}</p>
                                             <p className="font-bold">{lessonQualityScore}/5</p>
                                           </div>
                                           <div>
-                                            <p className="text-[#8E88AB] font-semibold">Difficulty Match</p>
-                                            <p className="font-bold">{lessonEvaluationData.difficultyMatch ? "Yes" : "No"}</p>
+                                            <p className="text-[#8E88AB] font-semibold">{t("difficultyMatch", { defaultValue: "Difficulty Match" })}</p>
+                                            <p className="font-bold">{lessonEvaluationData.difficultyMatch ? t("yes", { defaultValue: "Yes" }) : t("no", { defaultValue: "No" })}</p>
                                           </div>
                                         </div>
                                         {lessonEvaluationData.issues?.length > 0 && (
                                           <div className="mb-2">
-                                            <p className="font-bold text-red-400 mb-1">Issues Identified:</p>
+                                            <p className="font-bold text-red-400 mb-1">{t("issuesIdentified", { defaultValue: "Issues Identified:" })}</p>
                                             <ul className="list-disc pl-4 space-y-1 text-red-300">
                                               {lessonEvaluationData.issues.map((issue: string, i: number) => (
                                                 <li key={i}>{issue}</li>
@@ -2060,7 +2083,7 @@ ${lessonContent}`;
                                         )}
                                         {lessonEvaluationData.suggestions?.length > 0 && (
                                           <div>
-                                            <p className="font-bold text-emerald-400 mb-1">Suggestions:</p>
+                                            <p className="font-bold text-emerald-400 mb-1">{t("suggestionsLabel", { defaultValue: "Suggestions:" })}</p>
                                             <ul className="list-disc pl-4 space-y-1 text-emerald-300">
                                               {lessonEvaluationData.suggestions.map((sug: string, i: number) => (
                                                 <li key={i}>{sug}</li>
@@ -2078,21 +2101,21 @@ ${lessonContent}`;
                                   className="text-xs flex items-center gap-1 bg-[#1E1A33] hover:bg-[#2A2443] text-[#8E88AB] transition px-2 py-1 rounded disabled:opacity-50"
                                 >
                                   <RefreshCw className={`w-3 h-3 ${revalidating ? "animate-spin" : ""}`} />
-                                  <span>{revalidating ? "Re-validating..." : "Re-validate"}</span>
+                                  <span>{revalidating ? t("revalidating", { defaultValue: "Re-validating..." }) : t("revalidate", { defaultValue: "Re-validate" })}</span>
                                 </button>
                               </div>
                               
                               {lessonEvaluationData?.isApproved === false && (
                                 <div className="bg-red-950/20 border border-red-900/50 rounded-lg p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-1">
                                   <div className="flex items-center gap-2 text-sm text-red-300">
-                                    <span className="font-bold text-red-400">⚠️ Warning:</span> 
+                                    <span className="font-bold text-red-400">{t("warningLabel", { defaultValue: "⚠️ Warning:" })}</span> 
                                     {lessonEvaluationData.issues?.[0] || "Content did not pass quality checks."}
                                   </div>
                                   <button
                                     onClick={() => handleSelectLesson(lessonModuleTitle, selectedLesson)}
                                     className="shrink-0 text-xs font-bold bg-red-900/50 hover:bg-red-900/80 text-red-200 px-3 py-1.5 rounded transition"
                                   >
-                                    Regenerate Lesson
+                                    {t("regenerateLesson", { defaultValue: "Regenerate Lesson" })}
                                   </button>
                                 </div>
                               )}
@@ -2132,12 +2155,12 @@ ${lessonContent}`;
                         </div>
 
                         <div className="border-t border-[#2A2443] pt-5 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                          <p className="text-sm text-[#8E88AB] font-medium text-center sm:text-left">Feeling confident about this lesson? Let's verify your retention!</p>
+                          <p className="text-sm text-[#8E88AB] font-medium text-center sm:text-left">{t("feelingConfidentLesson", { defaultValue: "Feeling confident about this lesson? Let's verify your retention!" })}</p>
                           <button
                             onClick={handleStartQuiz}
                             className="text-base font-bold text-[#818CF8] hover:text-[#a5b4fc] transition flex items-center gap-1 cursor-pointer"
                           >
-                            <span>Start Quick Quiz</span>
+                            <span>{t("startQuickQuiz", { defaultValue: "Start Quick Quiz" })}</span>
                             <ArrowRight className="w-4.5 h-4.5" />
                           </button>
                         </div>
@@ -2151,9 +2174,9 @@ ${lessonContent}`;
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#2A2443] pb-5 gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-xs font-bold text-amber-400 uppercase tracking-wider bg-amber-950/40 border border-amber-500/20 px-2.5 py-1 rounded-full">Module Project</span>
+                        <span className="text-xs font-bold text-amber-400 uppercase tracking-wider bg-amber-950/40 border border-amber-500/20 px-2.5 py-1 rounded-full">{t("moduleProject", { defaultValue: "Module Project" })}</span>
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                        <span className="text-sm font-medium text-[#8E88AB]">~{selectedProject.estimatedHours} hours</span>
+                        <span className="text-sm font-medium text-[#8E88AB]">{t("estimatedHoursVal", { hours: selectedProject.estimatedHours, defaultValue: "~{{hours}} hours", interpolation: { escapeValue: false } })}</span>
                       </div>
                       <h2 className="text-2xl font-bold text-[#FAF9FD] tracking-tight">{selectedProject.title}</h2>
                     </div>
@@ -2165,7 +2188,7 @@ ${lessonContent}`;
                           const status = e.target.value;
                           trpc.updateProjectStatus.mutate({ projectId: selectedProject.id, status })
                             .then(() => setSelectedProject(prev => ({ ...prev, status })))
-                            .catch(err => toast.error("Failed to update status"));
+                            .catch(err => toast.error(t("toast.failedToUpdateStatus", { defaultValue: "Failed to update status" })));
                         }}
                         className={`text-sm font-bold rounded-xl px-4 py-2.5 focus:outline-none transition-colors border ${
                           selectedProject.status === 'completed' ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400' :
@@ -2173,9 +2196,9 @@ ${lessonContent}`;
                           'bg-[#121021] border-[#2A2443] text-[#CECADF]'
                         }`}
                       >
-                        <option value="not_started">Not Started</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed ✓</option>
+                        <option value="not_started">{t("notStarted", { defaultValue: "Not Started" })}</option>
+                        <option value="in_progress">{t("inProgress", { defaultValue: "In Progress" })}</option>
+                        <option value="completed">{t("completedCheck", { defaultValue: "Completed ✓" })}</option>
                       </select>
                     </div>
                   </div>
@@ -2184,7 +2207,7 @@ ${lessonContent}`;
                     <p className="text-lg text-[#FAF9FD] font-medium">{selectedProject.description}</p>
                     
                     <div>
-                      <h3 className="text-lg font-bold text-[#FAF9FD] mb-3">Objectives</h3>
+                      <h3 className="text-lg font-bold text-[#FAF9FD] mb-3">{t("objectives", { defaultValue: "Objectives" })}</h3>
                       <ul className="list-disc pl-5 space-y-2">
                         {Array.isArray(selectedProject.objectives) && selectedProject.objectives.map((obj: string, i: number) => (
                           <li key={i}>{obj}</li>
@@ -2193,7 +2216,7 @@ ${lessonContent}`;
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-bold text-[#FAF9FD] mb-3">Step-by-Step Guide</h3>
+                      <h3 className="text-lg font-bold text-[#FAF9FD] mb-3">{t("stepByStepGuide", { defaultValue: "Step-by-Step Guide" })}</h3>
                       <ol className="list-decimal pl-5 space-y-3">
                         {Array.isArray(selectedProject.steps) && selectedProject.steps.map((step: string, i: number) => (
                           <li key={i} className="pl-1 leading-relaxed">{step}</li>
@@ -2203,7 +2226,7 @@ ${lessonContent}`;
 
                     <div className="bg-[#121021] border border-[#2A2443] p-5 rounded-2xl">
                       <h3 className="text-lg font-bold text-[#FAF9FD] mb-3 flex items-center gap-2">
-                        <CheckCircle className="w-5 h-5 text-emerald-400" /> Success Criteria
+                        <CheckCircle className="w-5 h-5 text-emerald-400" /> {t("successCriteria", { defaultValue: "Success Criteria" })}
                       </h3>
                       <ul className="space-y-2">
                         {Array.isArray(selectedProject.successCriteria) && selectedProject.successCriteria.map((crit: string, i: number) => (
@@ -2216,7 +2239,7 @@ ${lessonContent}`;
                     </div>
                     
                     <div className="border-t border-[#2A2443] pt-6">
-                      <label className="block text-sm font-bold text-[#CECADF] mb-2">Submission Notes (Optional)</label>
+                      <label className="block text-sm font-bold text-[#CECADF] mb-2">{t("submissionNotesOptional", { defaultValue: "Submission Notes (Optional)" })}</label>
                       <textarea
                         value={selectedProject.submissionNote || ""}
                         onChange={(e) => setSelectedProject(prev => ({ ...prev, submissionNote: e.target.value }))}
@@ -2227,7 +2250,7 @@ ${lessonContent}`;
                             submissionNote: e.target.value 
                           });
                         }}
-                        placeholder="Link to your repo, live demo, or thoughts on the project..."
+                        placeholder={t("submissionNotesPlaceholder", { defaultValue: "Link to your repo, live demo, or thoughts on the project..." })}
                         className="w-full bg-[#121021] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-amber-500 min-h-[100px]"
                       />
                     </div>
@@ -2239,9 +2262,9 @@ ${lessonContent}`;
                     <Compass className="w-12 h-12" />
                   </div>
                   <div>
-                    <h3 className="font-sans font-bold text-[#FAF9FD] text-2xl">Pick a Topic to Start Learning! 🚀</h3>
+                    <h3 className="font-sans font-bold text-[#FAF9FD] text-2xl">{t("pickTopicToStart", { defaultValue: "Pick a Topic to Start Learning! 🚀" })}</h3>
                     <p className="text-base text-[#8E88AB] max-w-sm mt-2">
-                      Click any lesson topic in your personalized roadmap on the left. Your companion tutor will formulate study notes, annotated code exercises, and friendly models.
+                      {t("clickAnyLessonTopic", { defaultValue: "Click any lesson topic in your personalized roadmap on the left. Your companion tutor will formulate study notes, annotated code exercises, and friendly models." })}
                     </p>
                   </div>
                 </div>
@@ -2304,7 +2327,7 @@ ${lessonContent}`;
         {/* FOOTER - inside scrollable main container */}
         <footer className="border-t border-[#2A2443]/30 bg-[#141223]/30 py-6 px-4 text-center mt-auto shrink-0">
           <p className="text-xs text-[#8E88AB] font-medium">
-            ZachCourse Companion Core • Powered by Warm Generative AI Guidance
+            {t("footerText", { defaultValue: "ZachCourse Companion Core • Powered by Warm Generative AI Guidance" })}
           </p>
         </footer>
 

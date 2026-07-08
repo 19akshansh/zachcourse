@@ -1,0 +1,31 @@
+{
+  "quizMasterAssessment": "تقييم أستاذ الاختبار",
+  "subtitle": "اختبر مدى استيعابك من خلال أسئلة الاختيار من متعدد المفاهيمية.",
+  "tutorFormulating": "المعلم يقوم بصياغة أسئلة الاختبار الخاصة بك... 🧠",
+  "tutorFormulatingSub": "تصميم خيارات تكيفية لقياس الفهم المفاهيمي، بدلاً من استرجاع بناء الجملة.",
+  "correctFeedback": "🎉 أحسنت! عمل رائع!",
+  "incorrectFeedback": "🙈 أوه، دعنا نتعلم من هذا:",
+  "submitAnswers": "إرسال إجابات الاختبار",
+  "quizCompletedTitle": "اكتمل الاختبار! 🏆",
+  "quizPerformanceLogged": "تم تسجيل درجة أدائك البالغة {{score}}% في إحصائيات تقدمك!",
+  "backToRoadmap": "العودة إلى علامة تبويب خارطة الطريق",
+  "aiFeedbackTitle": "ملاحظات تكيفية من الذكاء الاصطناعي",
+  "recommendedAdjust": "تعديل موصى به",
+  "levelUpDifficulty": "رفع مستوى الصعوبة 📈",
+  "reviewBasics": "مراجعة الأساسيات 📉",
+  "maintainCurrentPace": "الحفاظ على الوتيرة الحالية 🎯",
+  "topicsToReview": "مواضيع للمراجعة",
+  "configureQuizTitle": "تكوين اختبارك",
+  "difficultyLabel": "الصعوبة",
+  "difficulty": {
+    "beginner": "مبتدئ",
+    "medium": "متوسط",
+    "hard": "صعب",
+    "expert": "خبير"
+  },
+  "numberOfQuestions": "عدد الأسئلة",
+  "generateQuizButton": "إنشاء اختبار",
+  "startLessonToPracticeTitle": "ابدأ درسًا للتدرب!",
+  "startLessonToPracticeDesc": "اختر أي درس من خارطة طريقك النشطة، انقر على 'خذ اختبارًا سريعًا' في عرض دليل دراسة الدرس، واختبر معرفتك هنا!",
+  "goToRoadmapButton": "اذهب إلى خارطة الطريق"
+}

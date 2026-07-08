@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useSession } from "../lib/auth-client";
 import { Pagination } from "./Pagination";
 import { PersonalizationFields } from "./PersonalizationFields";
+import { useTranslation } from "react-i18next";
 
 interface CohortsDashboardProps {
   onNavigateToCourse?: (courseId: string) => void;
@@ -13,6 +14,7 @@ interface CohortsDashboardProps {
 }
 
 export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadmap }: CohortsDashboardProps) {
+  const { t, i18n } = useTranslation(["cohorts", "common"]);
   const { data: sessionData } = useSession();
   const userId = sessionData?.user?.id;
 
@@ -49,7 +51,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
         setCohortsTotalPages(res.totalPages);
       }
     } catch (e: any) {
-      toast.error(e.message || "Failed to load cohorts");
+      toast.error(e.message || t("toastFailedLoadCohorts", { defaultValue: "Failed to load cohorts" }));
     }
   };
 
@@ -78,7 +80,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
     e.preventDefault();
     if (!createName) return;
     if (!createCourseId && !createVisualRoadmapId) {
-      toast.error("Please select a Course or a Roadmap");
+      toast.error(t("toastSelectCourseRoadmap", { defaultValue: "Please select a Course or a Roadmap" }));
       return;
     }
     try {
@@ -88,7 +90,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
         courseId: createCourseId || null,
         visualRoadmapId: createVisualRoadmapId || null,
       });
-      toast.success("Cohort created!");
+      toast.success(t("toastCreated", { defaultValue: "Cohort created!" }));
       setCreateName("");
       setCreateCourseId("");
       setCreateVisualRoadmapId("");
@@ -104,7 +106,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
         }, 500);
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to create cohort");
+      toast.error(err.message || t("toastFailedCreate", { defaultValue: "Failed to create cohort" }));
     }
   };
 
@@ -115,13 +117,13 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
     try {
       const res = await trpc.previewCohortByInviteCode.query({ inviteCode: joinCode.trim().toUpperCase() });
       if (!res) {
-        toast.error("Invalid invite code");
+        toast.error(t("toastInvalidInvite", { defaultValue: "Invalid invite code" }));
         setPreviewCohort(null);
       } else {
         setPreviewCohort(res);
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to find cohort");
+      toast.error(err.message || t("toastFailedFind", { defaultValue: "Failed to find cohort" }));
       setPreviewCohort(null);
     } finally {
       setIsPreviewLoading(false);
@@ -138,7 +140,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
         backgroundContext: backgroundContext || undefined,
         tone,
       });
-      toast.success("Successfully joined cohort!");
+      toast.success(t("toastSuccessJoin", { defaultValue: "Successfully joined cohort!" }));
       setJoinCode("");
       setPreviewCohort(null);
       setIsJoining(false);
@@ -151,7 +153,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
         onNavigateToRoadmap(res.visualRoadmapId);
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to join cohort");
+      toast.error(err.message || t("toastFailedJoin", { defaultValue: "Failed to join cohort" }));
     } finally {
       setIsJoinLoading(false);
     }
@@ -202,24 +204,24 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
         <div>
           <h1 className="text-3xl font-bold text-[#FAF9FD] tracking-tight font-sans flex items-center gap-3">
             <Users className="w-8 h-8 text-indigo-400" />
-            Learning Cohorts
+            {t("title", { defaultValue: "Learning Cohorts" })}
           </h1>
-          <p className="text-[#8E88AB] mt-1">Join forces, track progress, and learn together.</p>
+          <p className="text-[#8E88AB] mt-1">{t("subtitle", { defaultValue: "Join forces, track progress, and learn together." })}</p>
         </div>
         <div className="flex gap-3">
           <button 
             data-tour="cohort-join-btn"
             onClick={() => { setIsJoining(true); setIsCreating(false); setPreviewCohort(null); }}
-            className="px-4 py-2 bg-[#1E1A33] hover:bg-[#2A2443] border border-[#2A2443] text-[#FAF9FD] rounded-xl font-medium transition flex items-center gap-2"
+            className="px-4 py-2 bg-[#1E1A33] hover:bg-[#2A2443] border border-[#2A2443] text-[#FAF9FD] rounded-xl font-medium transition flex items-center gap-2 cursor-pointer"
           >
-            <Hash className="w-4 h-4 text-emerald-400" /> Join
+            <Hash className="w-4 h-4 text-emerald-400" /> {t("btnJoin", { defaultValue: "Join" })}
           </button>
           <button 
             data-tour="cohort-create-btn"
             onClick={() => { setIsCreating(true); setIsJoining(false); }}
-            className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-medium transition shadow-lg shadow-indigo-900/20 flex items-center gap-2"
+            className="px-4 py-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl font-medium transition shadow-lg shadow-indigo-900/20 flex items-center gap-2 cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Create
+            <Plus className="w-4 h-4" /> {t("btnCreate", { defaultValue: "Create" })}
           </button>
         </div>
       </div>
@@ -228,19 +230,19 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
         <form onSubmit={handleCreate} className="bg-[#121021] border border-[#4F46E5]/30 rounded-2xl p-6 space-y-4 animate-in fade-in slide-in-from-top-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-1">
-              <label className="block text-sm font-semibold text-[#CECADF] mb-2">Cohort Name</label>
+              <label className="block text-sm font-semibold text-[#CECADF] mb-2">{t("labelCohortName", { defaultValue: "Cohort Name" })}</label>
               <input 
                 type="text" 
                 value={createName} 
                 onChange={e => setCreateName(e.target.value)}
-                placeholder="e.g. Frontend Masters Fall 2026"
+                placeholder={t("placeholderCohortName", { defaultValue: "e.g. Frontend Masters Fall 2026" })}
                 className="w-full bg-[#1E1A33] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-[#4F46E5]"
                 autoFocus
               />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-[#CECADF] mb-2">Select Course (Optional)</label>
+              <label className="block text-sm font-semibold text-[#CECADF] mb-2">{t("selectCourseLabel", { defaultValue: "Select Course (Optional)" })}</label>
               <select
                 value={createCourseId}
                 onChange={e => {
@@ -248,7 +250,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
                 }}
                 className="w-full bg-[#1E1A33] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-[#4F46E5]"
               >
-                <option value="">-- None Selected --</option>
+                <option value="">{t("noneSelected", { defaultValue: "-- None Selected --" })}</option>
                 {courses.map(c => (
                   <option key={c.id} value={c.id}>{c.title} ({c.difficulty})</option>
                 ))}
@@ -256,7 +258,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-[#CECADF] mb-2">Select Roadmap (Optional)</label>
+              <label className="block text-sm font-semibold text-[#CECADF] mb-2">{t("selectRoadmapLabel", { defaultValue: "Select Roadmap (Optional)" })}</label>
               <select
                 value={createVisualRoadmapId}
                 onChange={e => {
@@ -264,7 +266,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
                 }}
                 className="w-full bg-[#1E1A33] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-[#4F46E5]"
               >
-                <option value="">-- None Selected --</option>
+                <option value="">{t("noneSelected", { defaultValue: "-- None Selected --" })}</option>
                 {roadmaps.map(r => (
                   <option key={r.id} value={r.id}>{r.title} ({r.difficulty})</option>
                 ))}
@@ -273,17 +275,17 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
           </div>
 
           <p className="text-xs text-[#8E88AB]">
-            * At least one Course or Roadmap must be selected. Members will learn and compete on the course/roadmap you pick here.
+            {t("courseSelectionHelp", { defaultValue: "* At least one Course or Roadmap must be selected. Members will learn and compete on the course/roadmap you pick here." })}
           </p>
 
           <div className="flex gap-2 justify-end">
-            <button type="button" onClick={() => setIsCreating(false)} className="px-4 py-3 text-[#CECADF] hover:text-white transition">Cancel</button>
+            <button type="button" onClick={() => setIsCreating(false)} className="px-4 py-3 text-[#CECADF] hover:text-white transition cursor-pointer">{t("cancel", { defaultValue: "Cancel" })}</button>
             <button 
               type="submit" 
               disabled={!createName || (!createCourseId && !createVisualRoadmapId)} 
-              className="px-6 py-3 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="px-6 py-3 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-bold rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
             >
-              Create Cohort
+              {t("btnCreateCohort", { defaultValue: "Create Cohort" })}
             </button>
           </div>
         </form>
@@ -294,24 +296,24 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
           {!previewCohort ? (
             <form onSubmit={handlePreview} className="flex flex-col sm:flex-row gap-4 items-end">
               <div className="flex-1 w-full">
-                <label className="block text-sm font-semibold text-[#CECADF] mb-2">Invite Code</label>
+                <label className="block text-sm font-semibold text-[#CECADF] mb-2">{t("labelInviteCode", { defaultValue: "Invite Code" })}</label>
                 <input 
                   type="text" 
                   value={joinCode} 
                   onChange={e => setJoinCode(e.target.value.toUpperCase())}
-                  placeholder="e.g. X7B9HQ"
+                  placeholder={t("placeholderInviteCode", { defaultValue: "e.g. X7B9HQ" })}
                   className="w-full bg-[#1E1A33] border border-[#2A2443] text-[#FAF9FD] rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 uppercase tracking-widest font-mono"
                   autoFocus
                 />
               </div>
               <div className="flex gap-2 w-full sm:w-auto">
-                <button type="button" onClick={() => setIsJoining(false)} className="px-4 py-3 text-[#CECADF] hover:text-white transition">Cancel</button>
+                <button type="button" onClick={() => setIsJoining(false)} className="px-4 py-3 text-[#CECADF] hover:text-white transition cursor-pointer">{t("cancel", { defaultValue: "Cancel" })}</button>
                 <button 
                   type="submit" 
                   disabled={!joinCode || isPreviewLoading} 
-                  className="flex-1 sm:flex-none px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl disabled:opacity-50 flex items-center justify-center min-w-[120px] transition"
+                  className="flex-1 sm:flex-none px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl disabled:opacity-50 flex items-center justify-center min-w-[120px] transition cursor-pointer"
                 >
-                  {isPreviewLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Lookup Code"}
+                  {isPreviewLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t("btnLookupCode", { defaultValue: "Lookup Code" })}
                 </button>
               </div>
             </form>
@@ -319,46 +321,46 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
             <div className="space-y-4">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
                 <Users className="w-6 h-6 text-emerald-400" />
-                Cohort Invitation Found!
+                {t("invitationFound", { defaultValue: "Cohort Invitation Found!" })}
               </h3>
 
               {previewCohort.isAlreadyMember && (
                 <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-xl text-sm font-semibold flex items-center gap-2">
                   <Check className="w-5 h-5 shrink-0" />
-                  <span>You are already a member of this cohort!</span>
+                  <span>{t("alreadyMember", { defaultValue: "You are already a member of this cohort!" })}</span>
                 </div>
               )}
               
               <div className="bg-[#1E1A33] border border-[#2A2443] rounded-xl p-5 space-y-3">
                 <div>
-                  <span className="text-xs text-[#8E88AB] uppercase tracking-wider block">Cohort Name</span>
+                  <span className="text-xs text-[#8E88AB] uppercase tracking-wider block">{t("labelCohortName", { defaultValue: "Cohort Name" })}</span>
                   <span className="text-lg font-bold text-[#FAF9FD]">{previewCohort.name}</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <span className="text-xs text-[#8E88AB] uppercase tracking-wider block">Created By</span>
-                    <span className="text-sm font-medium text-[#CECADF]">{previewCohort.ownerName || "Teacher"}</span>
+                    <span className="text-xs text-[#8E88AB] uppercase tracking-wider block">{t("labelCreatedBy", { defaultValue: "Created By" })}</span>
+                    <span className="text-sm font-medium text-[#CECADF]">{previewCohort.ownerName || t("common:teacher", { defaultValue: "Teacher" })}</span>
                   </div>
                   <div>
-                    <span className="text-xs text-[#8E88AB] uppercase tracking-wider block">Current Members</span>
-                    <span className="text-sm font-medium text-[#CECADF]">{previewCohort.memberCount} members</span>
+                    <span className="text-xs text-[#8E88AB] uppercase tracking-wider block">{t("labelCurrentMembers", { defaultValue: "Current Members" })}</span>
+                    <span className="text-sm font-medium text-[#CECADF]">{t("membersCount", { defaultValue: "{{count}} Member", count: previewCohort.memberCount })}</span>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t border-[#2A2443]">
-                  <span className="text-xs text-[#8E88AB] uppercase tracking-wider block mb-2">Required Content to Join</span>
+                  <span className="text-xs text-[#8E88AB] uppercase tracking-wider block mb-2">{t("labelRequiredContent", { defaultValue: "Required Content to Join" })}</span>
                   <div className="space-y-2">
                     {previewCohort.course && (
                       <div className="flex items-center gap-2 text-sm text-[#CECADF]">
                         <BookOpen className="w-4 h-4 text-indigo-400 shrink-0" />
-                        <span>Course: <strong className="text-white">{previewCohort.course.title}</strong> ({previewCohort.course.difficulty})</span>
+                        <span>{t("courseLabel", { defaultValue: "Course:" })} <strong className="text-white">{previewCohort.course.title}</strong> ({previewCohort.course.difficulty})</span>
                       </div>
                     )}
                     {previewCohort.visualRoadmap && (
                       <div className="flex items-center gap-2 text-sm text-[#CECADF]">
                         <Map className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span>Roadmap: <strong className="text-white">{previewCohort.visualRoadmap.title}</strong> ({previewCohort.visualRoadmap.difficulty})</span>
+                        <span>{t("roadmapLabel", { defaultValue: "Roadmap:" })} <strong className="text-white">{previewCohort.visualRoadmap.title}</strong> ({previewCohort.visualRoadmap.difficulty})</span>
                       </div>
                     )}
                   </div>
@@ -368,10 +370,10 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
               <div className="pt-4 border-t border-[#2A2443] space-y-4">
                 <h4 className="text-sm font-bold text-white flex items-center gap-2">
                   <Sparkles className="w-4.5 h-4.5 text-indigo-400" />
-                  Personalize Your Cloned Content
+                  {t("personalizeClonedTitle", { defaultValue: "Personalize Your Cloned Content" })}
                 </h4>
                 <p className="text-xs text-[#8E88AB]">
-                  Customize how lessons, roadmaps, and mentors talk to you! This will build a bespoke curriculum tailored to your starting level.
+                  {t("personalizeClonedDesc", { defaultValue: "Customize how lessons, roadmaps, and mentors talk to you! This will build a bespoke curriculum tailored to your starting level." })}
                 </p>
                 <PersonalizationFields
                   experienceLevel={experienceLevel}
@@ -384,22 +386,22 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
               </div>
 
               <p className="text-sm text-[#8E88AB]">
-                💡 Joining this cohort will automatically clone the required course and/or roadmap onto your personal account so you can learn and compete on the leaderboard!
+                {t("joinClonedExplanation", { defaultValue: "💡 Joining this cohort will automatically clone the required course and/or roadmap onto your personal account so you can learn and compete on the leaderboard!" })}
               </p>
 
               <div className="flex gap-3 justify-end">
                 <button 
                   type="button" 
                   onClick={() => setPreviewCohort(null)} 
-                  className="px-4 py-3 bg-[#1E1A33] hover:bg-[#2A2443] border border-[#2A2443] text-[#FAF9FD] rounded-xl transition"
+                  className="px-4 py-3 bg-[#1E1A33] hover:bg-[#2A2443] border border-[#2A2443] text-[#FAF9FD] rounded-xl transition cursor-pointer"
                 >
-                  Change Code
+                  {t("btnChangeCode", { defaultValue: "Change Code" })}
                 </button>
                 <button 
                   type="button" 
                   onClick={handleJoinAndClone}
                   disabled={isJoinLoading || previewCohort.isAlreadyMember}
-                  className={`px-6 py-3 font-bold rounded-xl flex items-center gap-2 transition ${
+                  className={`px-6 py-3 font-bold rounded-xl flex items-center gap-2 transition cursor-pointer ${
                     previewCohort.isAlreadyMember 
                       ? "bg-slate-700 text-slate-400 cursor-not-allowed border border-slate-600" 
                       : "bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 shadow-lg shadow-emerald-900/20"
@@ -410,12 +412,12 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
                   ) : previewCohort.isAlreadyMember ? (
                     <>
                       <Check className="w-5 h-5 text-emerald-400" />
-                      Already Joined in Cohort
+                      {t("btnAlreadyJoined", { defaultValue: "Already Joined in Cohort" })}
                     </>
                   ) : (
                     <>
                       <Check className="w-5 h-5" />
-                      Join & Clone Content
+                      {t("btnJoinClone", { defaultValue: "Join & Clone Content" })}
                     </>
                   )}
                 </button>
@@ -429,8 +431,8 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
         {memberships.length === 0 ? (
           <div className="col-span-full py-12 text-center border-2 border-dashed border-[#2A2443] rounded-2xl bg-[#121021]/50 animate-fade-in">
             <Users className="w-12 h-12 text-[#2A2443] mx-auto mb-3" />
-            <p className="text-[#8E88AB] font-medium">You aren't in any cohorts yet.</p>
-            <p className="text-sm text-[#8E88AB]/70 mt-1">Create one or join an existing group to get started.</p>
+            <p className="text-[#8E88AB] font-medium">{t("emptyState", { defaultValue: "You aren't in any cohorts yet." })}</p>
+            <p className="text-sm text-[#8E88AB]/70 mt-1">{t("emptyStateSub", { defaultValue: "Create one or join an existing group to get started." })}</p>
           </div>
         ) : (
           memberships.map((m) => {
@@ -441,6 +443,8 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
             const userRoadmap = m.cohort.visualRoadmapId
               ? roadmaps.find(r => r.clonedFromRoadmapId === m.cohort.visualRoadmapId || r.id === m.cohort.visualRoadmapId)
               : null;
+
+            const count = m.cohort._count?.members || 1;
 
             return (
               <div 
@@ -457,7 +461,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
                   </div>
                   <h3 className="text-lg font-bold text-[#FAF9FD] mb-1 group-hover:text-indigo-300 transition-colors">{m.cohort.name}</h3>
                   <p className="text-sm text-[#CECADF] flex items-center gap-1 mb-4">
-                    {m.cohort._count?.members || 1} Member{(m.cohort._count?.members || 1) !== 1 ? 's' : ''}
+                    {t("membersCount", { defaultValue: "{{count}} Member", count, postProcess: 'interval' })}
                   </p>
                 </div>
 
@@ -466,13 +470,13 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
                     {m.cohort.course && (
                       <div className="flex items-center gap-1.5 text-xs text-[#8E88AB]">
                         <BookOpen className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span className="truncate">Course: <strong className="text-white">{m.cohort.course.title}</strong></span>
+                        <span className="truncate">{t("courseLabel", { defaultValue: "Course:" })} <strong className="text-white">{m.cohort.course.title}</strong></span>
                       </div>
                     )}
                     {m.cohort.visualRoadmap && (
                       <div className="flex items-center gap-1.5 text-xs text-[#8E88AB]">
                         <Map className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span className="truncate">Roadmap: <strong className="text-white">{m.cohort.visualRoadmap.title}</strong></span>
+                        <span className="truncate">{t("roadmapLabel", { defaultValue: "Roadmap:" })} <strong className="text-white">{m.cohort.visualRoadmap.title}</strong></span>
                       </div>
                     )}
                   </div>
@@ -487,9 +491,9 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
                           onNavigateToRoadmap(userRoadmap.id);
                         }
                       }}
-                      className="mt-4 w-full py-2 px-3 bg-[#4F46E5]/20 hover:bg-[#4F46E5] border border-[#4F46E5]/30 hover:border-[#4F46E5] text-indigo-300 hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all"
+                      className="mt-4 w-full py-2 px-3 bg-[#4F46E5]/20 hover:bg-[#4F46E5] border border-[#4F46E5]/30 hover:border-[#4F46E5] text-indigo-300 hover:text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                     >
-                      Continue to Course <ArrowRight className="w-3.5 h-3.5" />
+                      {t("continueToCourse", { defaultValue: "Continue to Course" })} <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
@@ -541,6 +545,7 @@ function CohortDetail({
   onNavigateToCourse?: (courseId: string) => void,
   onNavigateToRoadmap?: (visualRoadmapId: string) => void
 }) {
+  const { t, i18n } = useTranslation(["cohorts", "common"]);
   const [leaderboard, setLeaderboard] = useState<any[] | null>(null);
   const [leaderboardPage, setLeaderboardPage] = useState(1);
   const [leaderboardTotalPages, setLeaderboardTotalPages] = useState(1);
@@ -575,12 +580,13 @@ function CohortDetail({
         experienceLevel: regenLevel,
         backgroundContext: regenBgContext,
         tone: regenTone,
+        language: i18n.language,
       });
-      toast.success("Successfully customized curriculum!");
+      toast.success(t("toastRegenSuccess", { defaultValue: "Successfully customized curriculum!" }));
       setShowRegenerateModal(false);
       window.location.reload();
     } catch (err: any) {
-      toast.error(err.message || "Failed to customize curriculum");
+      toast.error(err.message || t("toastFailedRegen", { defaultValue: "Failed to customize curriculum" }));
     } finally {
       setIsRegenerating(false);
     }
@@ -594,7 +600,7 @@ function CohortDetail({
       const data = await trpc.getCohortMemberProfile.query({ cohortId, userId });
       setProfileData(data);
     } catch (err: any) {
-      toast.error(err.message || "Failed to load member profile");
+      toast.error(err.message || t("toastProfileFailed", { defaultValue: "Failed to load member profile" }));
       setSelectedProfileUserId(null);
     } finally {
       setIsProfileLoading(false);
@@ -637,14 +643,14 @@ function CohortDetail({
     setIsDeleting(true);
     try {
       await trpc.deleteCohort.mutate({ cohortId });
-      toast.success("Cohort deleted successfully");
+      toast.success(t("toastDeleteSuccess", { defaultValue: "Cohort deleted successfully" }));
       setShowDeleteConfirm(false);
       onBack();
       if (onDeleted) {
         onDeleted();
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete cohort");
+      toast.error(err.message || t("toastFailedDelete", { defaultValue: "Failed to delete cohort" }));
     } finally {
       setIsDeleting(false);
     }
@@ -654,14 +660,14 @@ function CohortDetail({
     setIsLeaving(true);
     try {
       await trpc.leaveCohort.mutate({ cohortId });
-      toast.success("Successfully left the cohort");
+      toast.success(t("toastLeaveSuccess", { defaultValue: "Successfully left the cohort" }));
       setShowLeaveConfirm(false);
       onBack();
       if (onLeft) {
         onLeft();
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to leave cohort");
+      toast.error(err.message || t("toastFailedLeave", { defaultValue: "Failed to leave cohort" }));
     } finally {
       setIsLeaving(false);
     }
@@ -671,7 +677,7 @@ function CohortDetail({
     <div className="p-6 md:p-10 max-w-5xl mx-auto w-full space-y-8 fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#2A2443]">
         <div className="flex items-center gap-4">
-          <button onClick={onBack} className="w-10 h-10 flex items-center justify-center bg-[#1E1A33] hover:bg-[#2A2443] rounded-xl text-[#FAF9FD] transition">
+          <button onClick={onBack} className="w-10 h-10 flex items-center justify-center bg-[#1E1A33] hover:bg-[#2A2443] rounded-xl text-[#FAF9FD] transition cursor-pointer">
             <ArrowRight className="w-5 h-5 rotate-180" />
           </button>
           <div>
@@ -679,7 +685,7 @@ function CohortDetail({
             <div className="mt-2 flex flex-wrap gap-2 items-center">
               {inviteCode && (
                 <span className="text-xs bg-[#1E1A33] text-[#CECADF] px-2.5 py-1 rounded-md font-mono tracking-wider">
-                  Code: {inviteCode}
+                  {t("detail.codeLabel", { defaultValue: "Code:" })} {inviteCode}
                 </span>
               )}
               {courseTitle && (
@@ -696,7 +702,7 @@ function CohortDetail({
                       : "bg-[#1E1A33] text-[#CECADF] border border-[#2A2443] cursor-not-allowed"
                   }`}
                 >
-                  <BookOpen className="w-3 h-3" /> Course: {courseTitle}
+                  <BookOpen className="w-3 h-3" /> {t("detail.courseLabel", { defaultValue: "Course:" })} {courseTitle}
                   {userCourseId && <ArrowRight className="w-3 h-3 text-indigo-400" />}
                 </button>
               )}
@@ -714,7 +720,7 @@ function CohortDetail({
                       : "bg-[#1E1A33] text-[#CECADF] border border-[#2A2443] cursor-not-allowed"
                   }`}
                 >
-                  <Map className="w-3 h-3" /> Roadmap: {roadmapTitle}
+                  <Map className="w-3 h-3" /> {t("detail.roadmapLabel", { defaultValue: "Roadmap:" })} {roadmapTitle}
                   {userRoadmapId && <ArrowRight className="w-3 h-3 text-emerald-400" />}
                 </button>
               )}
@@ -727,14 +733,14 @@ function CohortDetail({
             <button
               onClick={handleDelete}
               disabled={isDeleting}
-              className="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/30 hover:border-red-500/50 rounded-xl font-medium transition flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-400 border border-red-500/30 hover:border-red-500/50 rounded-xl font-medium transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {isDeleting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Trash2 className="w-4 h-4" />
               )}
-              Delete Cohort
+              {t("detail.deleteCohort", { defaultValue: "Delete Cohort" })}
             </button>
           )}
 
@@ -742,14 +748,14 @@ function CohortDetail({
             <button
               onClick={handleLeave}
               disabled={isLeaving}
-              className="px-4 py-2.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:border-amber-500/50 rounded-xl font-medium transition flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2.5 bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:border-amber-500/50 rounded-xl font-medium transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               {isLeaving ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <LogOut className="w-4 h-4" />
               )}
-              Leave Cohort
+              {t("detail.leaveCohort", { defaultValue: "Leave Cohort" })}
             </button>
           )}
         </div>
@@ -761,11 +767,11 @@ function CohortDetail({
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm">
               <Sparkles className="w-4 h-4" />
-              <span>Tailor Curriculum to Your Level</span>
+              <span>{t("detail.tailorTitle", { defaultValue: "Tailor Curriculum to Your Level" })}</span>
             </div>
-            <h3 className="text-base font-bold text-white">Is this cohort's content too easy or too hard for you?</h3>
+            <h3 className="text-base font-bold text-white">{t("detail.tailorQuestion", { defaultValue: "Is this cohort's content too easy or too hard for you?" })}</h3>
             <p className="text-sm text-[#CECADF]">
-              You can regenerate a personalized course roadmap or node graph specifically designed for your experience level and background context.
+              {t("detail.tailorDesc", { defaultValue: "You can regenerate a personalized course roadmap or node graph specifically designed for your experience level and background context." })}
             </p>
           </div>
           <button
@@ -781,7 +787,7 @@ function CohortDetail({
             }}
             className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-900/20 whitespace-nowrap cursor-pointer"
           >
-            Regenerate curriculum for my level
+            {t("detail.tailorBtn", { defaultValue: "Regenerate curriculum for my level" })}
           </button>
         </div>
       )}
@@ -791,7 +797,7 @@ function CohortDetail({
         <div data-tour="cohort-leaderboard" className="lg:col-span-2 space-y-6 min-w-0">
           <div className="flex items-center gap-2">
             <Trophy className="w-5 h-5 text-amber-400" />
-            <h2 className="text-xl font-bold text-[#FAF9FD]">Leaderboard</h2>
+            <h2 className="text-xl font-bold text-[#FAF9FD]">{t("detail.leaderboard", { defaultValue: "Leaderboard" })}</h2>
           </div>
           
           <div className="bg-[#121021] border border-[#2A2443] rounded-2xl overflow-hidden shadow-xl">
@@ -799,11 +805,11 @@ function CohortDetail({
               <table className="w-full text-left text-sm min-w-[600px]">
               <thead className="bg-[#1E1A33] text-[#CECADF] font-semibold text-xs uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-4">Rank</th>
-                  <th className="px-6 py-4">Learner</th>
-                  <th className="px-6 py-4 text-right">Proficiency</th>
-                  <th className="px-6 py-4 text-right">Avg Score</th>
-                  <th className="px-6 py-4 text-right">Streak</th>
+                  <th className="px-6 py-4">{t("detail.rankHeader", { defaultValue: "Rank" })}</th>
+                  <th className="px-6 py-4">{t("detail.learnerHeader", { defaultValue: "Learner" })}</th>
+                  <th className="px-6 py-4 text-right">{t("detail.proficiencyHeader", { defaultValue: "Proficiency" })}</th>
+                  <th className="px-6 py-4 text-right">{t("detail.scoreHeader", { defaultValue: "Avg Score" })}</th>
+                  <th className="px-6 py-4 text-right">{t("detail.streakHeader", { defaultValue: "Streak" })}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#2A2443]">
@@ -831,7 +837,7 @@ function CohortDetail({
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-[#8E88AB]">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                      Loading leaderboard...
+                      {t("detail.loadingLeaderboard", { defaultValue: "Loading leaderboard..." })}
                     </td>
                   </tr>
                 )}
@@ -854,7 +860,7 @@ function CohortDetail({
         <div data-tour="cohort-activity" className="space-y-6">
           <div className="flex items-center gap-2">
             <Activity className="w-5 h-5 text-indigo-400" />
-            <h2 className="text-xl font-bold text-[#FAF9FD]">Recent Activity</h2>
+            <h2 className="text-xl font-bold text-[#FAF9FD]">{t("detail.recentActivity", { defaultValue: "Recent Activity" })}</h2>
           </div>
 
           <div className="bg-[#121021] border border-[#2A2443] rounded-2xl p-5 space-y-4 shadow-xl">
@@ -887,12 +893,12 @@ function CohortDetail({
             )) : (
               <div className="py-8 text-center text-[#8E88AB]">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
-                Loading activity...
+                {t("detail.loadingActivity", { defaultValue: "Loading activity..." })}
               </div>
             )}
             
             {activity && activity.length === 0 && (
-              <p className="text-sm text-[#8E88AB] text-center py-4">No recent activity.</p>
+              <p className="text-sm text-[#8E88AB] text-center py-4">{t("detail.noRecentActivity", { defaultValue: "No recent activity." })}</p>
             )}
 
             {activityTotalPages > 1 && (
@@ -916,9 +922,9 @@ function CohortDetail({
                 <Trash2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[#FAF9FD]">Delete Cohort?</h3>
+                <h3 className="text-xl font-bold text-[#FAF9FD]">{t("deleteConfirmTitle", { defaultValue: "Delete Cohort?" })}</h3>
                 <p className="text-sm text-[#CECADF] mt-2 leading-relaxed">
-                  Are you sure you want to permanently delete <span className="font-bold text-red-400">{cohortName}</span>? This action is absolute and irreversible. All student progress metrics within this cohort will be deleted.
+                  {t("deleteConfirmBody", { defaultValue: "Are you sure you want to permanently delete {{cohortName}}? This action is absolute and irreversible. All student progress metrics within this cohort will be deleted.", cohortName })}
                 </p>
               </div>
             </div>
@@ -926,24 +932,24 @@ function CohortDetail({
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs"
+                className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer"
                 disabled={isDeleting}
               >
-                Cancel
+                {t("cancel", { defaultValue: "Cancel" })}
               </button>
               <button
                 type="button"
                 onClick={executeDelete}
-                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition font-bold text-xs flex items-center gap-2 disabled:opacity-50"
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl transition font-bold text-xs flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 disabled={isDeleting}
               >
                 {isDeleting ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Deleting...
+                    {t("deleting", { defaultValue: "Deleting..." })}
                   </>
                 ) : (
-                  "Yes, Delete Cohort"
+                  t("btnYesDelete", { defaultValue: "Yes, Delete Cohort" })
                 )}
               </button>
             </div>
@@ -959,9 +965,9 @@ function CohortDetail({
                 <LogOut className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[#FAF9FD]">Leave Cohort?</h3>
+                <h3 className="text-xl font-bold text-[#FAF9FD]">{t("leaveConfirmTitle", { defaultValue: "Leave Cohort?" })}</h3>
                 <p className="text-sm text-[#CECADF] mt-2 leading-relaxed">
-                  Are you sure you want to leave <span className="font-bold text-amber-400">{cohortName}</span>? Your scoped leaderboard rank will be removed, though your cloned courses and roadmaps will remain intact in your profile.
+                  {t("leaveConfirmBody", { defaultValue: "Are you sure you want to leave {{cohortName}}? Your scoped leaderboard rank will be removed, though your cloned courses and roadmaps will remain intact in your profile.", cohortName })}
                 </p>
               </div>
             </div>
@@ -969,24 +975,24 @@ function CohortDetail({
               <button
                 type="button"
                 onClick={() => setShowLeaveConfirm(false)}
-                className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs"
+                className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer"
                 disabled={isLeaving}
               >
-                Cancel
+                {t("cancel", { defaultValue: "Cancel" })}
               </button>
               <button
                 type="button"
                 onClick={executeLeave}
-                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition font-bold text-xs flex items-center gap-2 disabled:opacity-50"
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl transition font-bold text-xs flex items-center gap-2 disabled:opacity-50 cursor-pointer"
                 disabled={isLeaving}
               >
                 {isLeaving ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Leaving...
+                    {t("leaving", { defaultValue: "Leaving..." })}
                   </>
                 ) : (
-                  "Yes, Leave"
+                  t("btnYesLeave", { defaultValue: "Yes, Leave" })
                 )}
               </button>
             </div>
@@ -1007,7 +1013,7 @@ function CohortDetail({
             {isProfileLoading ? (
               <div className="py-12 flex flex-col justify-center items-center gap-2 text-sm text-[#8E88AB]">
                 <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
-                <span>Loading profile...</span>
+                <span>{t("profile.loading", { defaultValue: "Loading profile..." })}</span>
               </div>
             ) : profileData ? (
               <div className="space-y-4">
@@ -1018,33 +1024,27 @@ function CohortDetail({
                   <div>
                     <h3 className="text-xl font-bold text-[#FAF9FD]">{profileData.name}</h3>
                     <p className="text-xs text-[#8E88AB] font-medium">
-                      Cohort{" "}
-                      {profileData.role === "Student" || profileData.role === "Teacher" || profileData.role === "Owner" ? (
-                        <span className="text-[#FBBF24] font-bold px-1.5 py-0.5 rounded bg-[#FBBF24]/10 border border-[#FBBF24]/20">{profileData.role}</span>
-                      ) : (
-                        "Member"
-                      )}
-                      {" "}Profile
+                      {t("profile.roleFormat", { defaultValue: "Cohort {{role}} Profile", role: profileData.role || "Member" })}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <span className="text-xs font-semibold text-[#8E88AB] uppercase tracking-wider block">Bio</span>
+                  <span className="text-xs font-semibold text-[#8E88AB] uppercase tracking-wider block">{t("profile.bioLabel", { defaultValue: "Bio" })}</span>
                   {profileData.bio ? (
                     <p className="text-sm text-[#CECADF] bg-[#1E1A33]/50 border border-[#2A2443]/50 rounded-xl p-3.5 leading-relaxed italic">
                       "{profileData.bio}"
                     </p>
                   ) : (
                     <p className="text-sm text-[#8E88AB] italic bg-[#1E1A33]/20 rounded-xl p-3">
-                      This user has not set a bio yet.
+                      {t("profile.noBio", { defaultValue: "This user has not set a bio yet." })}
                     </p>
                   )}
                 </div>
 
                 {profileData.socialLinks && profileData.socialLinks.length > 0 && (
                   <div className="space-y-2.5 pt-1">
-                    <span className="text-xs font-semibold text-[#8E88AB] uppercase tracking-wider block">Verified Social Accounts</span>
+                    <span className="text-xs font-semibold text-[#8E88AB] uppercase tracking-wider block">{t("profile.socialAccounts", { defaultValue: "Verified Social Accounts" })}</span>
                     <div className="flex flex-col gap-2">
                       {profileData.socialLinks.map((link: any) => {
                         const isGithub = link.provider === "github";
@@ -1058,7 +1058,7 @@ function CohortDetail({
                           >
                             <span className="flex items-center gap-2">
                               {isGithub ? <Github className="w-4 h-4 text-[#5865F2]" /> : <DiscordIcon className="w-4 h-4 text-[#5865F2]" />}
-                              <span>{isGithub ? "GitHub" : "Discord"} Profile</span>
+                              <span>{isGithub ? t("profile.githubProfile", { defaultValue: "GitHub Profile" }) : t("profile.discordProfile", { defaultValue: "Discord Profile" })}</span>
                             </span>
                             <span className="text-xs text-[#8E88AB] font-normal font-mono">@{link.externalUsername} ↗</span>
                           </a>
@@ -1074,13 +1074,13 @@ function CohortDetail({
                     onClick={() => setSelectedProfileUserId(null)}
                     className="px-5 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer w-full text-center"
                   >
-                    Close
+                    {t("close", { defaultValue: "Close" })}
                   </button>
                 </div>
               </div>
             ) : (
               <div className="py-8 text-center text-[#8E88AB] text-sm">
-                No profile details could be retrieved.
+                {t("profile.noDetails", { defaultValue: "No profile details could be retrieved." })}
               </div>
             )}
           </div>
@@ -1093,10 +1093,10 @@ function CohortDetail({
             <div>
               <h3 className="text-2xl font-bold text-[#FAF9FD] flex items-center gap-2">
                 <Sparkles className="w-6 h-6 text-indigo-400" />
-                Customize Curriculum
+                {t("customize.title", { defaultValue: "Customize Curriculum" })}
               </h3>
               <p className="text-sm text-[#CECADF] mt-2">
-                Regenerate the curriculum to match your specific background. This will replace the default course roadmap with a brand new, AI-personalized set of lessons. Your current progress on this curriculum will be reset to 0%.
+                {t("customize.description", { defaultValue: "Regenerate the curriculum to match your specific background. This will replace the default course roadmap with a brand new, AI-personalized set of lessons. Your current progress on this curriculum will be reset to 0%." })}
               </p>
             </div>
 
@@ -1116,7 +1116,7 @@ function CohortDetail({
                 className="px-5 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer"
                 disabled={isRegenerating}
               >
-                Cancel
+                {t("cancel", { defaultValue: "Cancel" })}
               </button>
               <button
                 type="button"
@@ -1127,10 +1127,10 @@ function CohortDetail({
                 {isRegenerating ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Regenerating...
+                    {t("regenerating", { defaultValue: "Regenerating..." })}
                   </>
                 ) : (
-                  "Customize & Regenerate"
+                  t("btnCustomizeRegenerate", { defaultValue: "Customize & Regenerate" })
                 )}
               </button>
             </div>

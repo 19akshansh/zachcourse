@@ -1,0 +1,31 @@
+{
+  "quizMasterAssessment": "测验大师评估",
+  "subtitle": "用概念性多项选择检查来测试您的记忆力。",
+  "tutorFormulating": "导师正在制定您的测验问题... 🧠",
+  "tutorFormulatingSub": "设计自适应选择来衡量概念理解，而不是语法检索。",
+  "correctFeedback": "🎉 答对了！干得好！",
+  "incorrectFeedback": "🙈 糟糕，让我们从中学习：",
+  "submitAnswers": "提交测验答案",
+  "quizCompletedTitle": "测验完成！ 🏆",
+  "quizPerformanceLogged": "您的 {{score}}% 成绩已记录到您的进度统计中！",
+  "backToRoadmap": "回到路线图选项卡",
+  "aiFeedbackTitle": "AI 自适应反馈",
+  "recommendedAdjust": "建议调整",
+  "levelUpDifficulty": "提高难度 📈",
+  "reviewBasics": "复习基础知识 📉",
+  "maintainCurrentPace": "保持当前进度 🎯",
+  "topicsToReview": "需要复习的主题",
+  "configureQuizTitle": "配置您的测验",
+  "difficultyLabel": "难度",
+  "difficulty": {
+    "beginner": "初学者",
+    "medium": "中等",
+    "hard": "困难",
+    "expert": "专家"
+  },
+  "numberOfQuestions": "问题数量",
+  "generateQuizButton": "生成测验",
+  "startLessonToPracticeTitle": "开始一节课来练习！",
+  "startLessonToPracticeDesc": "从您活跃的路线图中选择任何一节课，在课程学习指南视图中点击参加快速测验，并在这里测试您的知识！",
+  "goToRoadmapButton": "前往路线图"
+}

@@ -1,0 +1,12 @@
+{
+  "title": "शिक्षक डैशबोर्ड",
+  "classroomTitle": "कक्षाएं प्रबंधित करें",
+  "rosterTitle": "छात्र सूची",
+  "inviteStudents": "छात्रों को आमंत्रित करें",
+  "analytics": "कक्षा विश्लेषण",
+  "coursesAssigned": "सौंपे गए कोर्स",
+  "avgQuizScore": "औसत प्रश्नोत्तरी स्कोर",
+  "activeStudents": "सक्रिय छात्र",
+  "emptyState": "आपके पास कोई सक्रिय कक्षा नहीं है। छात्र प्रगति की निगरानी शुरू करने के लिए एक बनाएं!",
+  "classroomNamePlaceholder": "उदा. CS101 Autumn 2026"
+}

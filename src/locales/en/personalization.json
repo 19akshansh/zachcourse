@@ -1,0 +1,16 @@
+{
+  "expLevel": "Experience Level",
+  "beginner": "Beginner",
+  "intermediate": "Intermediate",
+  "advanced": "Advanced",
+  "yourBackground": "Your Background",
+  "optionalNote": "(optional, but helps a lot)",
+  "bgPlaceholder": "e.g. I know basic HTML/CSS but no JavaScript. I learn best by building small projects rather than reading theory.",
+  "contentTone": "Content Tone",
+  "tones": {
+    "friendly": "Friendly",
+    "professional": "Professional",
+    "genz": "Gen Z",
+    "eli5": "ELI5"
+  }
+}

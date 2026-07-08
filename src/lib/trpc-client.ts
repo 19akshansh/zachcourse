@@ -19,9 +19,14 @@ export const trpc = createTRPCClient<AppRouter>({
           headers,
         });
       },
-      headers: () => ({
-        "x-trpc-source": "react",
-      }),
+      headers: () => {
+        let userKey = localStorage.getItem("zc_user_key");
+        if (userKey === "null" || userKey === "undefined") userKey = null;
+        return {
+          "x-trpc-source": "react",
+          ...(userKey ? { "x-user-key": userKey } : {}),
+        };
+      },
     }),
   ],
 });

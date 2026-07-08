@@ -1,0 +1,31 @@
+{
+  "quizMasterAssessment": "Evaluación del maestro de pruebas",
+  "subtitle": "Pon a prueba tu retención con controles conceptuales de opción múltiple.",
+  "tutorFormulating": "El tutor está formulando tus preguntas de prueba... 🧠",
+  "tutorFormulatingSub": "Diseñando opciones adaptativas para medir la comprensión conceptual, en lugar de la recuperación de sintaxis.",
+  "correctFeedback": "🎉 ¡Acertaste! ¡Buen trabajo!",
+  "incorrectFeedback": "🙈 Ups, aprendamos de esto:",
+  "submitAnswers": "Enviar respuestas de la prueba",
+  "quizCompletedTitle": "¡Prueba completada! 🏆",
+  "quizPerformanceLogged": "¡Tu puntaje de rendimiento del {{score}}% se ha registrado en tus estadísticas de progreso!",
+  "backToRoadmap": "Volver a la pestaña de la hoja de ruta",
+  "aiFeedbackTitle": "Comentarios adaptativos de IA",
+  "recommendedAdjust": "Ajuste recomendado",
+  "levelUpDifficulty": "Sube el nivel de dificultad 📈",
+  "reviewBasics": "Revisa los conceptos básicos 📉",
+  "maintainCurrentPace": "Mantén el ritmo actual 🎯",
+  "topicsToReview": "Temas para revisar",
+  "configureQuizTitle": "Configura tu prueba",
+  "difficultyLabel": "Dificultad",
+  "difficulty": {
+    "beginner": "Principiante",
+    "medium": "Medio",
+    "hard": "Difícil",
+    "expert": "Experto"
+  },
+  "numberOfQuestions": "Número de preguntas",
+  "generateQuizButton": "Generar prueba",
+  "startLessonToPracticeTitle": "¡Empieza una lección para practicar!",
+  "startLessonToPracticeDesc": "Selecciona cualquier lección de tu hoja de ruta activa, haz clic en Tomar prueba rápida en la vista de la guía de estudio de la lección y pon a prueba tus conocimientos aquí.",
+  "goToRoadmapButton": "Ir a la hoja de ruta"
+}

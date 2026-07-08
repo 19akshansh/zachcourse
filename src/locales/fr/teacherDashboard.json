@@ -1,0 +1,11 @@
+{
+  "title": "Tableau de l'Enseignant",
+  "classroomTitle": "Gérer les Salles de Classe",
+  "rosterTitle": "Roster des Étudiants",
+  "inviteStudents": "Inviter des Étudiants",
+  "analytics": "Analyses de la Classe",
+  "coursesAssigned": "Cours Assignés",
+  "avgQuizScore": "Score Moyen Quiz",
+  "activeStudents": "Étudiants Actifs",
+  "emptyState": "Aucune classe active. Créez-en une pour suivre les progrès !"
+}

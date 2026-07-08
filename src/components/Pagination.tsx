@@ -1,5 +1,6 @@
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface PaginationProps {
   currentPage: number;
@@ -12,6 +13,8 @@ export const Pagination: React.FC<PaginationProps> = ({
   totalPages,
   onPageChange,
 }) => {
+  const { t } = useTranslation("common");
+
   if (totalPages <= 1) return null;
 
   const pages = [];
@@ -29,11 +32,11 @@ export const Pagination: React.FC<PaginationProps> = ({
   }
 
   return (
-    <div className="flex items-center justify-between sm:justify-center gap-2 mt-6">
+    <div className="flex items-center justify-between sm:justify-center gap-2 mt-6 font-sans">
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        aria-label="Previous Page"
+        aria-label={t("previousPage", { defaultValue: "Previous Page" })}
         className="p-2 rounded-xl border border-[#2A2443] bg-[#121021] text-[#CECADF] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#1A172E] transition-colors"
       >
         <ChevronLeft className="w-5 h-5" />
@@ -80,13 +83,13 @@ export const Pagination: React.FC<PaginationProps> = ({
       </div>
 
       <div className="sm:hidden text-sm text-[#8E88AB] font-medium">
-        Page {currentPage} of {totalPages}
+        {t("pageOf", { defaultValue: "Page {{current}} of {{total}}", current: currentPage, total: totalPages })}
       </div>
 
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        aria-label="Next Page"
+        aria-label={t("nextPage", { defaultValue: "Next Page" })}
         className="p-2 rounded-xl border border-[#2A2443] bg-[#121021] text-[#CECADF] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#1A172E] transition-colors"
       >
         <ChevronRight className="w-5 h-5" />

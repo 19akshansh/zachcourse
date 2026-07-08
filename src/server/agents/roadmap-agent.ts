@@ -3,11 +3,9 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { getLocalFallbackRoadmap } from "../../lib/local-fallbacks";
 import { sanitizeResourceUrl } from "../../lib/resource-link";
-import { TONE_INSTRUCTIONS } from "../../lib/tone-options";
+import { TONE_INSTRUCTIONS, LANGUAGE_INSTRUCTIONS } from "../../lib/tone-options";
 
-const serverGoogle = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY || "",
-});
+
 
 // Helper for sleep/delay during backoff
 async function sleep(ms: number) {
@@ -25,7 +23,8 @@ async function callAI(
     "gemini-2.5-pro"
   ];
   
-  const googleClient = options.apiKey ? createGoogleGenerativeAI({ apiKey: options.apiKey }) : serverGoogle;
+  if (!options.apiKey) throw new Error("MISSING_API_KEY");
+    const googleClient = createGoogleGenerativeAI({ apiKey: options.apiKey });
 
   for (const modelId of models) {
     try {
@@ -60,6 +59,7 @@ export interface GenerateRoadmapInput {
   tone?: string;
   userKey?: string;
   referenceRoadmapData?: any; // Original course roadmap JSON to use as structural context
+  language?: string;
 }
 
 export async function generateRoadmapContent(input: GenerateRoadmapInput) {
@@ -73,7 +73,8 @@ export async function generateRoadmapContent(input: GenerateRoadmapInput) {
     documentContext = "",
     tone = "friendly",
     userKey,
-    referenceRoadmapData
+    referenceRoadmapData,
+    language = "en"
   } = input;
 
   const schema = z.object({
@@ -100,6 +101,7 @@ export async function generateRoadmapContent(input: GenerateRoadmapInput) {
 
   const safeDocContext = documentContext ? documentContext.slice(0, 40_000) : "";
   const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.friendly;
+  const languageInstruction = LANGUAGE_INSTRUCTIONS[language] ?? LANGUAGE_INSTRUCTIONS.en;
 
   let prompt = `You are an expert curriculum designer.
 Create a personalized learning roadmap for:
@@ -108,6 +110,7 @@ Experience level: ${experienceLevel}
 ${backgroundContext ? "Learner background context: " + backgroundContext : ""}
 Hours per week: ${weeklyHours}
 Content tone: ${toneInstruction}
+Language requirement: ${languageInstruction}
 ${sourceUrl ? "Reference URL: " + sourceUrl : ""}
 ${textContent ? "Syllabus excerpt: " + textContent.slice(0, 3000) : ""}
 ${safeDocContext ? `
@@ -187,7 +190,8 @@ export async function generateVisualRoadmapContent(input: GenerateRoadmapInput) 
     documentContext = "",
     tone = "friendly",
     userKey,
-    referenceRoadmapData
+    referenceRoadmapData,
+    language = "en"
   } = input;
 
   const schema = z.object({
@@ -230,6 +234,7 @@ export async function generateVisualRoadmapContent(input: GenerateRoadmapInput) 
 
   const safeDocContext = documentContext ? documentContext.slice(0, 40_000) : "";
   const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.friendly;
+  const languageInstruction = LANGUAGE_INSTRUCTIONS[language] ?? LANGUAGE_INSTRUCTIONS.en;
 
   let prompt = `You are a world-class curriculum architect.
 Generate a comprehensive visual learning roadmap as a graph.
@@ -239,6 +244,7 @@ Experience level: ${experienceLevel}
 ${backgroundContext ? "Learner background context: " + backgroundContext : ""}
 Hours per week: ${weeklyHours}
 Content tone: ${toneInstruction}
+Language requirement: ${languageInstruction}
 ${sourceUrl ? "Reference: " + sourceUrl : ""}
 ${safeDocContext ? `
 Reference Document Content (use this as primary source):

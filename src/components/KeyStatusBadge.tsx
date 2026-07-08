@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getStarBonusRemaining } from "../lib/usage";
 import { Key, Star, Sparkles, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function KeyStatusBadge() {
+  const { t } = useTranslation("common");
   const [hasKey, setHasKey] = useState(false);
   const [starBonus, setStarBonus] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -53,19 +55,19 @@ export default function KeyStatusBadge() {
   // Determine which state to show
   let badgeStyle = "text-[#8E88AB] bg-[#1A172E] border-[#2A2443]";
   let icon = <Sparkles className="w-3.5 h-3.5 shrink-0 text-[#8E88AB]" />;
-  let label = "✨ 1 free query remaining";
-  let shortLabel = "1 free";
+  let label = t("freeQueryRemaining", { defaultValue: "✨ 1 free query remaining" });
+  let shortLabel = t("freeQueryRemainingShort", { defaultValue: "1 free" });
 
   if (hasKey) {
     badgeStyle = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
     icon = <Key className="w-3.5 h-3.5 shrink-0" />;
-    label = "🔑 Your Key Active";
-    shortLabel = "Active";
+    label = t("yourKeyActive", { defaultValue: "🔑 Your Key Active" });
+    shortLabel = t("keyActiveShort", { defaultValue: "Active" });
   } else if (starBonus > 0) {
     badgeStyle = "text-amber-400 bg-amber-500/10 border-amber-500/20";
     icon = <Star className="w-3.5 h-3.5 shrink-0 fill-amber-500/10" />;
-    label = `⭐ ${starBonus} queries left`;
-    shortLabel = `${starBonus} left`;
+    label = t("queriesLeft", { defaultValue: `⭐ ${starBonus} queries left`, count: starBonus });
+    shortLabel = t("queriesLeftShort", { defaultValue: `${starBonus} left`, count: starBonus });
   }
 
   return (
@@ -84,7 +86,9 @@ export default function KeyStatusBadge() {
       {isOpen && (
         <div className="absolute right-0 mt-2 w-64 bg-[#111118] border border-[#2B2446]/60 rounded-2xl p-4 shadow-2xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
           <div className="flex items-center justify-between border-b border-[#2B2446]/60 pb-2.5 mb-2.5">
-            <h4 className="text-xs font-bold text-[#FAF9FD] uppercase tracking-wider">Usage & Quotas</h4>
+            <h4 className="text-xs font-bold text-[#FAF9FD] uppercase tracking-wider">
+              {t("usageAndQuotas", { defaultValue: "Usage & Quotas" })}
+            </h4>
             <button onClick={() => setIsOpen(false)} className="text-[#8E88AB] hover:text-[#FAF9FD]">
               <X className="w-3.5 h-3.5" />
             </button>
@@ -94,25 +98,25 @@ export default function KeyStatusBadge() {
             {hasKey ? (
               <div>
                 <p className="text-[#8E88AB] leading-relaxed">
-                  You are currently using your **own Gemini API key**. You have unlimited access directly from your browser.
+                  {t("keyExplanation", { defaultValue: "You are currently using your own Gemini API key. You have unlimited access directly from your browser." })}
                 </p>
                 <button
                   onClick={handleRemoveKey}
                   className="mt-3 w-full bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 hover:border-rose-500/30 font-bold py-2 rounded-xl transition cursor-pointer text-center"
                 >
-                  Remove My Custom Key
+                  {t("removeCustomKey", { defaultValue: "Remove My Custom Key" })}
                 </button>
               </div>
             ) : starBonus > 0 ? (
               <div>
                 <p className="text-[#8E88AB] leading-relaxed">
-                  Thank you for supporting us on GitHub! You have **{starBonus} premium queries** left on our server.
+                  {t("starExplanation", { defaultValue: "Thank you for supporting us on GitHub! You have premium queries left on our server.", count: starBonus })}
                 </p>
                 <button
                   onClick={handleTriggerUnlock}
                   className="mt-3 w-full bg-[#1F1C38] hover:bg-[#2A264D] border border-[#2B2446] text-[#FAF9FD] font-bold py-2 rounded-xl transition cursor-pointer text-center"
                 >
-                  Manage My Keys / Star
+                  {t("manageKeys", { defaultValue: "Manage My Keys / Star" })}
                 </button>
               </div>
             ) : null}

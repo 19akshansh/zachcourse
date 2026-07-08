@@ -1,0 +1,16 @@
+{
+  "expLevel": "مستوى الخبرة",
+  "beginner": "مبتدئ",
+  "intermediate": "متوسط",
+  "advanced": "متقدم",
+  "yourBackground": "خلفيتك",
+  "optionalNote": "(اختياري، ولكنه يساعد كثيرًا)",
+  "bgPlaceholder": "مثال: أعرف أساسيات HTML/CSS ولكن لا أعرف JavaScript. أتعلم بشكل أفضل من خلال بناء مشاريع صغيرة بدلاً من قراءة النظريات.",
+  "contentTone": "نبرة المحتوى",
+  "tones": {
+    "friendly": "ودي",
+    "professional": "احترافي",
+    "genz": "جيل Z",
+    "eli5": "اشرح لي كأنني في الخامسة"
+  }
+}

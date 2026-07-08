@@ -3,8 +3,10 @@ import { trpc } from "../lib/trpc-client";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
 import { Loader2, Flame, BookOpen, Clock, Target, Award, ArrowUpRight, BarChart2, TrendingUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export default function AnalyticsDashboard() {
+  const { t } = useTranslation("analytics");
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +26,7 @@ export default function AnalyticsDashboard() {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[500px]">
         <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-4" />
-        <p className="text-[#8E88AB] font-medium">Crunching your numbers...</p>
+        <p className="text-[#8E88AB] font-medium">{t("loadingText", { defaultValue: "Crunching your numbers..." })}</p>
       </div>
     );
   }
@@ -36,16 +38,16 @@ export default function AnalyticsDashboard() {
           <div className="w-20 h-20 bg-gradient-to-tr from-indigo-900/40 to-purple-900/40 rounded-full flex items-center justify-center mx-auto mb-6 border border-[#2A2443]">
             <BarChart2 className="w-10 h-10 text-indigo-400" />
           </div>
-          <h2 className="text-2xl font-bold text-[#FAF9FD] mb-3">No Analytics Available Yet</h2>
+          <h2 className="text-2xl font-bold text-[#FAF9FD] mb-3">{t("noAnalyticsTitle", { defaultValue: "No Analytics Available Yet" })}</h2>
           <p className="text-[#8E88AB] text-lg leading-relaxed mb-8">
-            Keep learning, chatting with your mentor, and taking quizzes to see your stats here! You don't have any certificates or analytics yet. Complete a course 100% to earn your first certificate.
+            {t("noAnalyticsDesc", { defaultValue: "Keep learning, chatting with your mentor, and taking quizzes to see your stats here! You don't have any certificates or analytics yet. Complete a course 100% to earn your first certificate." })}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
              <div className="px-5 py-2.5 rounded-xl bg-[#1E1A33] border border-[#2A2443] text-[#8E88AB] text-sm flex items-center gap-2 font-medium shadow-sm">
-                <Target className="w-4 h-4 text-emerald-400" /> Take Quizzes
+                <Target className="w-4 h-4 text-emerald-400" /> {t("takeQuizzes", { defaultValue: "Take Quizzes" })}
              </div>
              <div className="px-5 py-2.5 rounded-xl bg-[#1E1A33] border border-[#2A2443] text-[#8E88AB] text-sm flex items-center gap-2 font-medium shadow-sm">
-                <Award className="w-4 h-4 text-amber-400" /> Earn Certificates
+                <Award className="w-4 h-4 text-amber-400" /> {t("earnCertificates", { defaultValue: "Earn Certificates" })}
              </div>
           </div>
         </div>
@@ -65,8 +67,8 @@ export default function AnalyticsDashboard() {
       
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#FAF9FD] tracking-tight font-sans">Learning Analytics</h1>
-          <p className="text-[#8E88AB] mt-1">Track your progress, consistency, and mastery across all courses.</p>
+          <h1 className="text-3xl font-bold text-[#FAF9FD] tracking-tight font-sans">{t("title", { defaultValue: "Learning Analytics" })}</h1>
+          <p className="text-[#8E88AB] mt-1">{t("subtitle", { defaultValue: "Track your progress, consistency, and mastery across all courses." })}</p>
         </div>
       </div>
 
@@ -78,11 +80,11 @@ export default function AnalyticsDashboard() {
             <div className="p-2 bg-orange-950/50 rounded-lg text-orange-400">
               <Flame className="w-5 h-5" />
             </div>
-            <h3 className="text-[#8E88AB] font-semibold text-sm">Current Streak</h3>
+            <h3 className="text-[#8E88AB] font-semibold text-sm">{t("currentStreak", { defaultValue: "Current Streak" })}</h3>
           </div>
           <div className="flex items-baseline gap-2 relative">
             <span className="text-3xl font-bold text-[#FAF9FD]">{metrics.currentStreak}</span>
-            <span className="text-orange-400 text-sm font-semibold">Days</span>
+            <span className="text-orange-400 text-sm font-semibold">{t("days", { defaultValue: "Days" })}</span>
           </div>
         </div>
 
@@ -92,11 +94,11 @@ export default function AnalyticsDashboard() {
             <div className="p-2 bg-indigo-950/50 rounded-lg text-indigo-400">
               <BookOpen className="w-5 h-5" />
             </div>
-            <h3 className="text-[#8E88AB] font-semibold text-sm">Lessons Completed</h3>
+            <h3 className="text-[#8E88AB] font-semibold text-sm">{t("lessonsCompleted", { defaultValue: "Lessons Completed" })}</h3>
           </div>
           <div className="flex items-baseline gap-2 relative">
             <span className="text-3xl font-bold text-[#FAF9FD]">{metrics.totalLessonsCompleted}</span>
-            <span className="text-indigo-400 text-sm font-semibold">Total</span>
+            <span className="text-indigo-400 text-sm font-semibold">{t("total", { defaultValue: "Total" })}</span>
           </div>
         </div>
 
@@ -106,11 +108,11 @@ export default function AnalyticsDashboard() {
             <div className="p-2 bg-emerald-950/50 rounded-lg text-emerald-400">
               <Target className="w-5 h-5" />
             </div>
-            <h3 className="text-[#8E88AB] font-semibold text-sm">Average Quiz Score</h3>
+            <h3 className="text-[#8E88AB] font-semibold text-sm">{t("avgQuizScore", { defaultValue: "Average Quiz Score" })}</h3>
           </div>
           <div className="flex items-baseline gap-2 relative">
             <span className="text-3xl font-bold text-[#FAF9FD]">{metrics.avgQuizScore}%</span>
-            <span className="text-emerald-400 text-sm font-semibold">Mastery</span>
+            <span className="text-emerald-400 text-sm font-semibold">{t("mastery", { defaultValue: "Mastery" })}</span>
           </div>
         </div>
 
@@ -120,11 +122,11 @@ export default function AnalyticsDashboard() {
             <div className="p-2 bg-purple-950/50 rounded-lg text-purple-400">
               <Clock className="w-5 h-5" />
             </div>
-            <h3 className="text-[#8E88AB] font-semibold text-sm">Time Logged</h3>
+            <h3 className="text-[#8E88AB] font-semibold text-sm">{t("timeLogged", { defaultValue: "Time Logged" })}</h3>
           </div>
           <div className="flex items-baseline gap-2 relative">
             <span className="text-3xl font-bold text-[#FAF9FD]">{metrics.totalHours.toFixed(1)}</span>
-            <span className="text-purple-400 text-sm font-semibold">Hours</span>
+            <span className="text-purple-400 text-sm font-semibold">{t("hours", { defaultValue: "Hours" })}</span>
           </div>
         </div>
       </div>
@@ -137,7 +139,7 @@ export default function AnalyticsDashboard() {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-[#FAF9FD] flex items-center gap-2">
               <BarChart2 className="w-5 h-5 text-indigo-400" />
-              Weekly Lesson Volume
+              {t("weeklyLessonVolume", { defaultValue: "Weekly Lesson Volume" })}
             </h3>
           </div>
           <div className="h-[250px] w-full" aria-hidden="true">
@@ -156,9 +158,9 @@ export default function AnalyticsDashboard() {
             </ResponsiveContainer>
           </div>
           <table className="sr-only">
-            <caption>Weekly Lesson Volume</caption>
+            <caption>{t("weeklyLessonVolume", { defaultValue: "Weekly Lesson Volume" })}</caption>
             <thead>
-              <tr><th>Day</th><th>Lessons Completed</th></tr>
+              <tr><th>{t("dayHeader", { defaultValue: "Day" })}</th><th>{t("lessonsCompletedHeader", { defaultValue: "Lessons Completed" })}</th></tr>
             </thead>
             <tbody>
               {metrics.activityData.map((d: any) => <tr key={d.name}><td>{d.name}</td><td>{d.lessons}</td></tr>)}
@@ -171,7 +173,7 @@ export default function AnalyticsDashboard() {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-[#FAF9FD] flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-emerald-400" />
-              Recent Quiz Performance
+              {t("recentQuizPerf", { defaultValue: "Recent Quiz Performance" })}
             </h3>
           </div>
           <div className="h-[250px] w-full" aria-hidden="true">
@@ -189,9 +191,9 @@ export default function AnalyticsDashboard() {
             </ResponsiveContainer>
           </div>
           <table className="sr-only">
-            <caption>Recent Quiz Performance Score</caption>
+            <caption>{t("recentQuizPerf", { defaultValue: "Recent Quiz Performance" })}</caption>
             <thead>
-              <tr><th>Day</th><th>Score</th></tr>
+              <tr><th>{t("dayHeader", { defaultValue: "Day" })}</th><th>{t("scoreHeader", { defaultValue: "Score" })}</th></tr>
             </thead>
             <tbody>
               {metrics.activityData.map((d: any) => <tr key={d.name}><td>{d.name}</td><td>{d.score}%</td></tr>)}
@@ -209,17 +211,17 @@ export default function AnalyticsDashboard() {
               <Award className="w-6 h-6" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-[#FAF9FD]">Course Mastery</h3>
-              <p className="text-[#8E88AB] text-sm mt-1">You've fully completed {metrics.completedCoursesCount} courses so far.</p>
+              <h3 className="text-xl font-bold text-[#FAF9FD]">{t("courseMastery", { defaultValue: "Course Mastery" })}</h3>
+              <p className="text-[#8E88AB] text-sm mt-1">{t("completedCoursesDesc", { defaultValue: `You've fully completed ${metrics.completedCoursesCount} courses so far.`, count: metrics.completedCoursesCount })}</p>
             </div>
           </div>
           <button
             data-tour="analytics-certificates-btn"
             onClick={() => {
               if (metrics.completedCoursesCount === 0) {
-                toast.error("You don't have any certificates yet. Complete a course 100% to earn one! 🏆", { duration: 4000 });
+                toast.error(t("toastNoCertificates", { defaultValue: "You don't have any certificates yet. Complete a course 100% to earn one! 🏆" }), { duration: 4000 });
               } else {
-                toast.success("To view your certificates, open a completed course and go to its 'My Progress' tab! 🏆", { duration: 4000 });
+                toast.success(t("toastViewCertificates", { defaultValue: "To view your certificates, open a completed course and go to its 'My Progress' tab! 🏆" }), { duration: 4000 });
               }
             }}
             className={`px-5 py-2.5 font-semibold rounded-xl transition-colors shadow-lg flex items-center gap-2 ${
@@ -229,9 +231,9 @@ export default function AnalyticsDashboard() {
             }`}
           >
             {metrics.completedCoursesCount > 0 ? (
-              <>View Certificates <ArrowUpRight className="w-4 h-4" /></>
+              <>{t("viewCertificatesBtn", { defaultValue: "View Certificates" })} <ArrowUpRight className="w-4 h-4" /></>
             ) : (
-              "No certificates available"
+              t("noCertificatesBtn", { defaultValue: "No certificates available" })
             )}
           </button>
         </div>

@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect } from "react";
 import { useSession } from "../lib/auth-client";
 import { Loader2 } from "lucide-react";
 
+import { useTranslation } from "react-i18next";
+
 interface AuthContextType {
   session: any;
   isPending: boolean;
@@ -12,6 +14,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { data: sessionData, isPending, refetch } = useSession();
+  const { t } = useTranslation("common");
 
   useEffect(() => {
     // Dynamic tracking of dark theme body style inside Vite client
@@ -35,10 +38,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           </h1>
           <div className="flex items-center gap-2 mt-4 text-sm font-bold text-[#4F46E5] bg-[#4F46E5]/10 border border-[#4F46E5]/20 px-4 py-2 rounded-2xl">
             <Loader2 className="w-4 h-4 animate-spin text-[#4F46E5]" />
-            <span>Syncing with companion core...</span>
+            <span>{t("syncingCore", { defaultValue: "Syncing with companion core..." })}</span>
           </div>
           <p className="text-xs text-[#94A3B8] font-semibold mt-2 max-w-xs leading-relaxed">
-            Please wait while we establish your secure study connection.
+            {t("waitSecureConnection", { defaultValue: "Please wait while we establish your secure study connection." })}
           </p>
         </div>
       </main>

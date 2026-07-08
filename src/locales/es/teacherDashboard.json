@@ -1,0 +1,11 @@
+{
+  "title": "Panel de Profesor",
+  "classroomTitle": "Administrar Aulas",
+  "rosterTitle": "Lista de Estudiantes",
+  "inviteStudents": "Invitar Estudiantes",
+  "analytics": "Análisis de Aula",
+  "coursesAssigned": "Cursos Asignados",
+  "avgQuizScore": "Promedio de Cuestionarios",
+  "activeStudents": "Estudiantes Activos",
+  "emptyState": "No tienes aulas activas. ¡Crea una para comenzar a monitorear el progreso!"
+}

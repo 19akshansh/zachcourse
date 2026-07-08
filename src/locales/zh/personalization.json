@@ -1,0 +1,16 @@
+{
+  "expLevel": "经验水平",
+  "beginner": "入门 / 初学者",
+  "intermediate": "进阶 / 中级",
+  "advanced": "高级 / 精通",
+  "yourBackground": "个人背景",
+  "optionalNote": "（可选，但非常有帮助）",
+  "bgPlaceholder": "例如：我知道基本的 HTML/CSS，但不懂 JavaScript。比起阅读理论，我更喜欢通过构建小项目来学习。",
+  "contentTone": "教学语气",
+  "tones": {
+    "friendly": "亲切友好",
+    "professional": "专业严谨",
+    "genz": "Gen Z 网络风",
+    "eli5": "通俗易懂 (ELI5)"
+  }
+}

@@ -6,14 +6,16 @@ import { Loader2, Mail, ArrowLeft } from "lucide-react";
 import { authClient } from "../../../lib/auth-client";
 import { navigate } from "../../../lib/router";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 const schema = z.object({
-  email: z.string().min(1, "Email is required").email("Invalid email address"),
+  email: z.string().min(1, "emailRequired").email("invalidEmail"),
 });
 
 type FormData = z.infer<typeof schema>;
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation(["auth"]);
   const [loading, setLoading] = useState(false);
   const [globalError, setGlobalError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -38,29 +40,26 @@ export default function ForgotPasswordPage() {
         redirectTo: window.location.origin + "/reset-password",
       });
       if (res?.error) {
-        // According to instructions: "Email not found: still show success (security best practice — don't reveal if email exists)"
-        // But let's check what kind of error we got. If it's something other than user not found (like network issue), we toast the issue.
         const msg = res.error.message?.toLowerCase() || "";
         if (msg.includes("user not found") || msg.includes("not exist") || msg.includes("email_not_found")) {
-          toast.success("Reset link sent! Check your inbox 📬");
+          toast.success(t("resetLinkSent"));
           setSuccess(true);
         } else {
-          toast.error(res.error.message || "Failed to initiate password reset.");
-          setGlobalError(res.error.message || "Failed to initiate password reset.");
+          toast.error(res.error.message || t("failedPasswordReset"));
+          setGlobalError(res.error.message || t("failedPasswordReset"));
         }
       } else {
-        toast.success("Reset link sent! Check your inbox 📬");
+        toast.success(t("resetLinkSent"));
         setSuccess(true);
       }
     } catch (err: any) {
-      // Best practice: if email not found is thrown as exception (or other exception), handle it
       const msg = err.message?.toLowerCase() || "";
       if (msg.includes("user not found") || msg.includes("not exist") || msg.includes("email_not_found")) {
-        toast.success("Reset link sent! Check your inbox 📬");
+        toast.success(t("resetLinkSent"));
         setSuccess(true);
       } else {
-        toast.error(err.message || "Connection issue — please try again");
-        setGlobalError(err.message || "Failed to initiate password reset.");
+        toast.error(err.message || t("connectionIssue"));
+        setGlobalError(err.message || t("failedPasswordReset"));
       }
     } finally {
       setLoading(false);
@@ -78,8 +77,8 @@ export default function ForgotPasswordPage() {
           <div>
             <div className="text-center mb-8 relative">
               <span className="text-4xl select-none">🔑</span>
-              <h2 className="text-2xl font-extrabold text-[#FAF9FD] tracking-tight mt-3">Reset Password</h2>
-              <p className="text-sm text-[#8E88AB] mt-1 font-medium">Enter your email and we'll send a secure reset link</p>
+              <h2 className="text-2xl font-extrabold text-[#FAF9FD] tracking-tight mt-3">{t("forgotPasswordTitle")}</h2>
+              <p className="text-sm text-[#8E88AB] mt-1 font-medium">{t("forgotPasswordSubtitle")}</p>
             </div>
 
             {globalError && (
@@ -91,7 +90,7 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 relative">
               <div>
                 <label className="block text-xs font-semibold text-[#CECADF] uppercase tracking-wider mb-2">
-                  Email Address
+                  {t("emailAddress")}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
@@ -99,14 +98,14 @@ export default function ForgotPasswordPage() {
                   </div>
                   <input
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder={t("emailPlaceholder", { defaultValue: "you@example.com" })}
                     className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
                     {...register("email")}
                   />
                 </div>
                 {errors.email && (
                   <p className="mt-1.5 text-xs text-rose-400 font-semibold flex items-center gap-1">
-                    <span>⚠</span> {errors.email.message}
+                    <span>⚠</span> {t(errors.email.message as any)}
                   </p>
                 )}
               </div>
@@ -119,10 +118,10 @@ export default function ForgotPasswordPage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>Sending link...</span>
+                    <span>{t("sendingLink")}</span>
                   </>
                 ) : (
-                  "Send Reset Link"
+                  t("sendResetLink")
                 )}
               </button>
             </form>
@@ -133,13 +132,13 @@ export default function ForgotPasswordPage() {
                   href="/sign-in"
                   className="inline-flex items-center gap-1.5 text-xs font-bold text-[#8E88AB] hover:text-[#FAF9FD] transition"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
+                  <ArrowLeft className="w-3.5 h-3.5" /> {t("backToSignIn")}
                 </a>
               </div>
               <p className="text-xs text-[#8E88AB] font-medium">
-                New here?{" "}
+                {t("newHere")}{" "}
                 <a href="/sign-up" className="text-[#818CF8] hover:text-[#4F46E5] font-bold transition">
-                  Create an account
+                  {t("createNewAccount")}
                 </a>
               </p>
             </div>
@@ -149,18 +148,18 @@ export default function ForgotPasswordPage() {
             <div className="w-16 h-16 bg-[#4F46E5]/10 border border-[#4F46E5]/30 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#4F46E5]/15">
               <span className="text-3xl select-none">✉️</span>
             </div>
-            <h2 className="text-xl font-extrabold text-[#FAF9FD] tracking-tight mb-3">Check your inbox</h2>
+            <h2 className="text-xl font-extrabold text-[#FAF9FD] tracking-tight mb-3">{t("checkYourInbox")}</h2>
             <p className="text-sm text-[#8E88AB] leading-relaxed max-w-xs mx-auto mb-6 font-medium">
-              If that email exists, you'll get a link shortly ✉️
+              {t("checkInboxDesc")}
             </p>
             <p className="text-xs text-[#8E88AB]/70 max-w-xs mx-auto mb-8 font-medium">
-              We've dispatched a password reset link to your registered email address. Please check your promotions or spam folder if it doesn't arrive.
+              {t("checkInboxSpamDesc")}
             </p>
             <button
               onClick={() => navigate("/sign-in")}
               className="inline-flex items-center gap-1.5 text-sm font-bold text-[#818CF8] hover:text-[#4F46E5] transition"
             >
-              <ArrowLeft className="w-4 h-4" /> Return to Sign In
+              <ArrowLeft className="w-4 h-4" /> {t("returnToSignIn")}
             </button>
           </div>
         )}

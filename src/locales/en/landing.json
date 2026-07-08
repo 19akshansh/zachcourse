@@ -1,0 +1,140 @@
+{
+  "logo": "ZachCourse",
+  "signIn": "Sign In",
+  "getStartedFree": "Get Started Free",
+  "heroBadge": "The Self-Correcting Study Companion ✨",
+  "heroTitlePart1": "Stop Collecting Courses.",
+  "heroTitlePart2": "Start Finishing Them.",
+  "heroSubtitle": "Transform any syllabus, textbook outline, or document into a fully tracked weekly roadmap. Guided by self-correcting AI mentors and adaptive assessments to guarantee mastery.",
+  "featuresBadge": "Engineered for Mastery",
+  "featuresTitle": "An entire ecosystem designed to help you succeed",
+  "featuresSubtitle": "ZachCourse combines advanced multi-agent workflows, interactive visual graphs, and social study structures.",
+  "testimonialsBadge": "Success Stories",
+  "testimonialsTitle": "What our learners say",
+  "testimonialsSubtitle": "Join thousands of students who have transformed their learning habits.",
+  "ctaBadge": "Ready to Start?",
+  "ctaTitle": "Your personalized learning companion is waiting",
+  "ctaSubtitle": "Create a course in seconds and start learning with your own AI mentor.",
+  "ctaButton": "Create My First Course",
+  "footerText": "ZachCourse. All rights reserved. Self-correcting curation powered by Agentic Loops.",
+  "testimonials": [
+    {
+      "initials": "JD",
+      "name": "Jordan Davies",
+      "role": "Self-taught Developer",
+      "quote": "ZachCourse took the overwhelming Coursera syllabus and turned it into a bite-sized, 6-week daily roadmap. I actually finished a course for the first time in my life!"
+    },
+    {
+      "initials": "AM",
+      "name": "Aisha Miller",
+      "role": "Career Changer",
+      "quote": "The adaptive quizzes made sure I actually understood database relations before letting me move forward. The AI mentor felt like having a friendly private tutor 24/7."
+    },
+    {
+      "initials": "TL",
+      "name": "Takahiro Lee",
+      "role": "Computer Science Student",
+      "quote": "Being able to paste any textbook syllabus link and get a structured tracking workspace instantly is a superpower. Best companion app out there!"
+    }
+  ],
+  "features": [
+    {
+      "emoji": "🗺️",
+      "title": "AI Roadmap Builder",
+      "description": "Generates custom weekly objectives, milestones, and daily tracking lists from any curriculum or outline."
+    },
+    {
+      "emoji": "💬",
+      "title": "Smart Mentor Chat",
+      "description": "Ask questions, get step-by-step code explanations, or request real-time hints tailored to your active lesson."
+    },
+    {
+      "emoji": "🧠",
+      "title": "Adaptive Quizzes",
+      "description": "Automatically tests your understanding at each milestone with clear answers and personalized feedback."
+    },
+    {
+      "emoji": "📈",
+      "title": "Progress Tracking",
+      "description": "Log hours, tick off completed items, earn achievement badges, and watch your daily study streak soar."
+    },
+    {
+      "emoji": "📎",
+      "title": "URL + Text Input",
+      "description": "Import your course outline by pasting a syllabus link, raw markdown syllabus text, or even a book index."
+    },
+    {
+      "emoji": "📚",
+      "title": "Multi-Course Support",
+      "description": "Organize your entire learning journey. Switch between multiple courses without losing your progress."
+    },
+    {
+      "emoji": "🗺️",
+      "title": "Interactive Visual Graphs",
+      "description": "Explore your curriculum as a node-link visual graph with custom-rendered side-paths and parallel modules powered by React Flow."
+    },
+    {
+      "emoji": "🛠️",
+      "title": "Hands-On Module Projects",
+      "description": "Apply your knowledge to practical, beginner-friendly builds generated dynamically based on your level and weekly learning progress."
+    },
+    {
+      "emoji": "👥",
+      "title": "Cohorts & Classrooms",
+      "description": "Create shared study groups, preview and clone course curricula, sync leaderboards, and monitor active classroom student rosters."
+    },
+    {
+      "emoji": "🛡️",
+      "title": "Self-Correcting QA Loops",
+      "description": "Critic and Judge agents synchronously evaluate lessons and roadmap ordering for optimal accuracy and clarity before delivery."
+    },
+    {
+      "emoji": "🔒",
+      "title": "Guarded Document Pipeline",
+      "description": "Deeply secure file ingest scans for prompt injections and malicious patterns while completely blocking server-side SSRF risks."
+    },
+    {
+      "emoji": "🔌",
+      "title": "MCP Tool Server",
+      "description": "Standalone Model Context Protocol server exposing robust Search and Fetch capabilities to cursor, claude desktop, and external agents."
+    }
+  ],
+  "startLearningFree": "Start Learning Free",
+  "noCreditCard": "No credit card needed • Free forever plan • 2 min setup",
+  "simulatedConfig": "roadmap_core_v1.config",
+  "activeStudyBlock": "Active study block",
+  "myActiveCourse": "My Active Course",
+  "weeklyProgress": "Weekly progress",
+  "percentDone": "{{count}}% Done",
+  "courseMilestones": "Course Milestones",
+  "week1Fundamentals": "Week 1: Fundamentals",
+  "completedLessons": "Completed • 4 Lessons",
+  "week2NeuralNets": "Week 2: Neural Nets",
+  "inProgressQuizUnlocked": "In Progress • Quiz Unlocked",
+  "week3DeepArchitectures": "Week 3: Deep Architectures",
+  "lockedLessons": "Locked • 5 Lessons",
+  "lesson23": "Lesson 2.3",
+  "backpropagationDemystified": "Backpropagation Demystified",
+  "understandingErrorGradients": "Understanding Error Gradients and Chain Rule",
+  "understandingErrorGradientsDesc": "To compute updates for deeper layers, we apply the chain rule of calculus to find how loss changes in response to each connection weight...",
+  "aiCompanionMentor": "AI Companion Mentor:",
+  "aiMentorQuote": "“Think of error propagation like distributing grades in a group project: we trace backwards to see exactly who contributed to each final result!”",
+  "readyForWeeklyQuiz": "Ready for Weekly Quiz check",
+  "takeQuiz": "Take Quiz (10 Questions) →",
+  "methodology": "Methodology",
+  "howItWorksPart1": "From lost to on-track in 3 steps",
+  "howItWorksPart2": "We bridge the gap between bookmarking learning content and actually understanding it.",
+  "howItWorksStep1Title": "Paste a course or topic",
+  "howItWorksStep1Desc": "Provide a website URL, a syllabus text, a chapter list, or simply type the name of a subject you want to master from scratch.",
+  "howItWorksStep2Title": "Get your personal roadmap",
+  "howItWorksStep2Desc": "Our AI engine instantly slices the content into structured, manageable weekly goals, lesson targets, and actionable checklists.",
+  "howItWorksStep3Title": "Learn, quiz, and track",
+  "howItWorksStep3Desc": "Talk to your built-in AI tutor to explain tricky modules, pass interactive concept quizzes, and rack up daily habit streaks.",
+  "joinLearners": "Join 2,400+ learners already on track",
+  "readyToFinish": "Ready to actually finish that course?",
+  "readyToFinishDesc": "Stop collecting unread bookmarks. Build your custom week-by-week roadmap, sync your study goals, and master your subjects.",
+  "freePlanIncludes": "Free plan includes 1 active course and 3 quizzes/week",
+  "github": "GitHub",
+  "kaggleSubmission": "Kaggle Submission",
+  "builtForGoogle": "Built for Google x Kaggle AI Agents Vibecoding 2026"
+}

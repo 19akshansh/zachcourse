@@ -1,0 +1,19 @@
+{
+  "companionTitle": "Mesa de ayuda complementaria",
+  "companionInstructions": "Haz clic en cualquiera de estas plantillas para hacerme preguntas sobre tu material de estudio actual:",
+  "analogyPromptText": "¿Puedes darme una analogía intuitiva del mundo real para esta lección?",
+  "analogyButtonText": "💡 \"Dame una analogía del mundo real.\"",
+  "simplePromptText": "¿Puedes explicar este tema en términos mucho más simples para mí?",
+  "simpleButtonText": "🧸 \"Explícalo más simple, por favor.\"",
+  "projectPromptText": "¿Qué es un mini-proyecto interactivo divertido que puedo construir para practicar este tema?",
+  "projectButtonText": "🛠️ \"Dame una idea de mini-proyecto divertido.\"",
+  "activeContextTitle": "Contexto activo",
+  "noTopicActive": "Ningún tema activo: selecciona una lección en la pestaña de la hoja de ruta para enfocar nuestras preguntas.",
+  "tutorTitle": "Tu tutor de aprendizaje amigable",
+  "tutorSubtitle": "¡Listo para charlar y ayudarte a entender!",
+  "toastMemoryCleared": "Memoria borrada para este curso",
+  "toastMemoryClearFailed": "Error al borrar la memoria",
+  "clearHistory": "Borrar memoria",
+  "tutorWriting": "El tutor está escribiendo...",
+  "inputPlaceholder": "Pregunta cualquier cosa — pega una URL y la leeré 🔗"
+}

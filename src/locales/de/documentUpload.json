@@ -1,0 +1,20 @@
+{
+  "title": "Studienmaterialien hochladen",
+  "dragDrop": "Dateien hierher ziehen oder zum Auswählen klicken",
+  "supportedFormats": "Unterstützte Formate: PDF, TXT (Max. 5MB)",
+  "processing": "Dokumente werden verarbeitet...",
+  "successMsg": "Dokument erfolgreich verarbeitet! Roadmap wird erstellt...",
+  "errorMsg": "Fehler bei der Dokumentenverarbeitung",
+  "toastMaxFiles": "Maximal 3 Dateien erlaubt.",
+  "toastSizeLimit": "Datei {{name}} überschreitet das 10MB-Limit",
+  "toastSafetyFlagged": "⚠️ Dokument aus Sicherheitsgründen abgelehnt — kann nicht verarbeitet werden",
+  "toastInvalidType": "Nur PDF, .txt und .md erlaubt",
+  "toastUploadFailed": "Upload fehlgeschlagen",
+  "toastSuccess": "📄 Dokumente verarbeitet — KI wird sie als Kontext verwenden",
+  "toastNetworkError": "Netzwerkfehler beim Upload",
+  "documentsReady": "Dokumente bereit",
+  "clearAll": "Alles löschen",
+  "dropFiles": "Ziehen Sie PDFs, .txt oder .md Dateien hierher",
+  "maxFilesHint": "Max. 10MB pro Datei • Maximal 3 Dateien",
+  "neverStoredHint": "Inhalt im Speicher verarbeitet, niemals gespeichert"
+}

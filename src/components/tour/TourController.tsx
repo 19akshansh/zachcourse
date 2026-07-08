@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Joyride, EventData, EVENTS, STATUS } from "react-joyride";
-import { tourChapters, TourChapterId, ExtendedStep, CURRENT_TOUR_VERSION } from "../../lib/tour-content";
+import { getTourChapters, TourChapterId, ExtendedStep, CURRENT_TOUR_VERSION } from "../../lib/tour-content";
 import { TourTooltip } from "./TourTooltip";
 import { TourBeacon } from "./TourBeacon";
 import { useSession } from "../../lib/auth-client";
 import { trpc } from "../../lib/trpc-client";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
-interface TourControllerProps {
+export interface TourControllerProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   activeCourseId: string | null;
@@ -28,6 +29,7 @@ export function TourController({
   setSidebarOpen,
   isMobile
 }: TourControllerProps) {
+  const { t } = useTranslation(["tour"]);
   const { data: sessionData, isPending: sessionPending } = useSession();
   const userRole = (sessionData?.user as any)?.role || "student";
   
@@ -178,12 +180,12 @@ export function TourController({
     let sequence: ExtendedStep[] = [];
     if (chapter === "full") {
       sequence = [
-        ...tourChapters["welcome"],
-        ...tourChapters["sidebar-and-account"],
-        ...tourChapters["building-a-course"]
+        ...getTourChapters(t)["welcome"],
+        ...getTourChapters(t)["sidebar-and-account"],
+        ...getTourChapters(t)["building-a-course"]
       ];
     } else {
-      sequence = tourChapters[chapter];
+      sequence = getTourChapters(t)[chapter];
     }
     
     // Safety check: if chapter requires a course but none is selected
@@ -214,13 +216,13 @@ export function TourController({
               setRun(true);
             }, 1000);
           } else {
-            toast("Please create or select a course first to view this tour.", { icon: "🎓" });
+            toast(t("createOrSelectCourseToast", { defaultValue: "Please create or select a course first to view this tour." }), { icon: "🎓" });
             setActiveChapter(null);
           }
         })
         .catch(err => {
           console.error("Error auto-fetching courses for tour:", err);
-          toast("Please create or select a course first to view this tour.", { icon: "🎓" });
+          toast(t("createOrSelectCourseToast", { defaultValue: "Please create or select a course first to view this tour." }), { icon: "🎓" });
           setActiveChapter(null);
         });
       return;

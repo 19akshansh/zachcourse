@@ -1,0 +1,20 @@
+{
+  "title": "Upload Study Materials",
+  "dragDrop": "Drag and drop your files here, or click to select",
+  "supportedFormats": "Supported formats: PDF, TXT (Max 5MB)",
+  "processing": "Processing documents...",
+  "successMsg": "Document processed successfully! Generating study roadmap...",
+  "errorMsg": "Failed to process document",
+  "toastMaxFiles": "Max 3 files allowed.",
+  "toastSizeLimit": "File {{name}} exceeds 10MB limit",
+  "toastSafetyFlagged": "⚠️ Document flagged for safety — cannot process",
+  "toastInvalidType": "Only PDF, .txt, and .md allowed",
+  "toastUploadFailed": "Upload failed",
+  "toastSuccess": "📄 Documents processed — AI will use them as context",
+  "toastNetworkError": "Network error during upload",
+  "documentsReady": "Documents Ready",
+  "clearAll": "Clear all",
+  "dropFiles": "Drop PDFs, .txt, or .md files here",
+  "maxFilesHint": "Max 10MB per file • 3 files max",
+  "neverStoredHint": "Content processed in memory, never stored"
+}

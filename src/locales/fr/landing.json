@@ -1,0 +1,140 @@
+{
+  "logo": "ZachCourse",
+  "signIn": "Se Connecter",
+  "getStartedFree": "Commencer Gratuitement",
+  "heroBadge": "Le compagnon d'étude autocorrecteur ✨",
+  "heroTitlePart1": "Arrêtez de collectionner des cours.",
+  "heroTitlePart2": "Commencez à les terminer.",
+  "heroSubtitle": "Transformez n'importe quel programme d'études, plan de manuel ou document en une feuille de route hebdomadaire entièrement suivie. Guidé par des mentors IA autocorrecteurs et des évaluations adaptatives pour garantir la maîtrise.",
+  "featuresBadge": "Conçu pour la Maîtrise",
+  "featuresTitle": "Un écosystème complet conçu pour vous aider à réussir",
+  "featuresSubtitle": "ZachCourse combine des flux de travail multi-agents avancés, des graphiques visuels interactifs et des structures d'apprentissage social.",
+  "testimonialsBadge": "Témoignages de Réussite",
+  "testimonialsTitle": "Ce que nos apprenants disent",
+  "testimonialsSubtitle": "Rejoignez des milliers d'étudiants qui ont transformé leurs habitudes d'apprentissage.",
+  "ctaBadge": "Prêt à commencer ?",
+  "ctaTitle": "Votre compagnon d'apprentissage personnalisé vous attend",
+  "ctaSubtitle": "Créez un cours en quelques secondes et commencez à apprendre avec votre propre mentor IA.",
+  "ctaButton": "Créer mon premier cours",
+  "footerText": "ZachCourse. Tous droits réservés. Curation autocorrectrice alimentée par des boucles d'agents.",
+  "testimonials": [
+    {
+      "initials": "JD",
+      "name": "Jordan Davies",
+      "role": "Développeur autodidacte",
+      "quote": "ZachCourse a pris le programme accablant de Coursera et l'a transformé en une feuille de route quotidienne de 6 semaines facile à digérer. J'ai enfin terminé un cours pour la première fois de ma vie !"
+    },
+    {
+      "initials": "AM",
+      "name": "Aisha Miller",
+      "role": "Reconversion Professionnelle",
+      "quote": "Les quiz adaptatifs se sont assurés que je comprenais vraiment les relations entre bases de données avant de me laisser avancer. Le mentor IA donnait l'impression d'avoir un tuteur privé et amical 24h/24 et 7j/7."
+    },
+    {
+      "initials": "TL",
+      "name": "Takahiro Lee",
+      "role": "Étudiant en Informatique",
+      "quote": "Pouvoir coller n'importe quel lien de programme d'études et obtenir instantanément un espace de travail structuré est un superpouvoir. Le meilleur compagnon d'étude qui existe !"
+    }
+  ],
+  "features": [
+    {
+      "emoji": "🗺️",
+      "title": "Générateur de Feuille de Route IA",
+      "description": "Génère des objectifs hebdomadaires personnalisés, des étapes clés et des listes de suivi quotidien à partir de n'importe quel programme ou plan."
+    },
+    {
+      "emoji": "💬",
+      "title": "Chat Mentor Intelligent",
+      "description": "Posez des questions, obtenez des explications de code étape par étape ou demandez des indices en temps réel adaptés à votre leçon active."
+    },
+    {
+      "emoji": "🧠",
+      "title": "Quiz Adaptatifs",
+      "description": "Évalue automatiquement votre compréhension à chaque étape clé avec des réponses claires et des commentaires personnalisés."
+    },
+    {
+      "emoji": "📈",
+      "title": "Suivi du Progrès",
+      "description": "Enregistrez vos heures, cochez les éléments complétés, gagnez des badges de réussite et regardez votre série d'études quotidiennes s'envoler."
+    },
+    {
+      "emoji": "📎",
+      "title": "Entrée URL et Texte",
+      "description": "Importez votre plan de cours en collant un lien de programme, du texte brut markdown ou l'index d'un livre."
+    },
+    {
+      "emoji": "📚",
+      "title": "Prise en charge Multi-Cours",
+      "description": "Organisez l'ensemble de votre parcours d'apprentissage. Passez d'un cours à l'autre sans perdre votre progression."
+    },
+    {
+      "emoji": "🗺️",
+      "title": "Graphiques Visuels Interactifs",
+      "description": "Explorez votre programme d'études sous forme de graphique visuel de nœuds avec des chemins secondaires personnalisés et des modules parallèles propulsés par React Flow."
+    },
+    {
+      "emoji": "🛠️",
+      "title": "Projets Pratiques de Module",
+      "description": "Appliquez vos connaissances à des projets pratiques pour débutants, générés dynamiquement en fonction de votre niveau et de votre progression hebdomadaire."
+    },
+    {
+      "emoji": "👥",
+      "title": "Cohortes & Salles de Classe",
+      "description": "Créez des groupes d'étude partagés, prévisualisez et clonez des programmes de cours, synchronisez les classements et suivez les listes d'étudiants dans les salles de classe actives."
+    },
+    {
+      "emoji": "🛡️",
+      "title": "Boucles d'Assurance Qualité Autocorrectrices",
+      "description": "Les agents Critique et Juge évaluent de manière synchrone les leçons et l'ordre des feuilles de route pour garantir une précision et une clarté optimales avant la livraison."
+    },
+    {
+      "emoji": "🔒",
+      "title": "Pipeline de Documents Protégé",
+      "description": "Le système sécurisé d'ingestion de fichiers recherche les injections de commandes et les modèles malveillants, bloquant complètement les risques SSRF côté serveur."
+    },
+    {
+      "emoji": "🔌",
+      "title": "Serveur d'Outils MCP",
+      "description": "Serveur de protocole de contexte de modèle autonome exposant des fonctionnalités robustes de recherche et d'extraction à Cursor, Claude Desktop et aux agents externes."
+    }
+  ],
+  "startLearningFree": "Commencer à apprendre gratuitement",
+  "noCreditCard": "Aucune carte de crédit requise • Plan gratuit à vie • Configuration en 2 minutes",
+  "simulatedConfig": "roadmap_core_v1.config",
+  "activeStudyBlock": "Bloc d'étude actif",
+  "myActiveCourse": "Mon cours actif",
+  "weeklyProgress": "Progression hebdomadaire",
+  "percentDone": "{{count}}% terminé",
+  "courseMilestones": "Jalons du cours",
+  "week1Fundamentals": "Semaine 1 : Fondations",
+  "completedLessons": "Terminé • 4 leçons",
+  "week2NeuralNets": "Semaine 2 : Réseaux de neurones",
+  "inProgressQuizUnlocked": "En cours • Quiz déverrouillé",
+  "week3DeepArchitectures": "Semaine 3 : Architectures profondes",
+  "lockedLessons": "Verrouillé • 5 leçons",
+  "lesson23": "Leçon 2.3",
+  "backpropagationDemystified": "Rétropropagation démystifiée",
+  "understandingErrorGradients": "Comprendre les gradients d'erreur et la règle de dérivation des fonctions composées",
+  "understandingErrorGradientsDesc": "Pour calculer les mises à jour des couches plus profondes, nous appliquons la règle de dérivation des fonctions composées pour trouver comment la perte change en réponse à chaque poids de connexion...",
+  "aiCompanionMentor": "Mentor IA de ZachCourse :",
+  "aiMentorQuote": "« Pensez à la propagation des erreurs comme à la distribution des notes dans un projet de groupe : nous remontons le fil pour voir exactement qui a contribué à chaque résultat final ! »",
+  "readyForWeeklyQuiz": "Prêt pour le quiz hebdomadaire",
+  "takeQuiz": "Faire le quiz (10 questions) →",
+  "methodology": "Méthodologie",
+  "howItWorksPart1": "De perdu à sur la bonne voie en 3 étapes",
+  "howItWorksPart2": "Nous comblons le fossé entre la mise en favoris de contenus et leur compréhension réelle.",
+  "howItWorksStep1Title": "Collez un cours ou un sujet",
+  "howItWorksStep1Desc": "Fournissez l'URL d'un site web, le texte d'un programme, une liste de chapitres ou tapez simplement le sujet que vous souhaitez maîtriser à partir de zéro.",
+  "howItWorksStep2Title": "Obtenez votre feuille de route personnelle",
+  "howItWorksStep2Desc": "Notre moteur d'IA segmente instantanément le contenu en objectifs hebdomadaires structurés, cibles de leçons et listes de tâches.",
+  "howItWorksStep3Title": "Apprenez, faites des quiz et suivez votre progression",
+  "howItWorksStep3Desc": "Échangez avec votre tuteur IA intégré pour clarifier les modules complexes, réussissez des quiz de concepts et accumulez des séries de jours d'étude.",
+  "joinLearners": "Rejoignez plus de 2400 apprenants déjà sur la bonne voie",
+  "readyToFinish": "Prêt à vraiment terminer ce cours ?",
+  "readyToFinishDesc": "Arrêtez d'accumuler des favoris non lus. Créez votre feuille de route personnalisée semaine après semaine, synchronisez vos objectifs d'étude et maîtrisez vos matières.",
+  "freePlanIncludes": "Le plan gratuit comprend 1 cours actif et 3 quiz par semaine",
+  "github": "GitHub",
+  "kaggleSubmission": "Soumission Kaggle",
+  "builtForGoogle": "Conçu pour Google x Kaggle AI Agents Vibecoding 2026"
+}

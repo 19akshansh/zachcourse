@@ -1,0 +1,31 @@
+{
+  "quizMasterAssessment": "Évaluation du maître de quiz",
+  "subtitle": "Testez votre rétention avec des vérifications conceptuelles à choix multiples.",
+  "tutorFormulating": "Le tuteur formule vos questions de quiz... 🧠",
+  "tutorFormulatingSub": "Conception de choix adaptatifs pour mesurer la compréhension conceptuelle, plutôt que la récupération de syntaxe.",
+  "correctFeedback": "🎉 Bien joué ! Beau travail !",
+  "incorrectFeedback": "🙈 Oups, apprenons de cela :",
+  "submitAnswers": "Soumettre les réponses du quiz",
+  "quizCompletedTitle": "Quiz terminé ! 🏆",
+  "quizPerformanceLogged": "Votre score de performance de {{score}} % a été enregistré dans vos statistiques de progression !",
+  "backToRoadmap": "Retour à l'onglet Feuille de route",
+  "aiFeedbackTitle": "Commentaires adaptatifs de l'IA",
+  "recommendedAdjust": "Ajustement recommandé",
+  "levelUpDifficulty": "Augmenter la difficulté 📈",
+  "reviewBasics": "Revoir les bases 📉",
+  "maintainCurrentPace": "Maintenir le rythme actuel 🎯",
+  "topicsToReview": "Sujets à revoir",
+  "configureQuizTitle": "Configurez votre quiz",
+  "difficultyLabel": "Difficulté",
+  "difficulty": {
+    "beginner": "Débutant",
+    "medium": "Moyen",
+    "hard": "Difficile",
+    "expert": "Expert"
+  },
+  "numberOfQuestions": "Nombre de questions",
+  "generateQuizButton": "Générer le quiz",
+  "startLessonToPracticeTitle": "Commencez une leçon pour vous entraîner !",
+  "startLessonToPracticeDesc": "Sélectionnez n'importe quelle leçon de votre feuille de route active, cliquez sur Passer le quiz rapide dans la vue du guide d'étude de la leçon, et testez vos connaissances ici !",
+  "goToRoadmapButton": "Aller à la feuille de route"
+}

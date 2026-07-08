@@ -7,6 +7,7 @@ import { DocumentUpload } from "./DocumentUpload";
 import { apiFetch } from "../lib/api";
 import { Pagination } from "./Pagination";
 import { PersonalizationFields } from "./PersonalizationFields";
+import { useTranslation } from "react-i18next";
 
 export interface VisualRoadmapsTabProps {
   roadmaps: any[];
@@ -35,6 +36,7 @@ export default function VisualRoadmapsTab({
   onToggleFavorite,
   onToggleNodeComplete
 }: VisualRoadmapsTabProps) {
+  const { t, i18n } = useTranslation(["roadmap"]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [topic, setTopic] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("beginner");
@@ -64,18 +66,18 @@ export default function VisualRoadmapsTab({
           "Content-Type": "application/json",
           "x-user-key": userKey 
         },
-        body: JSON.stringify({ topic, experienceLevel, backgroundContext, weeklyHours, sourceUrl, documentContext, tone }),
+        body: JSON.stringify({ topic, experienceLevel, backgroundContext, weeklyHours, sourceUrl, documentContext, tone, language: i18n.language }),
       });
       const data = await res.json();
       
-      if (!res.ok) throw new Error(data.error || "Generation failed");
+      if (!res.ok) throw new Error(data.error || t("toastGenerationFailed", { defaultValue: "Generation failed" }));
 
       await onRoadmapGenerated(data.roadmap, { topic, experienceLevel, backgroundContext, weeklyHours, tone });
       setShowForm(false);
       setTopic("");
       setSourceUrl("");
     } catch (err: any) {
-      toast.error(err.message || "Failed to generate roadmap");
+      toast.error(err.message || t("toastFailedToGenerate", { defaultValue: "Failed to generate roadmap" }));
     } finally {
       setIsGenerating(false);
     }
@@ -88,7 +90,7 @@ export default function VisualRoadmapsTab({
       await onDelete(roadmapToDelete.id);
       setRoadmapToDelete(null);
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete roadmap");
+      toast.error(err.message || t("toastFailedToDelete", { defaultValue: "Failed to delete roadmap" }));
     } finally {
       setIsDeletingRoadmap(false);
     }
@@ -111,15 +113,15 @@ export default function VisualRoadmapsTab({
           <div className="w-20 h-20 bg-[#4F46E5]/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-[#4F46E5]/20">
             <span className="text-4xl">🔑</span>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-4">API Key Required</h2>
+          <h2 className="text-2xl font-bold text-white mb-4">{t("apiKeyRequired", { defaultValue: "API Key Required" })}</h2>
           <p className="text-[#8E88AB] mb-8 leading-relaxed">
-            Visual Roadmaps use structured output generation to build complex graph paths. Add your Gemini API key to unlock this feature.
+            {t("apiKeyRequiredDesc", { defaultValue: "Visual Roadmaps use structured output generation to build complex graph paths. Add your Gemini API key to unlock this feature." })}
           </p>
           <button 
-            className="bg-[#4F46E5] hover:bg-[#4338CA] text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] w-full"
+            className="bg-[#4F46E5] hover:bg-[#4338CA] text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.3)] w-full text-center"
             onClick={() => window.dispatchEvent(new CustomEvent('zc-open-onboarding'))}
           >
-            Add API Key <ArrowRight className="w-5 h-5" />
+            {t("addApiKey", { defaultValue: "Add API Key" })} <ArrowRight className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -132,16 +134,16 @@ export default function VisualRoadmapsTab({
         <div className="flex justify-between items-center">
           <div>
             <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-              Generate Roadmap <Sparkles className="text-indigo-400 w-6 h-6" />
+              {t("generateRoadmap", { defaultValue: "Generate Roadmap" })} <Sparkles className="text-indigo-400 w-6 h-6" />
             </h2>
-            <p className="text-[#8E88AB] mt-2">Map out any learning journey from beginner to mastery.</p>
+            <p className="text-[#8E88AB] mt-2">{t("generateRoadmapDesc", { defaultValue: "Map out any learning journey from beginner to mastery." })}</p>
           </div>
           {roadmaps.length > 0 && (
             <button 
               onClick={() => setShowForm(false)}
               className="text-[#8E88AB] hover:text-white transition-colors"
             >
-              Cancel
+              {t("cancel", { defaultValue: "Cancel" })}
             </button>
           )}
         </div>
@@ -150,14 +152,14 @@ export default function VisualRoadmapsTab({
           <form data-tour="vroadmap-form" onSubmit={handleGenerate} className="space-y-8 bg-[#111118] border border-[#2A2443] rounded-2xl p-8 shadow-xl">
             <div>
               <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
-                What do you want to master?
+                {t("whatToMaster", { defaultValue: "What do you want to master?" })}
               </label>
               <input
                 type="text"
                 required
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="e.g. System Design, Kubernetes, UI Design..."
+                placeholder={t("topicPlaceholder", { defaultValue: "e.g., Python Backend, React & Tailwind, Machine Learning Foundations" })}
                 className="w-full bg-[#0F0D19] border-2 border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-5 py-4 text-white text-lg transition-colors placeholder:text-[#3F395B] outline-none"
               />
             </div>
@@ -173,7 +175,7 @@ export default function VisualRoadmapsTab({
 
             <div>
               <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
-                Weekly Commitment: <span className="text-white">{weeklyHours} hours</span>
+                {t("weeklyCommitmentLabel", { defaultValue: "Weekly Commitment:" })} <span className="text-white">{t("hoursCount", { count: weeklyHours, defaultValue: "{{count}} hours" })}</span>
               </label>
               <input
                 type="range"
@@ -184,21 +186,21 @@ export default function VisualRoadmapsTab({
                 className="w-full accent-[#4F46E5]"
               />
               <div className="flex justify-between text-xs font-medium text-[#4B5563] mt-2">
-                <span>Casual (1h)</span>
-                <span>Part-time (15h)</span>
-                <span>Intensive (30h)</span>
+                <span>{t("casualCommitment", { defaultValue: "Casual (1h)" })}</span>
+                <span>{t("partTimeCommitment", { defaultValue: "Part-time (15h)" })}</span>
+                <span>{t("intensiveCommitment", { defaultValue: "Intensive (30h)" })}</span>
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
-                Source Material (Optional)
+                {t("sourceMaterialLabel", { defaultValue: "Source Material (Optional)" })}
               </label>
               <input
                 type="url"
                 value={sourceUrl}
                 onChange={(e) => setSourceUrl(e.target.value)}
-                placeholder="https://... (Docs, syllabus, or course link)"
+                placeholder={t("roadmapUrlPlaceholder", { defaultValue: "https://... (Docs, syllabus, or course link)" })}
                 className="w-full bg-[#0F0D19] border border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-4 py-3 text-white transition-colors placeholder:text-[#3F395B] outline-none"
               />
 
@@ -223,15 +225,15 @@ export default function VisualRoadmapsTab({
               {isGenerating ? (
                 <>
                   <Loader2 className="w-6 h-6 animate-spin" />
-                  Mapping your journey... 🗺️
+                  {t("generating", { defaultValue: "Mapping your journey... 🗺️" })}
                 </>
               ) : (
                 <>
-                  Generate Visual Roadmap ✨
+                  {t("generateButton", { defaultValue: "Generate Visual Roadmap ✨" })}
                 </>
               )}
             </button>
-            {isGenerating && <p className="text-center text-[#8E88AB] text-sm mt-4">Usually takes 10-20 seconds</p>}
+            {isGenerating && <p className="text-center text-[#8E88AB] text-sm mt-4">{t("generatingHint", { defaultValue: "Usually takes 10-20 seconds" })}</p>}
           </form>
 
           {/* Right Col: Preview */}
@@ -252,8 +254,8 @@ export default function VisualRoadmapsTab({
              ) : (
                <div className="text-center opacity-50">
                  <Map className="w-16 h-16 text-[#8E88AB] mx-auto mb-4" />
-                 <h3 className="text-lg font-bold text-white mb-2">Live Preview</h3>
-                 <p className="text-[#8E88AB] max-w-xs mx-auto">Your generated node graph will appear here.</p>
+                 <h3 className="text-lg font-bold text-white mb-2">{t("livePreview", { defaultValue: "Live Preview" })}</h3>
+                 <p className="text-[#8E88AB] max-w-xs mx-auto">{t("graphWillAppearHere", { defaultValue: "Your generated node graph will appear here." })}</p>
                </div>
              )}
           </div>
@@ -268,14 +270,14 @@ export default function VisualRoadmapsTab({
       <div className="flex justify-between items-center shrink-0">
         <div>
           <h2 className="text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            Your Roadmaps <Map className="text-indigo-400 w-6 h-6" />
+            {t("yourRoadmaps", { defaultValue: "Your Roadmaps" })} <Map className="text-indigo-400 w-6 h-6" />
           </h2>
         </div>
         <button 
           onClick={() => setShowForm(true)}
           className="bg-[#2A2443] hover:bg-[#3F395B] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors border border-[#3F395B]"
         >
-          + New Roadmap
+          {t("newRoadmap", { defaultValue: "+ New Roadmap" })}
         </button>
       </div>
 
@@ -299,6 +301,7 @@ export default function VisualRoadmapsTab({
                     <button 
                       onClick={(e) => { e.stopPropagation(); onToggleFavorite(r.id, !r.isFavorite) }}
                       className="p-1.5 hover:bg-[#2A2443] rounded-lg transition-colors"
+                      title={r.isFavorite ? t("unfavorite", { defaultValue: "Unfavorite" }) : t("favorite", { defaultValue: "Favorite" })}
                     >
                       <Star className={`w-4 h-4 ${r.isFavorite ? 'fill-[#EAB308] text-[#EAB308]' : 'text-[#8E88AB]'}`} />
                     </button>
@@ -308,7 +311,7 @@ export default function VisualRoadmapsTab({
                         setRoadmapToDelete({ id: r.id, topic: r.topic });
                       }}
                       className="p-1.5 hover:bg-rose-500/10 rounded-lg transition-colors text-[#8E88AB] hover:text-rose-400 cursor-pointer"
-                      title="Delete Roadmap"
+                      title={t("deleteRoadmap", { defaultValue: "Delete Roadmap" })}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -318,7 +321,7 @@ export default function VisualRoadmapsTab({
                 <div className="flex items-center gap-2 text-xs font-medium text-[#8E88AB] mb-4">
                   <span>{r.difficulty}</span>
                   <span>•</span>
-                  <span>{r.totalDuration || "4 weeks"}</span>
+                  <span>{r.totalDuration || t("defaultDuration", { defaultValue: "4 weeks" })}</span>
                 </div>
                 
                 <div className="w-full bg-[#1A172E] rounded-full h-1.5 mb-2 overflow-hidden">
@@ -329,16 +332,16 @@ export default function VisualRoadmapsTab({
                 </div>
                 <div className="flex justify-between items-center text-[10px] font-bold">
                   <span className={progress === 100 ? 'text-[#10B981]' : 'text-[#8E88AB]'}>
-                    {progress}% Complete
+                    {t("progressPercentComplete", { progress, defaultValue: "{{progress}}% Complete" })}
                   </span>
-                  {progress === 100 && <span className="text-[#10B981]">🎉 Done!</span>}
+                  {progress === 100 && <span className="text-[#10B981]">{t("progressDone", { defaultValue: "🎉 Done!" })}</span>}
                 </div>
               </div>
             );
           })
         ) : (
           <div className="w-full flex items-center justify-center py-8 bg-[#111118] border border-dashed border-[#2A2443] rounded-2xl text-[#8E88AB]">
-            <p>You don't have any saved roadmaps yet. Generate one to see it here!</p>
+            <p>{t("noSavedRoadmaps", { defaultValue: "You don't have any saved roadmaps yet. Generate one to see it here!" })}</p>
           </div>
         )}
       </div>
@@ -366,7 +369,7 @@ export default function VisualRoadmapsTab({
             <div className="w-full h-full flex items-center justify-center text-[#8E88AB]">
               <div className="text-center">
                 <Map className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Select a roadmap above to view its graph</p>
+                <p>{t("selectRoadmapToViewGraph", { defaultValue: "Select a roadmap above to view its graph" })}</p>
               </div>
             </div>
           )}
@@ -382,9 +385,9 @@ export default function VisualRoadmapsTab({
                 <Trash2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[#FAF9FD]">Delete Visual Roadmap?</h3>
+                <h3 className="text-xl font-bold text-[#FAF9FD]">{t("deleteRoadmapConfirmTitle", { defaultValue: "Delete Visual Roadmap?" })}</h3>
                 <p className="text-sm text-[#CECADF] mt-2 leading-relaxed">
-                  Are you sure you want to permanently delete <span className="font-bold text-red-400">{roadmapToDelete.topic}</span>? This action is absolute and irreversible. All nodes, edges, milestones, and completed node progress indicators will be permanently lost.
+                  {t("deleteRoadmapConfirmDesc1", { defaultValue: "Are you sure you want to permanently delete " })}<span className="font-bold text-red-400">{roadmapToDelete.topic}</span>{t("deleteRoadmapConfirmDesc2", { defaultValue: "? This action is absolute and irreversible. All nodes, edges, milestones, and completed node progress indicators will be permanently lost." })}
                 </p>
               </div>
             </div>
@@ -395,7 +398,7 @@ export default function VisualRoadmapsTab({
                 className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer"
                 disabled={isDeletingRoadmap}
               >
-                Cancel
+                {t("cancel", { defaultValue: "Cancel" })}
               </button>
               <button
                 type="button"
@@ -406,10 +409,10 @@ export default function VisualRoadmapsTab({
                 {isDeletingRoadmap ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Deleting...
+                    {t("deleting", { defaultValue: "Deleting..." })}
                   </>
                 ) : (
-                  "Yes, Delete Roadmap"
+                  t("yesDeleteRoadmap", { defaultValue: "Yes, Delete Roadmap" })
                 )}
               </button>
             </div>

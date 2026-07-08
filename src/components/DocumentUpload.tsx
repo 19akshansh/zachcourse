@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Upload, X, FileText, CheckCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 interface DocumentUploadProps {
   onExtracted: (text: string, fileNames: string[]) => void;
@@ -9,6 +10,7 @@ interface DocumentUploadProps {
 }
 
 export function DocumentUpload({ onExtracted, onClear, hasDocument }: DocumentUploadProps) {
+  const { t } = useTranslation(["documentUpload"]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<{ name: string; chars: number }[]>([]);
@@ -18,7 +20,7 @@ export function DocumentUpload({ onExtracted, onClear, hasDocument }: DocumentUp
     if (!files || files.length === 0) return;
 
     if (files.length > 3) {
-      toast.error("Max 3 files allowed.");
+      toast.error(t("toastMaxFiles"));
       return;
     }
 
@@ -26,7 +28,7 @@ export function DocumentUpload({ onExtracted, onClear, hasDocument }: DocumentUp
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (file.size > 10 * 1024 * 1024) {
-        toast.error(`File ${file.name} exceeds 10MB limit`);
+        toast.error(t("toastSizeLimit", { name: file.name }));
         return;
       }
       formData.append("files", file);
@@ -43,20 +45,20 @@ export function DocumentUpload({ onExtracted, onClear, hasDocument }: DocumentUp
       const data = await res.json();
       if (!res.ok) {
         if (data.error?.includes("safety") || data.error?.includes("cannot be safely processed")) {
-          toast.error("⚠️ Document flagged for safety — cannot process");
+          toast.error(t("toastSafetyFlagged"));
         } else if (data.error === "INVALID_FILE_TYPE") {
-          toast.error("Only PDF, .txt, and .md allowed");
+          toast.error(t("toastInvalidType"));
         } else {
-          toast.error(data.error || "Upload failed");
+          toast.error(data.error || t("toastUploadFailed"));
         }
         return;
       }
 
       setUploadedFiles(Array.from(files).map(f => ({ name: f.name, chars: data.charCount })));
       onExtracted(data.extractedText, Array.from(files).map(f => f.name));
-      toast.success("📄 Documents processed — AI will use them as context");
+      toast.success(t("toastSuccess"));
     } catch (error) {
-      toast.error("Network error during upload");
+      toast.error(t("toastNetworkError"));
     } finally {
       setIsUploading(false);
     }
@@ -87,13 +89,13 @@ export function DocumentUpload({ onExtracted, onClear, hasDocument }: DocumentUp
         <div className="flex items-center justify-between">
           <span className="text-sm font-bold text-white flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-emerald-400" />
-            Documents Ready
+            {t("documentsReady")}
           </span>
           <button 
             onClick={clearAll}
             className="text-xs text-rose-400 hover:text-rose-300 font-semibold"
           >
-            Clear all
+            {t("clearAll")}
           </button>
         </div>
         <div className="flex flex-wrap gap-2 mt-1">
@@ -131,7 +133,7 @@ export function DocumentUpload({ onExtracted, onClear, hasDocument }: DocumentUp
       {isUploading ? (
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
-          <span className="text-sm font-semibold text-indigo-200">Processing documents...</span>
+          <span className="text-sm font-semibold text-indigo-200">{t("processing")}</span>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3 text-center">
@@ -139,9 +141,9 @@ export function DocumentUpload({ onExtracted, onClear, hasDocument }: DocumentUp
             <Upload className="w-5 h-5 text-indigo-400" />
           </div>
           <div>
-            <p className="text-sm font-bold text-[#F8FAFC]">Drop PDFs, .txt, or .md files here</p>
+            <p className="text-sm font-bold text-[#F8FAFC]">{t("dropFiles")}</p>
             <p className="text-xs font-medium text-[#94A3B8] mt-1">
-              Max 10MB per file • 3 files max <br/> Content processed in memory, never stored
+              {t("maxFilesHint")} <br/> {t("neverStoredHint")}
             </p>
           </div>
         </div>

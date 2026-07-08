@@ -1,0 +1,140 @@
+{
+  "logo": "ZachCourse",
+  "signIn": "登录",
+  "getStartedFree": "免费开始",
+  "heroBadge": "自纠正学习伴侣 ✨",
+  "heroTitlePart1": "停止囤积课程。",
+  "heroTitlePart2": "开始完成它们。",
+  "heroSubtitle": "将任何教学大纲、教科书大纲或文档转换为完全跟踪的每周学习路线图。在自纠正 AI 导师和自适应评估的引导下，确保你真正掌握知识。",
+  "featuresBadge": "专为掌握而设计",
+  "featuresTitle": "旨在帮助你成功的完整生态系统",
+  "featuresSubtitle": "ZachCourse 结合了先进的多智能体工作流、交互式可视化图表和社交学习结构。",
+  "testimonialsBadge": "成功故事",
+  "testimonialsTitle": "学习者怎么说",
+  "testimonialsSubtitle": "加入成千上万改变了学习习惯的学生行列。",
+  "ctaBadge": "准备好开始了吗？",
+  "ctaTitle": "你的个性化学习伴侣正在等你",
+  "ctaSubtitle": "在几秒钟内创建一门课程，并开始与你专属的 AI 导师一起学习。",
+  "ctaButton": "创建我的第一门课程",
+  "footerText": "ZachCourse. 保留所有权利。由智能体循环驱动的自纠正策划。",
+  "testimonials": [
+    {
+      "initials": "JD",
+      "name": "Jordan Davies",
+      "role": "自学成才的开发者",
+      "quote": "ZachCourse 将令人望而生畏的 Coursera 教学大纲变成了一个易于消化的 6 周每日路线图。我人生中第一次真正完成了一门课程！"
+    },
+    {
+      "initials": "AM",
+      "name": "Aisha Miller",
+      "role": "职场转型者",
+      "quote": "自适应测试确保我真的理解了数据库关系，然后才允许我继续前进。AI 导师感觉就像有一个 24/7 在线、亲切的私人教师一样。"
+    },
+    {
+      "initials": "TL",
+      "name": "Takahiro Lee",
+      "role": "计算机科学系学生",
+      "quote": "能够粘贴任何教科书教学大纲链接并立即获得结构化的跟踪工作区，这简直是一项超能力。市面上最好的学习伴侣应用！"
+    }
+  ],
+  "features": [
+    {
+      "emoji": "🗺️",
+      "title": "AI 路线图生成器",
+      "description": "根据任何课程大纲，生成定制的每周目标、里程碑和每日跟踪清单。"
+    },
+    {
+      "emoji": "💬",
+      "title": "智能导师对话",
+      "description": "针对你当前学习的课程，提出问题、获取逐步的代码解释或请求实时提示。"
+    },
+    {
+      "emoji": "🧠",
+      "title": "自适应测试",
+      "description": "在每个里程碑自动测试你的理解情况，并提供清晰的答案和个性化反馈。"
+    },
+    {
+      "emoji": "📈",
+      "title": "进度跟踪",
+      "description": "记录学习时长、勾选已完成的项目、赚取成就徽章，并看着你的每日学习连击不断攀升。"
+    },
+    {
+      "emoji": "📎",
+      "title": "链接 + 文本输入",
+      "description": "通过粘贴教学大纲链接、原生 Markdown 大纲文本甚至是书籍索引来导入你的课程大纲。"
+    },
+    {
+      "emoji": "📚",
+      "title": "多课程支持",
+      "description": "组织你的整个学习旅程。在多门课程之间无缝切换，绝不丢失学习进度。"
+    },
+    {
+      "emoji": "🗺️",
+      "title": "交互式可视化图表",
+      "description": "通过由 React Flow 驱动的节点连线图，探索具有自定义旁路和并行模块的课程体系。"
+    },
+    {
+      "emoji": "🛠️",
+      "title": "动手实战模块项目",
+      "description": "根据你的水平和每周进度，将所学知识应用到动态生成的、适合新手的实战项目中。"
+    },
+    {
+      "emoji": "👥",
+      "title": "班级与学习小组",
+      "description": "创建共享的学习小组，预览并克隆课程大纲，同步排行榜，并监控班级学生的活跃状态。"
+    },
+    {
+      "emoji": "🛡️",
+      "title": "自纠正 QA 循环",
+      "description": "批判（Critic）和裁判（Judge）智能体在发布前同步评估课程内容和路线图顺序，以实现最佳的准确性和清晰度。"
+    },
+    {
+      "emoji": "🔒",
+      "title": "受保护的文档处理管道",
+      "description": "高度安全的文件上传，可扫描 Prompt 注入和恶意模式，同时彻底防范服务器端 SSRF 风险。"
+    },
+    {
+      "emoji": "🔌",
+      "title": "MCP 工具服务器",
+      "description": "独立的模型上下文协议服务器，向 Cursor、Claude Desktop 和外部智能体开放强大的搜索和网页抓取功能。"
+    }
+  ],
+  "startLearningFree": "免费开始学习",
+  "noCreditCard": "无需信用卡 • 永久免费计划 • 2分钟快速设置",
+  "simulatedConfig": "roadmap_core_v1.config",
+  "activeStudyBlock": "活跃学习板块",
+  "myActiveCourse": "我的活跃课程",
+  "weeklyProgress": "每周进度",
+  "percentDone": "已完成 {{count}}%",
+  "courseMilestones": "课程里程碑",
+  "week1Fundamentals": "第一周：基础知识",
+  "completedLessons": "已完成 • 4个课时",
+  "week2NeuralNets": "第二周：神经网络",
+  "inProgressQuizUnlocked": "进行中 • 测验已解锁",
+  "week3DeepArchitectures": "第三周：深度架构",
+  "lockedLessons": "未解锁 • 5个课时",
+  "lesson23": "课时 2.3",
+  "backpropagationDemystified": "反向传播通俗易懂版",
+  "understandingErrorGradients": "理解误差梯度与链式法则",
+  "understandingErrorGradientsDesc": "为了计算深层的参数更新，我们应用微积分中的链式法则，来寻找损失如何随每个连接权重而变化...",
+  "aiCompanionMentor": "AI 伴侣导师：",
+  "aiMentorQuote": "“把误差传播想象成小组项目中的分数分配：我们逆向追踪，看看谁具体对最后的每个结果做出了贡献！”",
+  "readyForWeeklyQuiz": "每周测验准备就绪",
+  "takeQuiz": "开始测验 (10道题) →",
+  "methodology": "核心方法",
+  "howItWorksPart1": "只需3步，告别迷茫，步入正轨",
+  "howItWorksPart2": "我们连接了“收藏学习内容”与“真正理解内容”之间的鸿沟。",
+  "howItWorksStep1Title": "粘贴课程或主题",
+  "howItWorksStep1Desc": "提供一个网站网址、教学大纲文本、章节列表，或者直接输入你想要从零开始掌握的主题名称。",
+  "howItWorksStep2Title": "获取您的专属路线图",
+  "howItWorksStep2Desc": "我们的 AI 引擎会立即将内容切分为结构化的每周目标、课时任务和可操作的清单。",
+  "howItWorksStep3Title": "学习、测验与追踪",
+  "howItWorksStep3Desc": "与内置的 AI 导师对话以解释难懂的模块，通过概念测验，并累积每日学习习惯连击。",
+  "joinLearners": "加入 2,400+ 已经步入正轨的学习者行列",
+  "readyToFinish": "准备好真正学完那门课程了吗？",
+  "readyToFinishDesc": "别再只收藏而不读了。创建您专属的每周路线图，同步您的学习目标，并彻底掌握您的学科。",
+  "freePlanIncludes": "免费计划包含 1 门活跃课程和每周 3 次测验",
+  "github": "GitHub",
+  "kaggleSubmission": "Kaggle 提交页面",
+  "builtForGoogle": "专为 Google x Kaggle AI Agents Vibecoding 2026 打造"
+}

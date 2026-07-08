@@ -1,0 +1,19 @@
+{
+  "companionTitle": "Companion Help desk",
+  "companionInstructions": "Click any of these helper templates to ask me questions about your current study material:",
+  "analogyPromptText": "Can you give me an intuitive real-world analogy for this lesson?",
+  "analogyButtonText": "💡 \"Give me a real-world analogy.\"",
+  "simplePromptText": "Can you break down this topic in much simpler terms for me?",
+  "simpleButtonText": "🧸 \"Explain it simpler, please.\"",
+  "projectPromptText": "What is a fun interactive mini-project I can build to practice this topic?",
+  "projectButtonText": "🛠️ \"Give me a fun mini-project idea.\"",
+  "activeContextTitle": "Active Context",
+  "noTopicActive": "No topic active—select a lesson in the roadmap tab to focus our questions.",
+  "tutorTitle": "Your Friendly Learning Tutor",
+  "tutorSubtitle": "Ready to chat and help you understand!",
+  "toastMemoryCleared": "Memory cleared for this course",
+  "toastMemoryClearFailed": "Failed to clear memory",
+  "clearHistory": "Clear memory",
+  "tutorWriting": "Tutor is writing...",
+  "inputPlaceholder": "Ask anything — paste a URL and I'll read it 🔗"
+}

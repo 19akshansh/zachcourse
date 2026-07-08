@@ -1,0 +1,20 @@
+{
+  "title": "Subir Materiales de Estudio",
+  "dragDrop": "Arrastra y suelta tus archivos aquí, o haz clic para seleccionar",
+  "supportedFormats": "Formatos admitidos: PDF, TXT (Máx 5MB)",
+  "processing": "Procesando documentos...",
+  "successMsg": "¡Documento procesado con éxito! Generando hoja de ruta...",
+  "errorMsg": "Error al procesar el documento",
+  "toastMaxFiles": "Máximo 3 archivos permitidos.",
+  "toastSizeLimit": "El archivo {{name}} supera el límite de 10MB",
+  "toastSafetyFlagged": "⚠️ Documento marcado por seguridad — no se puede procesar",
+  "toastInvalidType": "Solo se permiten archivos PDF, .txt y .md",
+  "toastUploadFailed": "Error al subir",
+  "toastSuccess": "📄 Documentos procesados — la IA los usará como contexto",
+  "toastNetworkError": "Error de red durante la subida",
+  "documentsReady": "Documentos listos",
+  "clearAll": "Limpiar todo",
+  "dropFiles": "Suelte archivos PDF, .txt o .md aquí",
+  "maxFilesHint": "Máx 10MB por archivo • Máx 3 archivos",
+  "neverStoredHint": "Contenido procesado en memoria, nunca guardado"
+}

@@ -1,0 +1,11 @@
+{
+  "title": "Lehrer-Dashboard",
+  "classroomTitle": "Klassenzimmer verwalten",
+  "rosterTitle": "Schülerliste",
+  "inviteStudents": "Schüler einladen",
+  "analytics": "Klassenzimmer-Analyse",
+  "coursesAssigned": "Zugewiesene Kurse",
+  "avgQuizScore": "Mittelwert Quiz",
+  "activeStudents": "Aktive Schüler",
+  "emptyState": "Keine aktiven Klassen. Erstellen Sie eine, um den Fortschritt zu überwachen!"
+}

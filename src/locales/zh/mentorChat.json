@@ -1,0 +1,19 @@
+{
+  "companionTitle": "伴侣服务台",
+  "companionInstructions": "点击这些助手模板中的任何一个，问我关于您当前学习材料的问题：",
+  "analogyPromptText": "您能为这节课给我一个直观的现实世界比喻吗？",
+  "analogyButtonText": "💡 “给我一个现实世界的比喻。”",
+  "simplePromptText": "您能用更简单的术语为我分解这个主题吗？",
+  "simpleButtonText": "🧸 “请解释得更简单些。”",
+  "projectPromptText": "我可以建立什么有趣的互动小项目来练习这个主题？",
+  "projectButtonText": "🛠️ “给我一个有趣的小项目想法。”",
+  "activeContextTitle": "活跃背景",
+  "noTopicActive": "没有活跃主题 — 在路线图选项卡中选择一节课来集中我们的问题。",
+  "tutorTitle": "您友好的学习导师",
+  "tutorSubtitle": "准备好聊天并帮助您理解！",
+  "toastMemoryCleared": "已清除本课程的记忆",
+  "toastMemoryClearFailed": "清除记忆失败",
+  "clearHistory": "清除记忆",
+  "tutorWriting": "导师正在输入...",
+  "inputPlaceholder": "问任何问题 — 粘贴一个URL，我会阅读它 🔗"
+}

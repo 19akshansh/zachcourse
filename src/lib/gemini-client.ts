@@ -8,22 +8,21 @@ import { apiFetch } from "./api"
 import { z } from "zod"
 
 export function hasUserKey(): boolean {
-  return !!(
-    typeof window !== "undefined" && 
-    localStorage.getItem("zc_user_key")
-  )
+  if (typeof window === "undefined") return false;
+  const k = localStorage.getItem("zc_user_key");
+  return !!k && k !== "null" && k !== "undefined" && k.trim() !== "";
 }
 
 export async function callGemini<T = any>(
   prompt: string, 
   systemPrompt?: string,
-  options?: { schema?: z.ZodType<T> }
+  options?: { schema?: z.ZodType<T>, apiKey?: string }
 ): Promise<string | T> {
   const isServer = typeof window === "undefined"
 
   if (isServer) {
-    const key = process.env.GEMINI_API_KEY
-    if (!key) throw new Error("GEMINI_API_KEY not configured on server")
+    const key = options?.apiKey
+    if (!key) throw new Error("MISSING_API_KEY")
     const google = createGoogleGenerativeAI({ apiKey: key })
     const model = google("gemini-2.5-flash")
 
@@ -46,7 +45,8 @@ export async function callGemini<T = any>(
     }
   }
 
-  const userKey = localStorage.getItem("zc_user_key")
+  let userKey = localStorage.getItem("zc_user_key");
+  if (userKey === "null" || userKey === "undefined") userKey = null;
 
   if (userKey) {
     try {

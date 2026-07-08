@@ -1,0 +1,140 @@
+{
+  "logo": "ZachCourse",
+  "signIn": "Anmelden",
+  "getStartedFree": "Kostenlos starten",
+  "heroBadge": "Der selbstkorrigierende Studienbegleiter ✨",
+  "heroTitlePart1": "Hör auf, Kurse zu sammeln.",
+  "heroTitlePart2": "Fang an, sie zu beenden.",
+  "heroSubtitle": "Verwandle jeden Lehrplan, jeden Buchlehrplan oder jedes Dokument in einen vollständig nachverfolgbaren wöchentlichen Fahrplan. Geführt von selbstkorrigierenden KI-Mentoren und adaptiven Bewertungen, um die Beherrschung des Stoffes zu garantieren.",
+  "featuresBadge": "Entwickelt für die Beherrschung",
+  "featuresTitle": "Ein ganzes Ökosystem, das entwickelt wurde, um dir zum Erfolg zu verhelfen",
+  "featuresSubtitle": "ZachCourse kombiniert fortschrittliche Multi-Agenten-Workflows, interaktive visuelle Graphen und soziale Studienstrukturen.",
+  "testimonialsBadge": "Erfolgsgeschichten",
+  "testimonialsTitle": "Was unsere Lernenden sagen",
+  "testimonialsSubtitle": "Schließe dich Tausenden von Schülern an, die ihre Lerngewohnheiten verändert haben.",
+  "ctaBadge": "Bereit zum Start?",
+  "ctaTitle": "Dein persönlicher Lernbegleiter wartet auf dich",
+  "ctaSubtitle": "Erstelle einen Kurs in Sekundenschnelle und beginne mit deinem eigenen KI-Mentor zu lernen.",
+  "ctaButton": "Meinen ersten Kurs erstellen",
+  "footerText": "ZachCourse. Alle Rechte vorbehalten. Selbstkorrigierende Kuratierung durch Agentenschleifen.",
+  "testimonials": [
+    {
+      "initials": "JD",
+      "name": "Jordan Davies",
+      "role": "Autodidaktischer Entwickler",
+      "quote": "ZachCourse hat den überwältigenden Coursera-Lehrplan in einen leicht verständlichen täglichen 6-Wochen-Fahrplan verwandelt. Ich habe zum ersten Mal in meinem Leben einen Kurs beendet!"
+    },
+    {
+      "initials": "AM",
+      "name": "Aisha Miller",
+      "role": "Karrierewechslerin",
+      "quote": "Die adaptiven Quizzes stellten sicher, dass ich Datenbankbeziehungen wirklich verstand, bevor ich weitermachen durfte. Der KI-Mentor fühlte sich an wie ein freundlicher privater Nachhilfelehrer rund um die Uhr."
+    },
+    {
+      "initials": "TL",
+      "name": "Takahiro Lee",
+      "role": "Informatikstudent",
+      "quote": "Es ist eine Superkraft, jeden Link zu einem Lehrplan einzufügen und sofort einen strukturierten Verfolgungs-Arbeitsbereich zu erhalten. Der beste Studienbegleiter überhaupt!"
+    }
+  ],
+  "features": [
+    {
+      "emoji": "🗺️",
+      "title": "KI-Roadmap-Generator",
+      "description": "Erstellt personalisierte wöchentliche Ziele, Meilensteine und tägliche Checklisten aus jedem Lehrplan oder Entwurf."
+    },
+    {
+      "emoji": "💬",
+      "title": "Smarter Mentor-Chat",
+      "description": "Stelle Fragen, erhalte Schritt-für-Schritt-Code-Erklärungen oder fordere Echtzeit-Hinweise an, die auf deine aktive Lektion zugeschnitten sind."
+    },
+    {
+      "emoji": "🧠",
+      "title": "Adaptive Quizzes",
+      "description": "Testet dein Verständnis an jedem Meilenstein automatisch mit klaren Antworten und personalisiertem Feedback."
+    },
+    {
+      "emoji": "📈",
+      "title": "Fortschrittsverfolgung",
+      "description": "Erfasse Stunden, hake erledigte Aufgaben ab, verdiene Erfolgsabzeichen und sieh zu, wie deine tägliche Lernsiegesserie wächst."
+    },
+    {
+      "emoji": "📎",
+      "title": "URL- und Texteingabe",
+      "description": "Importiere deinen Kursentwurf, indem du einen Lehrplan-Link, unformatierten Markdown-Lehrplan-Text oder ein Buchverzeichnis einfügst."
+    },
+    {
+      "emoji": "📚",
+      "title": "Unterstützung für mehrere Kurse",
+      "description": "Organisiere deine gesamte Lernreise. Wechsle zwischen mehreren Kursen, ohne deinen Fortschritt zu verlieren."
+    },
+    {
+      "emoji": "🗺️",
+      "title": "Interaktive visuelle Graphen",
+      "description": "Erforsche deinen Lehrplan als visuellen Knoten-Kanten-Graph mit maßgeschneiderten Nebenpfaden und parallelen Modulen, bereitgestellt von React Flow."
+    },
+    {
+      "emoji": "🛠️",
+      "title": "Praktische Modulprojekte",
+      "description": "Wende dein Wissen in praktischen, anfängerfreundlichen Projekten an, die dynamisch basierend auf deinem Niveau und deinem wöchentlichen Fortschritt generiert werden."
+    },
+    {
+      "emoji": "👥",
+      "title": "Kohorten & Klassenzimmer",
+      "description": "Erstelle gemeinsame Studiengruppen, zeige Lehrpläne an und klone sie, synchronisiere Bestenlisten und verfolge die Schülerlisten aktiver Klassenzimmer."
+    },
+    {
+      "emoji": "🛡️",
+      "title": "Selbstkorrigierende Qualitätsschleifen",
+      "description": "Kritiker- und Richter-Agenten bewerten Lektionen und Roadmap-Reihenfolgen synchron für optimale Genauigkeit und Klarheit vor der Bereitstellung."
+    },
+    {
+      "emoji": "🔒",
+      "title": "Geschützte Dokumenten-Pipeline",
+      "description": "Die sichere Dateierfassung scannt nach Prompt-Injektionen und schädlichen Mustern und blockiert serverseitige SSRF-Risiken vollständig."
+    },
+    {
+      "emoji": "🔌",
+      "title": "MCP-Werkzeugserver",
+      "description": "Eigenständiger Model-Context-Protocol-Server, der Cursor, Claude Desktop und externen Agenten robuste Such- und Abruffunktionen zur Verfügung stellt."
+    }
+  ],
+  "startLearningFree": "Kostenlos starten",
+  "noCreditCard": "Keine Kreditkarte erforderlich • Dauerhaft kostenloser Tarif • Einrichtung in 2 Min.",
+  "simulatedConfig": "roadmap_core_v1.config",
+  "activeStudyBlock": "Aktiver Lernblock",
+  "myActiveCourse": "Mein aktiver Kurs",
+  "weeklyProgress": "Wöchentlicher Fortschritt",
+  "percentDone": "{{count}}% abgeschlossen",
+  "courseMilestones": "Kurs-Meilensteine",
+  "week1Fundamentals": "Woche 1: Grundlagen",
+  "completedLessons": "Abgeschlossen • 4 Lektionen",
+  "week2NeuralNets": "Woche 2: Neuronale Netze",
+  "inProgressQuizUnlocked": "In Bearbeitung • Quiz freigeschaltet",
+  "week3DeepArchitectures": "Woche 3: Tiefe Architekturen",
+  "lockedLessons": "Gesperrt • 5 Lektionen",
+  "lesson23": "Lektion 2.3",
+  "backpropagationDemystified": "Backpropagation entmystifiziert",
+  "understandingErrorGradients": "Fehlergradienten und Kettenregel verstehen",
+  "understandingErrorGradientsDesc": "Um Aktualisierungen für tiefere Schichten zu berechnen, wenden wir die Kettenregel der Differentialrechnung an, um herauszufinden, wie sich der Verlust in Abhängigkeit von jedem Verbindungsgewicht ändert...",
+  "aiCompanionMentor": "KI-Lernbegleiter:",
+  "aiMentorQuote": "„Stellen Sie sich die Fehlerfortpflanzung wie die Notenverteilung bei einem Gruppenprojekt vor: Wir gehen rückwärts vor, um genau zu sehen, wer zu welchem Endergebnis beigetragen hat!“",
+  "readyForWeeklyQuiz": "Bereit für das wöchentliche Quiz",
+  "takeQuiz": "Quiz machen (10 Fragen) →",
+  "methodology": "Methodik",
+  "howItWorksPart1": "In 3 Schritten vom Suchen zum Beherrschen",
+  "howItWorksPart2": "Wir schließen die Lücke zwischen dem Speichern von Lerninhalten und dem tatsächlichen Verstehen.",
+  "howItWorksStep1Title": "Kurs oder Thema einfügen",
+  "howItWorksStep1Desc": "Geben Sie eine Website-URL, einen Lehrplantext, eine Kapitelliste an oder tippen Sie einfach das Thema ein, das Sie von Grund auf lernen möchten.",
+  "howItWorksStep2Title": "Persönlichen Lernplan erhalten",
+  "howItWorksStep2Desc": "Unsere KI-Engine zerlegt den Inhalt sofort in strukturierte wöchentliche Ziele, Lektionen und Aufgabenlisten.",
+  "howItWorksStep3Title": "Lernen, testen und verfolgen",
+  "howItWorksStep3Desc": "Sprechen Sie mit Ihrem integrierten KI-Tutor, um knifflige Module zu erklären, bestehen Sie Konzept-Quizzes und bauen Sie tägliche Lerngewohnheiten auf.",
+  "joinLearners": "Schließen Sie sich über 2.400 Lernenden an, die bereits auf dem richtigen Weg sind",
+  "readyToFinish": "Bereit, diesen Kurs endlich abzuschließen?",
+  "readyToFinishDesc": "Hören Sie auf, ungelesene Lesezeichen zu sammeln. Erstellen Sie Ihren maßgeschneiderten wöchentlichen Lernplan, synchronisieren Sie Ihre Lernziele und beherrschen Sie Ihre Fächer.",
+  "freePlanIncludes": "Kostenloser Tarif enthält 1 aktiven Kurs und 3 Quizzes/Woche",
+  "github": "GitHub",
+  "kaggleSubmission": "Kaggle-Einreichung",
+  "builtForGoogle": "Entwickelt für Google x Kaggle AI Agents Vibecoding 2026"
+}

@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 interface ExperienceFieldsProps {
   experienceLevel: string;
@@ -13,17 +14,19 @@ export function ExperienceFields({
   backgroundContext,
   setBackgroundContext,
 }: ExperienceFieldsProps) {
+  const { t } = useTranslation("personalization");
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-sans">
       <div>
         <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
-          Experience Level
+          {t("expLevel", { defaultValue: "Experience Level" })}
         </label>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { id: "beginner", icon: "🌱", label: "Beginner" },
-            { id: "intermediate", icon: "🔥", label: "Intermediate" },
-            { id: "advanced", icon: "🚀", label: "Advanced" }
+            { id: "beginner", icon: "🌱", label: t("beginner", { defaultValue: "Beginner" }) },
+            { id: "intermediate", icon: "🔥", label: t("intermediate", { defaultValue: "Intermediate" }) },
+            { id: "advanced", icon: "🚀", label: t("advanced", { defaultValue: "Advanced" }) }
           ].map((lvl) => (
             <button
               key={lvl.id}
@@ -44,12 +47,15 @@ export function ExperienceFields({
 
       <div>
         <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
-          Your Background <span className="text-[#3F395B] normal-case font-normal">(optional, but helps a lot)</span>
+          {t("yourBackground", { defaultValue: "Your Background" })}{" "}
+          <span className="text-[#3F395B] normal-case font-normal">
+            {t("optionalNote", { defaultValue: "(optional, but helps a lot)" })}
+          </span>
         </label>
         <textarea
           value={backgroundContext}
           onChange={(e) => setBackgroundContext(e.target.value)}
-          placeholder="e.g. I know basic HTML/CSS but no JavaScript. I learn best by building small projects rather than reading theory."
+          placeholder={t("bgPlaceholder", { defaultValue: "e.g. I know basic HTML/CSS but no JavaScript. I learn best by building small projects rather than reading theory." })}
           rows={3}
           maxLength={500}
           className="w-full bg-[#0F0D19] border-2 border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-5 py-4 text-white text-sm transition-colors placeholder:text-[#3F395B] outline-none resize-none"

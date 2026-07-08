@@ -4,8 +4,10 @@ import { navigate } from "../lib/router";
 import { LogOut, User, Settings, ChevronDown, GraduationCap, Loader2 } from "lucide-react";
 import { trpc } from "../lib/trpc-client";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export default function UserMenu() {
+  const { t } = useTranslation(["header", "common"]);
   const { data: sessionData } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -48,12 +50,12 @@ export default function UserMenu() {
     setIsUpdating(true);
     try {
       await trpc.setUserRole.mutate({ role: nextRole });
-      toast.success(`Role switched to ${nextRole}! Refreshing...`);
+      toast.success(t("roleSwitched", { defaultValue: `Role switched to ${nextRole}! Refreshing...`, role: nextRole }));
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     } catch (err: any) {
-      toast.error(err.message || "Failed to update role");
+      toast.error(err.message || t("roleUpdateFailed", { defaultValue: "Failed to update role" }));
     } finally {
       setIsUpdating(false);
     }
@@ -68,7 +70,7 @@ export default function UserMenu() {
         {user.image ? (
           <img
             src={user.image}
-            alt={user.name || "User Avatar"}
+            alt={user.name || t("avatarAlt", { defaultValue: "User Avatar" })}
             className="w-8 h-8 rounded-full object-cover border border-[#4F46E5]/30"
             referrerPolicy="no-referrer"
           />
@@ -96,7 +98,7 @@ export default function UserMenu() {
             className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1E1E2E]/50 rounded-xl transition cursor-pointer text-left"
           >
             <User className="w-4 h-4 text-[#4F46E5]" />
-            <span>My Profile</span>
+            <span>{t("myProfile")}</span>
           </button>
 
           <button
@@ -104,7 +106,7 @@ export default function UserMenu() {
             className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1E1E2E]/50 rounded-xl transition cursor-pointer text-left"
           >
             <Settings className="w-4 h-4 text-[#8B5CF6]" />
-            <span>Settings</span>
+            <span>{t("settings")}</span>
           </button>
 
           <button
@@ -114,12 +116,12 @@ export default function UserMenu() {
           >
             <div className="flex items-center gap-2.5">
               <GraduationCap className="w-4 h-4 text-amber-500" />
-              <span>Role: <span className="capitalize text-amber-400 font-bold">{currentRole}</span></span>
+              <span>{t("switchRole", { role: t(`common:${currentRole}`, { defaultValue: currentRole }) })}</span>
             </div>
             {isUpdating ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin text-[#94A3B8]" />
             ) : (
-              <span className="text-[10px] text-amber-500/80 underline font-normal hover:text-amber-400">Switch</span>
+              <span className="text-[10px] text-amber-500/80 underline font-normal hover:text-amber-400">{t("switch")}</span>
             )}
           </button>
 
@@ -130,7 +132,7 @@ export default function UserMenu() {
             className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition cursor-pointer text-left"
           >
             <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
+            <span>{t("signOut")}</span>
           </button>
         </div>
       )}

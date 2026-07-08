@@ -3,6 +3,7 @@ import { Map, MessageSquare, FileText, TrendingUp, LogOut, Plus, MoreVertical, T
 import type { Course } from "@prisma/client";
 import { trpc } from "../lib/trpc-client";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export interface CourseListItem {
   id: string;
@@ -50,6 +51,7 @@ export default function AppSidebar({
   onRenameCourse,
   isLoadingCourses,
 }: AppSidebarProps) {
+  const { t } = useTranslation("common");
   const [contextMenuCourseId, setContextMenuCourseId] = useState<string | null>(null);
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -65,12 +67,12 @@ export default function AppSidebar({
     setIsUpdating(true);
     try {
       await trpc.setUserRole.mutate({ role: nextRole });
-      toast.success(`Role switched to ${nextRole}! Refreshing...`);
+      toast.success(t("roleSwitched", { defaultValue: `Role switched to ${nextRole}! Refreshing...`, role: nextRole }));
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     } catch (err: any) {
-      toast.error(err.message || "Failed to update role");
+      toast.error(err.message || t("roleUpdateFailed", { defaultValue: "Failed to update role" }));
     } finally {
       setIsUpdating(false);
     }
@@ -97,10 +99,10 @@ export default function AppSidebar({
   }, [contextMenuCourseId]);
   
   const navItems = [
-    { id: "roadmap", label: "My Roadmap", icon: Map },
-    { id: "mentor", label: "Ask Mentor", icon: MessageSquare },
-    { id: "quiz", label: "Quick Quiz", icon: FileText },
-    { id: "progress", label: "My Progress", icon: TrendingUp },
+    { id: "roadmap", label: t("myRoadmap", { defaultValue: "My Roadmap" }), icon: Map },
+    { id: "mentor", label: t("askMentor", { defaultValue: "Ask Mentor" }), icon: MessageSquare },
+    { id: "quiz", label: t("quickQuiz", { defaultValue: "Quick Quiz" }), icon: FileText },
+    { id: "progress", label: t("myProgress", { defaultValue: "My Progress" }), icon: TrendingUp },
   ];
 
   const user = session?.user;
@@ -113,8 +115,8 @@ export default function AppSidebar({
         .slice(0, 2)
     : "G";
 
-  const displayName = user?.name || "Guest Account";
-  const displayEmail = user?.email || "Temporary Trial";
+  const displayName = user?.name || t("guestAccount", { defaultValue: "Guest Account" });
+  const displayEmail = user?.email || t("temporaryTrial", { defaultValue: "Temporary Trial" });
 
   // Calculate course progress
   const getCourseProgress = (course: CourseListItem) => {
@@ -147,7 +149,7 @@ export default function AppSidebar({
       await onDeleteCourse(courseToDelete.id);
       setCourseToDelete(null);
     } catch (err: any) {
-      toast.error(err.message || "Failed to delete course");
+      toast.error(err.message || t("deleteCourseFailed", { defaultValue: "Failed to delete course" }));
     } finally {
       setIsDeletingCourse(false);
     }
@@ -157,7 +159,7 @@ export default function AppSidebar({
     <>
       <aside
         id="app-sidebar"
-        aria-label="Sidebar Navigation"
+        aria-label={t("sidebarAriaLabel", { defaultValue: "Sidebar Navigation" })}
         className={`fixed top-0 left-0 h-full z-40 bg-[#111118] border-r border-[#1E1E2E] flex flex-col justify-between transition-all duration-300 ease-in-out
           ${isOpen ? "translate-x-0" : "-translate-x-full"} 
           md:translate-x-0 
@@ -171,7 +173,7 @@ export default function AppSidebar({
             <span className="text-xl select-none">🎓</span>
             <span className="font-bold text-white text-lg truncate">ZachCourse</span>
           </div>
-          <span className="text-[10px] text-[#8E88AB] mt-0.5 truncate">Your learning companion</span>
+          <span className="text-[10px] text-[#8E88AB] mt-0.5 truncate">{t("sidebarSubtitle", { defaultValue: "Your learning companion" })}</span>
         </div>
         <div className={`mx-auto text-xl select-none ${effectivelyCollapsed ? 'hidden md:block' : 'hidden'}`}>🎓</div>
       </div>
@@ -181,7 +183,7 @@ export default function AppSidebar({
         <div className="p-3">
           {!effectivelyCollapsed && (
             <div className="flex items-center justify-between px-2 mb-2">
-              <span className="text-[10px] font-bold text-[#8E88AB] uppercase tracking-wider">Explore</span>
+              <span className="text-[10px] font-bold text-[#8E88AB] uppercase tracking-wider">{t("explore", { defaultValue: "Explore" })}</span>
             </div>
           )}
           
@@ -204,10 +206,10 @@ export default function AppSidebar({
             {!effectivelyCollapsed && (
               <div className="flex items-center justify-between w-full ml-3">
                 <span className="text-xs font-semibold truncate transition-opacity duration-200">
-                  Visual Roadmaps
+                  {t("visualRoadmaps", { defaultValue: "Visual Roadmaps" })}
                 </span>
                 <span className="bg-[#10B981]/20 text-[#10B981] text-[9px] font-bold px-1.5 py-0.5 rounded-sm ml-2">
-                  NEW
+                  {t("badgeNew", { defaultValue: "NEW" })}
                 </span>
               </div>
             )}
@@ -232,7 +234,7 @@ export default function AppSidebar({
             {!effectivelyCollapsed && (
               <div className="flex items-center justify-between w-full ml-3">
                 <span className="text-xs font-semibold truncate transition-opacity duration-200">
-                  Learning Cohorts
+                  {t("learningCohorts", { defaultValue: "Learning Cohorts" })}
                 </span>
               </div>
             )}
@@ -257,7 +259,7 @@ export default function AppSidebar({
             {!effectivelyCollapsed && (
               <div className="flex items-center justify-between w-full ml-3">
                 <span className="text-xs font-semibold truncate transition-opacity duration-200">
-                  Learning Analytics
+                  {t("learningAnalytics", { defaultValue: "Learning Analytics" })}
                 </span>
               </div>
             )}
@@ -285,7 +287,7 @@ export default function AppSidebar({
               {!effectivelyCollapsed && (
                 <div className="flex items-center justify-between w-full ml-3">
                   <span className="text-xs font-semibold truncate transition-opacity duration-200">
-                    Teacher Tools
+                    {t("teacherTools", { defaultValue: "Teacher Tools" })}
                   </span>
                 </div>
               )}
@@ -300,7 +302,7 @@ export default function AppSidebar({
         <div className="p-3">
           {!effectivelyCollapsed && (
             <div className="flex items-center justify-between px-2 mb-2">
-              <span className="text-[10px] font-bold text-[#8E88AB] uppercase tracking-wider">Your Courses</span>
+              <span className="text-[10px] font-bold text-[#8E88AB] uppercase tracking-wider">{t("yourCourses", { defaultValue: "Your Courses" })}</span>
             </div>
           )}
           
@@ -313,7 +315,7 @@ export default function AppSidebar({
           >
             <Plus className="w-4 h-4 shrink-0 text-[#818CF8]" />
             {!effectivelyCollapsed && (
-              <span className="ml-2 text-xs font-bold truncate">New Course</span>
+              <span className="ml-2 text-xs font-bold truncate">{t("newCourse", { defaultValue: "New Course" })}</span>
             )}
           </button>
 
@@ -326,7 +328,7 @@ export default function AppSidebar({
             ) : courses.length === 0 ? (
               !effectivelyCollapsed && (
                 <div className="px-2 py-4 text-center">
-                  <p className="text-xs text-[#8E88AB]">No courses yet — create your first!</p>
+                  <p className="text-xs text-[#8E88AB]">{t("noCoursesYet", { defaultValue: "No courses yet — create your first!" })}</p>
                 </div>
               )
             ) : (
@@ -387,7 +389,7 @@ export default function AppSidebar({
                             )}
                           </div>
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/30 text-[#8E88AB] border border-white/5">{course.difficulty}</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-black/30 text-[#8E88AB] border border-white/5">{t(course.difficulty.toLowerCase(), { defaultValue: course.difficulty })}</span>
                             <span className="text-[9px] text-[#8E88AB]">{progress}%</span>
                           </div>
                         </div>
@@ -419,7 +421,7 @@ export default function AppSidebar({
                           className="w-full flex items-center gap-2 px-3 py-2 text-xs text-[#FAF9FD] hover:bg-white/5 transition text-left"
                         >
                           <Edit2 className="w-3.5 h-3.5" />
-                          Rename
+                          {t("rename", { defaultValue: "Rename" })}
                         </button>
                         <button
                           onClick={(e) => {
@@ -430,7 +432,7 @@ export default function AppSidebar({
                           className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:bg-rose-500/10 transition text-left cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                          Delete
+                          {t("delete", { defaultValue: "Delete" })}
                         </button>
                       </div>
                     )}
@@ -446,7 +448,7 @@ export default function AppSidebar({
           <div className="p-3 border-t border-[#1E1E2E]">
             {!effectivelyCollapsed && (
               <div className="flex items-center justify-between px-2 mb-2">
-                <span className="text-[10px] font-bold text-[#8E88AB] uppercase tracking-wider">Course Views</span>
+                <span className="text-[10px] font-bold text-[#8E88AB] uppercase tracking-wider">{t("courseViews", { defaultValue: "Course Views" })}</span>
               </div>
             )}
             <nav data-tour="course-subnav" className="space-y-1">
@@ -507,12 +509,12 @@ export default function AppSidebar({
                   onClick={handleToggleRole}
                   disabled={isUpdating}
                   className="px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/25 rounded text-[9px] text-amber-400 font-extrabold hover:bg-amber-500/20 transition cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
-                  title={`Current: ${currentRole}. Click to Switch!`}
+                  title={t("clickToSwitchRole", { defaultValue: `Role: ${t(currentRole)}. Click to Switch!`, role: t(currentRole) })}
                 >
                   {isUpdating ? (
                     <Loader2 className="w-2.5 h-2.5 animate-spin" />
                   ) : (
-                    <span>{currentRole}</span>
+                    <span>{t(currentRole, { defaultValue: currentRole })}</span>
                   )}
                 </button>
               </div>
@@ -523,7 +525,7 @@ export default function AppSidebar({
             data-tour="sidebar-sign-out"
             onClick={onSignOut}
             className="text-[#8E88AB] hover:text-rose-400 p-1 rounded-lg hover:bg-rose-500/10 transition cursor-pointer shrink-0"
-            title="Sign Out"
+            title={t("signOut", { defaultValue: "Sign Out" })}
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -545,14 +547,14 @@ export default function AppSidebar({
             )}
             {/* Tooltip */}
             <div className="absolute left-12 top-1/2 -translate-y-1/2 bg-[#111118] border border-[#1E1E2E] text-white text-xs font-semibold rounded-lg px-2 py-1 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-              {displayName} ({currentRole})
+              {displayName} ({t(currentRole, { defaultValue: currentRole })})
             </div>
           </div>
           <button
             onClick={handleToggleRole}
             disabled={isUpdating}
             className="w-8 h-8 rounded-lg hover:bg-amber-500/15 hover:text-amber-400 text-[#8E88AB] flex items-center justify-center transition cursor-pointer"
-            title={`Role: ${currentRole}. Click to Switch!`}
+            title={t("clickToSwitchRole", { defaultValue: `Role: ${t(currentRole)}. Click to Switch!`, role: t(currentRole) })}
           >
             {isUpdating ? (
               <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
@@ -563,7 +565,7 @@ export default function AppSidebar({
           <button
             onClick={onSignOut}
             className="w-8 h-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-400 text-[#8E88AB] flex items-center justify-center transition cursor-pointer"
-            title="Sign Out"
+            title={t("signOut", { defaultValue: "Sign Out" })}
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -573,16 +575,16 @@ export default function AppSidebar({
     </aside>
 
       {courseToDelete && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#121021] border border-red-500/30 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 font-sans">
+          <div className="bg-[#121021] border border-red-500/30 rounded-2xl max-w-md w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-left">
             <div className="space-y-4">
               <div className="w-12 h-12 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center">
                 <Trash2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-[#FAF9FD]">Delete Course?</h3>
+                <h3 className="text-xl font-bold text-[#FAF9FD]">{t("deleteCourse", { defaultValue: "Delete Course?" })}</h3>
                 <p className="text-sm text-[#CECADF] mt-2 leading-relaxed">
-                  Are you sure you want to permanently delete <span className="font-bold text-red-400">{courseToDelete.title}</span>? This action is absolute and irreversible. All study guides, saved messages, and quiz history for this course will be permanently removed.
+                  {t("deleteCourseConfirm", { defaultValue: "Are you sure you want to permanently delete course? This action is absolute and irreversible.", title: courseToDelete.title })}
                 </p>
               </div>
             </div>
@@ -593,7 +595,7 @@ export default function AppSidebar({
                 className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer"
                 disabled={isDeletingCourse}
               >
-                Cancel
+                {t("cancel", { defaultValue: "Cancel" })}
               </button>
               <button
                 type="button"
@@ -604,10 +606,10 @@ export default function AppSidebar({
                 {isDeletingCourse ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Deleting...
+                    {t("deleting", { defaultValue: "Deleting..." })}
                   </>
                 ) : (
-                  "Yes, Delete Course"
+                  t("yesDeleteCourse", { defaultValue: "Yes, Delete Course" })
                 )}
               </button>
             </div>

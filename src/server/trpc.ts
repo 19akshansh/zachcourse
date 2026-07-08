@@ -25,7 +25,7 @@ export const createContext = async (opts: CreateExpressContextOptions) => {
 
   const session = await auth.api.getSession({ headers });
 
-  return { prisma, session };
+  return { prisma, session, req: opts.req };
 };
 
 type Context = Awaited<ReturnType<typeof createContext>>;
@@ -257,21 +257,35 @@ export const appRouter = router({
       tone: z.string().default("friendly"),
       weeklyHours: z.number().default(5),
       roadmapData: z.any(),
+      language: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const { language, ...courseInput } = input;
       const course = await ctx.prisma.course.create({
         data: {
           userId: ctx.user.id,
-          ...input,
+          ...courseInput,
           roadmapData: input.roadmapData,
           prerequisites: input.prerequisites,
         }
       });
+
+      const greetings: Record<string, string> = {
+        en: "Hey! 👋 I'm your ZachCourse mentor for **{{title}}**. I've built your personalized roadmap — click any lesson on the left to start learning. I'm here to answer any questions about the course or anything else on your mind! What would you like to explore first? 🚀",
+        es: "¡Hola! 👋 Soy tu mentor de ZachCourse para **{{title}}**. He creado tu hoja de ruta personalizada. Haz clic en cualquier lección de la izquierda para empezar a aprender. ¡Estoy aquí para responder cualquier pregunta sobre el curso o lo que tengas en mente! ¿Qué te gustaría explorar primero? 🚀",
+        fr: "Salut ! 👋 Je suis votre mentor ZachCourse pour **{{title}}**. J'ai créé votre feuille de route personnalisée — cliquez sur n'importe quelle leçon à gauche pour commencer à apprendre. Je suis là pour répondre à toutes vos questions sur le cours ou tout autre sujet en tête ! Qu'aimeriez-vous explorer en premier ? 🚀",
+        de: "Hallo! 👋 Ich bin dein ZachCourse-Mentor für **{{title}}**. Ich habe deine personalisierte Roadmap erstellt – klicke links auf eine beliebige Lektion, um mit dem Lernen zu beginnen. Ich bin hier, um all deine Fragen zum Kurs oder zu allem anderen zu beantworten! Was möchtest du als Erstes erkunden? 🚀",
+        hi: "अरे! 👋 मैं **{{title}}** के लिए आपका ZachCourse मेंटर हूँ। मैंने आपका व्यक्तिगत रोडमैप तैयार किया है — सीखना शुरू करने के लिए बाईं ओर किसी भी पाठ पर क्लिक करें। मैं यहाँ पाठ्यक्रम या आपके मन में मौजूद किसी भी चीज़ के बारे में आपके प्रश्नों का उत्तर देने के लिए हूँ! आप सबसे पहले क्या तलाशना चाहेंगे? 🚀",
+        zh: "嘿！👋 我是你的 ZachCourse 导师，负责 **{{title}}**。我已经为你制定了量身定制的路线图——点击左侧的任意一课即可开始学习。我在这里为你解答有关课程或你脑海中任何其他问题的疑问！你最想先探索什么？ 🚀"
+      };
+      const template = greetings[language || "en"] || greetings.en;
+      const greetingMessage = template.replace("{{title}}", input.title);
+
       await ctx.prisma.courseMessage.create({
         data: {
           courseId: course.id,
           role: "assistant",
-          content: `Hey! 👋 I'm your ZachCourse mentor for **${input.title}**. I've built your personalized roadmap — click any lesson on the left to start learning. I'm here to answer any questions about the course or anything else on your mind! What would you like to explore first? 🚀`
+          content: greetingMessage
         }
       });
       return course;
@@ -440,7 +454,7 @@ export const appRouter = router({
     }),
 
   getLessonContent: protectedProcedure
-    .input(z.object({ courseId: z.string(), lessonId: z.string() }))
+    .input(z.object({ courseId: z.string(), lessonId: z.string(), language: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       const course = await ctx.prisma.course.findUnique({
         where: { id: input.courseId, userId: ctx.user.id },
@@ -449,17 +463,14 @@ export const appRouter = router({
       
       const content = await ctx.prisma.lessonContent.findUnique({
         where: {
-          courseId_lessonId: { courseId: input.courseId, lessonId: input.lessonId }
+          courseId_lessonId_language: { courseId: input.courseId, lessonId: input.lessonId, language: input.language || "en" }
         }
       });
       return content;
     }),
 
   saveLessonContent: protectedProcedure
-    .input(z.object({ 
-      courseId: z.string(), 
-      lessonId: z.string(), 
-      content: z.string(),
+    .input(z.object({ courseId: z.string(), lessonId: z.string(), content: z.string(), language: z.string().optional(),
       qualityScore: z.number().optional(),
       evaluationData: z.any().optional()
     }))
@@ -471,17 +482,14 @@ export const appRouter = router({
       
       return await ctx.prisma.lessonContent.upsert({
         where: {
-          courseId_lessonId: { courseId: input.courseId, lessonId: input.lessonId }
+          courseId_lessonId_language: { courseId: input.courseId, lessonId: input.lessonId, language: input.language || "en" }
         },
         update: { 
           content: input.content,
           ...(input.qualityScore !== undefined ? { qualityScore: input.qualityScore } : {}),
           ...(input.evaluationData !== undefined ? { evaluationData: input.evaluationData } : {})
         },
-        create: {
-          courseId: input.courseId,
-          lessonId: input.lessonId,
-          content: input.content,
+        create: { courseId: input.courseId, lessonId: input.lessonId, content: input.content, language: input.language || "en",
           qualityScore: input.qualityScore,
           evaluationData: input.evaluationData || {}
         }
@@ -489,12 +497,10 @@ export const appRouter = router({
     }),
 
   validateLesson: protectedProcedure
-    .input(z.object({ 
-      courseId: z.string(), 
-      lessonId: z.string(), 
-      content: z.string(),
+    .input(z.object({ courseId: z.string(), lessonId: z.string(), content: z.string(),
       topic: z.string(),
-      level: z.string()
+      level: z.string(),
+      language: z.string().optional()
     }))
     .mutation(async ({ ctx, input }) => {
       const course = await ctx.prisma.course.findUnique({
@@ -502,12 +508,17 @@ export const appRouter = router({
       });
       if (!course) throw new TRPCError({ code: "UNAUTHORIZED" });
 
+      const { LANGUAGE_INSTRUCTIONS } = await import("../lib/tone-options.js");
+      const languageInstruction = LANGUAGE_INSTRUCTIONS[input.language || "en"] ?? LANGUAGE_INSTRUCTIONS.en;
+
       const systemPrompt = `You are an expert curriculum auditor and quality assurance reviewer.
 Analyze the following lesson content against these criteria:
 1. Factual accuracy: Flag any incorrect or questionable claims.
 2. Difficulty match: Judge if this matches a "${input.level}" level.
 3. Safety: Flag any biased, harmful, or inappropriate content.
 4. Clarity: Score the pedagogy and clarity from 1-5.
+
+Language instruction: ${languageInstruction}
 
 Respond thoughtfully and critically.`;
 
@@ -529,22 +540,22 @@ ${input.content}
       const { callGemini } = await import("../lib/gemini-client.js");
       let result;
       try {
-        result = await callGemini(prompt, systemPrompt, { schema });
+        let userKey = ctx.req.headers["x-user-key"] as string;
+      if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined as any;
+        if (!userKey) throw new TRPCError({ code: "FORBIDDEN", message: "Missing API key" });
+        result = await callGemini(prompt, systemPrompt, { schema, apiKey: userKey });
       } catch (err) {
         console.error("Lesson validation failed:", err);
         result = { isApproved: true, clarityScore: 5, difficultyMatch: true, issues: [], suggestions: [] };
       }
 
       await ctx.prisma.lessonContent.upsert({
-        where: { courseId_lessonId: { courseId: input.courseId, lessonId: input.lessonId } },
+        where: { courseId_lessonId_language: { courseId: input.courseId, lessonId: input.lessonId, language: input.language || "en" } },
         update: {
           qualityScore: result.clarityScore,
           evaluationData: result as any,
         },
-        create: {
-          courseId: input.courseId,
-          lessonId: input.lessonId,
-          content: input.content,
+        create: { courseId: input.courseId, lessonId: input.lessonId, content: input.content, language: input.language || "en",
           qualityScore: result.clarityScore,
           evaluationData: result as any,
         }
@@ -558,16 +569,22 @@ ${input.content}
       courseId: z.string(), 
       lessonId: z.string(), 
       score: z.number(), 
-      topic: z.string() 
+      topic: z.string(),
+      language: z.string().optional()
     }))
     .mutation(async ({ ctx, input }) => {
+      const { LANGUAGE_INSTRUCTIONS } = await import("../lib/tone-options.js");
+      const languageInstruction = LANGUAGE_INSTRUCTIONS[input.language || "en"] ?? LANGUAGE_INSTRUCTIONS.en;
+
       const systemPrompt = `You are an adaptive learning coordinator. Based on the user's recent quiz score, recommend what they should do next.
 Return ONLY valid JSON matching this schema:
 {
   "recommendation": string,
   "difficultyAdjustment": "increase" | "decrease" | "maintain",
   "reviewTopics": string[]
-}`;
+}
+
+Language instruction: ${languageInstruction}`;
       const prompt = `Topic: ${input.topic}\nRecent Score: ${input.score}%`;
       
       const schema = z.object({
@@ -579,7 +596,10 @@ Return ONLY valid JSON matching this schema:
       const { callGemini } = await import("../lib/gemini-client.js");
       let analysis;
       try {
-        analysis = await callGemini(prompt, systemPrompt, { schema });
+        let userKey = ctx.req.headers["x-user-key"] as string;
+      if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined as any;
+        if (!userKey) throw new TRPCError({ code: "FORBIDDEN", message: "Missing API key" });
+        analysis = await callGemini(prompt, systemPrompt, { schema, apiKey: userKey });
       } catch (err) {
         console.error("Analysis failed", err);
         analysis = {
@@ -764,10 +784,10 @@ Return ONLY valid JSON matching this schema:
     }),
 
   getModuleProject: protectedProcedure
-    .input(z.object({ courseId: z.string(), moduleId: z.string() }))
+    .input(z.object({ courseId: z.string(), moduleId: z.string(), language: z.string().optional() }))
     .query(async ({ ctx, input }) => {
       return await ctx.prisma.project.findUnique({
-        where: { courseId_moduleId: { courseId: input.courseId, moduleId: input.moduleId } }
+        where: { courseId_moduleId_language: { courseId: input.courseId, moduleId: input.moduleId, language: input.language || "en" } }
       });
     }),
 
@@ -777,12 +797,13 @@ Return ONLY valid JSON matching this schema:
       moduleId: z.string(), 
       moduleTitle: z.string(), 
       topic: z.string(), 
-      level: z.string() 
+      level: z.string(),
+      language: z.string().optional()
     }))
     .mutation(async ({ ctx, input }) => {
       // Check if project already exists
       const existing = await ctx.prisma.project.findUnique({
-        where: { courseId_moduleId: { courseId: input.courseId, moduleId: input.moduleId } }
+        where: { courseId_moduleId_language: { courseId: input.courseId, moduleId: input.moduleId, language: input.language || "en" } }
       });
       if (existing) return existing;
 
@@ -793,8 +814,9 @@ Return ONLY valid JSON matching this schema:
       const tone = course?.tone || "friendly";
       const bgContext = course?.backgroundContext || "";
 
-      const { TONE_INSTRUCTIONS } = await import("../lib/tone-options.js");
+      const { TONE_INSTRUCTIONS, LANGUAGE_INSTRUCTIONS } = await import("../lib/tone-options.js");
       const toneInstruction = TONE_INSTRUCTIONS[tone as keyof typeof TONE_INSTRUCTIONS] || TONE_INSTRUCTIONS.friendly;
+      const languageInstruction = LANGUAGE_INSTRUCTIONS[input.language || "en"] ?? LANGUAGE_INSTRUCTIONS.en;
 
       const systemPrompt = `You are a highly supportive and encouraging technical mentor creating a hands-on learning project for a student.
 Topic: ${input.topic}
@@ -805,6 +827,9 @@ ${bgContext ? `Student's Background & Context: ${bgContext}` : ""}
 TONE AND STYLE REQUIREMENT:
 You must strictly follow this tone and style throughout the project description, objectives, and steps:
 ${toneInstruction}
+
+LANGUAGE REQUIREMENT:
+${languageInstruction}
 
 Generate a highly structured, engaging, and beginner-friendly project that applies the concepts learned in this module.
 If the level is "Beginner" or if the topic is new, ensure the project is easy to digest, uses highly accessible phrasing, does not require complex boilerplate setup, and has clear, step-by-step instructions. Keep estimatedHours reasonable (e.g., 1-2 hours for beginners). Avoid daunting, overly complicated architecture. The instructions should be warm and guiding, making the student feel successful.
@@ -828,14 +853,16 @@ Return ONLY JSON matching this schema:
       });
 
       const { callGemini } = await import("../lib/gemini-client.js");
-      const result: any = await callGemini("Generate module project", systemPrompt, { schema });
+      let userKey = ctx.req.headers["x-user-key"] as string;
+      if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined as any;
+      if (!userKey) throw new TRPCError({ code: "FORBIDDEN", message: "Missing API key" });
+      const result: any = await callGemini("Generate module project", systemPrompt, { schema, apiKey: userKey });
 
       const project = await ctx.prisma.project.create({
         data: {
           courseId: input.courseId,
           userId: ctx.user.id,
-          moduleId: input.moduleId,
-          title: result.title,
+          moduleId: input.moduleId, language: input.language || "en", title: result.title,
           description: result.description,
           objectives: result.objectives,
           steps: result.steps,
@@ -1236,6 +1263,7 @@ Return ONLY JSON matching this schema:
       experienceLevel: z.string(),
       backgroundContext: z.string().optional(),
       tone: z.string().optional(),
+      language: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       if (input.type === "course") {
@@ -1253,6 +1281,7 @@ Return ONLY JSON matching this schema:
           sourceUrl: course.sourceUrl || "",
           tone: input.tone || course.tone || "friendly",
           referenceRoadmapData: course.roadmapData,
+          language: input.language,
         });
 
         const updatedCourse = await ctx.prisma.course.update({
@@ -1270,7 +1299,17 @@ Return ONLY JSON matching this schema:
           }
         });
 
-        const welcomeMessage = `Hey! 👋 I've regenerated your **${updatedCourse.title}** roadmap specifically tailored to your background context (${input.experienceLevel} level). Let's start learning! 🚀`;
+        const welcomeTemplates: Record<string, string> = {
+          en: "Hey! 👋 I've regenerated your **{{title}}** roadmap specifically tailored to your background context ({{level}} level). Let's start learning! 🚀",
+          es: "¡Hola! 👋 He regenerado tu hoja de ruta de **{{title}}** específicamente adaptada a tu contexto de fondo (nivel {{level}}). ¡Empecemos a aprender! 🚀",
+          fr: "Salut ! 👋 J'ai régénéré votre feuille de route **{{title}}** spécifiquement adaptée à votre contexte (niveau {{level}}). Commençons à apprendre ! 🚀",
+          de: "Hallo! 👋 Ich habe deine **{{title}}** Roadmap speziell auf deinen Hintergrund (Level {{level}}) angepasst. Lass uns mit dem Lernen beginnen! 🚀",
+          hi: "अरे! 👋 मैंने आपके पृष्ठभूमि संदर्भ ({{level}} स्तर) के लिए विशेष रूप से तैयार किए गए आपके **{{title}}** रोडमैप को पुनर्जीवित किया है। आइए सीखना शुरू करें! 🚀",
+          zh: "嘿！👋 我已经重新生成了你的 **{{title}}** 路线图，特别适合你的背景情况（{{level}} 级别）。让我们开始学习吧！🚀"
+        };
+        const template = welcomeTemplates[input.language || "en"] || welcomeTemplates.en;
+        const welcomeMessage = template.replace("{{title}}", updatedCourse.title).replace("{{level}}", input.experienceLevel);
+
         await ctx.prisma.courseMessage.create({
           data: {
             courseId: course.id,
@@ -1295,6 +1334,7 @@ Return ONLY JSON matching this schema:
           sourceUrl: "",
           tone: input.tone || roadmap.tone || "friendly",
           referenceRoadmapData: roadmap.roadmapData,
+          language: input.language,
         });
 
         const updatedRoadmap = await ctx.prisma.visualRoadmap.update({

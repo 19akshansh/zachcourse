@@ -1,0 +1,31 @@
+{
+  "quizMasterAssessment": "Quizmeister-Bewertung",
+  "subtitle": "Testen Sie Ihre Merkfähigkeit mit konzeptionellen Multiple-Choice-Prüfungen.",
+  "tutorFormulating": "Der Tutor formuliert Ihre Quizfragen... 🧠",
+  "tutorFormulatingSub": "Entwurf adaptiver Auswahlmöglichkeiten zur Messung des konzeptionellen Verständnisses, anstatt Syntaxabruf.",
+  "correctFeedback": "🎉 Auf den Punkt gebracht! Gute Arbeit!",
+  "incorrectFeedback": "🙈 Ups, lass uns daraus lernen:",
+  "submitAnswers": "Quiz-Antworten einreichen",
+  "quizCompletedTitle": "Quiz abgeschlossen! 🏆",
+  "quizPerformanceLogged": "Ihre Leistungsbewertung von {{score}}% wurde in Ihren Fortschrittsstatistiken protokolliert!",
+  "backToRoadmap": "Zurück zur Roadmap-Registerkarte",
+  "aiFeedbackTitle": "KI-adaptives Feedback",
+  "recommendedAdjust": "Empfohlene Anpassung",
+  "levelUpDifficulty": "Schwierigkeitsgrad erhöhen 📈",
+  "reviewBasics": "Grundlagen überprüfen 📉",
+  "maintainCurrentPace": "Aktuelles Tempo beibehalten 🎯",
+  "topicsToReview": "Zu überprüfende Themen",
+  "configureQuizTitle": "Konfigurieren Sie Ihr Quiz",
+  "difficultyLabel": "Schwierigkeit",
+  "difficulty": {
+    "beginner": "Anfänger",
+    "medium": "Mittel",
+    "hard": "Schwer",
+    "expert": "Experte"
+  },
+  "numberOfQuestions": "Anzahl der Fragen",
+  "generateQuizButton": "Quiz generieren",
+  "startLessonToPracticeTitle": "Starten Sie eine Lektion, um zu üben!",
+  "startLessonToPracticeDesc": "Wählen Sie eine beliebige Lektion aus Ihrer aktiven Roadmap aus, klicken Sie in der Lektionsstudienführungsansicht auf Schnelles Quiz machen, und testen Sie hier Ihr Wissen!",
+  "goToRoadmapButton": "Zur Roadmap gehen"
+}

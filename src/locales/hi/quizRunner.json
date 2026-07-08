@@ -1,0 +1,31 @@
+{
+  "quizMasterAssessment": "क्विज़ मास्टर मूल्यांकन",
+  "subtitle": "वैचारिक बहुविकल्पीय जाँच के साथ अपनी याददाश्त का परीक्षण करें।",
+  "tutorFormulating": "ट्यूटर आपके क्विज़ प्रश्न तैयार कर रहा है... 🧠",
+  "tutorFormulatingSub": "सिंटैक्स याद रखने के बजाय वैचारिक समझ को मापने के लिए अनुकूली विकल्प डिज़ाइन करना।",
+  "correctFeedback": "🎉 बिल्कुल सही! बहुत बढ़िया!",
+  "incorrectFeedback": "🙈 उफ़, आइए इससे सीखें:",
+  "submitAnswers": "क्विज़ उत्तर सबमिट करें",
+  "quizCompletedTitle": "क्विज़ पूर्ण! 🏆",
+  "quizPerformanceLogged": "आपका {{score}}% का प्रदर्शन स्कोर आपके प्रगति आंकड़ों में दर्ज कर लिया गया है!",
+  "backToRoadmap": "रोडमैप टैब पर वापस जाएँ",
+  "aiFeedbackTitle": "AI अनुकूली प्रतिक्रिया",
+  "recommendedAdjust": "अनुशंसित समायोजन",
+  "levelUpDifficulty": "कठिनाई बढ़ाएं 📈",
+  "reviewBasics": "बुनियादी बातों की समीक्षा करें 📉",
+  "maintainCurrentPace": "वर्तमान गति बनाए रखें 🎯",
+  "topicsToReview": "समीक्षा के विषय",
+  "configureQuizTitle": "अपना क्विज़ कॉन्फ़िगर करें",
+  "difficultyLabel": "कठिनाई",
+  "difficulty": {
+    "beginner": "शुरुआती",
+    "medium": "मध्यम",
+    "hard": "कठिन",
+    "expert": "विशेषज्ञ"
+  },
+  "numberOfQuestions": "प्रश्नों की संख्या",
+  "generateQuizButton": "क्विज़ जनरेट करें",
+  "startLessonToPracticeTitle": "अभ्यास करने के लिए पाठ शुरू करें!",
+  "startLessonToPracticeDesc": "अपने सक्रिय रोडमैप से किसी भी पाठ का चयन करें, पाठ अध्ययन मार्गदर्शिका दृश्य में टेक क्विक क्विज़ पर क्लिक करें, और यहां अपने ज्ञान का परीक्षण करें!",
+  "goToRoadmapButton": "रोडमैप पर जाएं"
+}

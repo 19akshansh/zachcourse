@@ -1,0 +1,19 @@
+{
+  "companionTitle": "Bureau d'aide",
+  "companionInstructions": "Cliquez sur l'un de ces modèles pour me poser des questions sur votre matériel d'étude actuel :",
+  "analogyPromptText": "Pouvez-vous me donner une analogie intuitive du monde réel pour cette leçon ?",
+  "analogyButtonText": "💡 \"Donnez-moi une analogie du monde réel.\"",
+  "simplePromptText": "Pouvez-vous m'expliquer ce sujet en termes beaucoup plus simples ?",
+  "simpleButtonText": "🧸 \"Expliquez plus simplement, s'il vous plaît.\"",
+  "projectPromptText": "Quel mini-projet interactif amusant puis-je créer pour mettre en pratique ce sujet ?",
+  "projectButtonText": "🛠️ \"Donnez-moi une idée de mini-projet amusant.\"",
+  "activeContextTitle": "Contexte actif",
+  "noTopicActive": "Aucun sujet actif — sélectionnez une leçon dans l'onglet feuille de route pour cibler nos questions.",
+  "tutorTitle": "Votre tuteur d'apprentissage amical",
+  "tutorSubtitle": "Prêt à discuter et à vous aider à comprendre !",
+  "toastMemoryCleared": "Mémoire effacée pour ce cours",
+  "toastMemoryClearFailed": "Échec de l'effacement de la mémoire",
+  "clearHistory": "Effacer la mémoire",
+  "tutorWriting": "Le tuteur écrit...",
+  "inputPlaceholder": "Demandez n'importe quoi — collez une URL et je la lirai 🔗"
+}
