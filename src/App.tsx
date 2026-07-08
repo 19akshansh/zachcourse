@@ -16,6 +16,8 @@ import { apiFetch } from "./lib/api";
 import { ApiKeyOnboarding } from "./components/ApiKeyOnboarding";
 import RoadmapGraph from "./components/RoadmapGraph";
 import VisualRoadmapsTab from "./components/VisualRoadmapsTab";
+import { PersonalizationFields } from "./components/PersonalizationFields";
+import { TONE_INSTRUCTIONS } from "./lib/tone-options";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import CohortsDashboard from "./components/CohortsDashboard";
 import TeacherDashboard from "./components/TeacherDashboard";
@@ -395,6 +397,8 @@ export default function App() {
   const [documentContext, setDocumentContext] = useState<string>("");
   const [uploadedFileNames, setUploadedFileNames] = useState<string[]>([]);
   const [experienceLevel, setExperienceLevel] = useState<string>("beginner");
+  const [backgroundContext, setBackgroundContext] = useState<string>("");
+  const [tone, setTone] = useState<string>("friendly");
   const [weeklyHours, setWeeklyHours] = useState<number>(5);
   const [generatingRoadmap, setGeneratingRoadmap] = useState<boolean>(false);
 
@@ -549,11 +553,13 @@ Format the JSON according to this exact TypeScript structure:
     }
   ]
 }
+${TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.friendly}
 Ensure exactly 3 modules, with 2 or 3 lessons per module. Make the lessons progressive, comprehensive, and highly engaging.`;
 
         const prompt = `Create a highly tailored learning roadmap:
 Topic: ${activeTopic || "Personalized Technology Fundamentals"}
 Student level: ${experienceLevel || "beginner"}
+${backgroundContext ? "Learner background: " + backgroundContext : ""}
 Hours/week: ${weeklyHours || 5}
 ${sourceUrlInput ? "Reference: " + sourceUrlInput : ""}
 ${textContentInput ? "Syllabus: " + textContentInput : ""}
@@ -578,6 +584,8 @@ Rules:
             textContent: textContentInput,
             documentContext,
             experienceLevel,
+            backgroundContext,
+            tone,
             weeklyHours
           })
         });
@@ -606,6 +614,8 @@ Rules:
           totalDuration: undefined,
           prerequisites: [],
           experienceLevel: experienceLevel,
+          backgroundContext: backgroundContext || undefined,
+          tone: tone,
           weeklyHours: weeklyHours,
           roadmapData: roadmapDataResult,
         });
@@ -737,11 +747,13 @@ Include:
 1. 💡 An intuitive, real-world analogy to make the topic extremely memorable.
 2. 🚀 A deep dive breakdown of each core concept.
 3. 🛠️ A small mini-project code snippet or exercise.
-Keep the style friendly and inspiring. Use rich emojis and well-spaced headers.`;
+${TONE_INSTRUCTIONS[activeCourse?.tone || "friendly"] ?? TONE_INSTRUCTIONS.friendly}`;
 
         const prompt = `Please generate a comprehensive study guide for:
 Course Title: "${currentRoadmap?.title}"
 Lesson Title: "${lesson.title}"
+${activeCourse?.experienceLevel ? `Target Level: ${activeCourse.experienceLevel}` : ""}
+${activeCourse?.backgroundContext ? `Learner Background: ${activeCourse.backgroundContext}` : ""}
 Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
 
         content = await callGemini(prompt, systemPrompt);
@@ -755,6 +767,9 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
             lessonId: lesson.id,
             lessonTitle: lesson.title,
             concepts: lesson.concepts,
+            experienceLevel: activeCourse?.experienceLevel || "beginner",
+            backgroundContext: activeCourse?.backgroundContext || "",
+            tone: activeCourse?.tone || "friendly",
             documentContext
           })
         });
@@ -1516,6 +1531,7 @@ ${lessonContent}`;
                     difficulty: roadmapData.difficulty,
                     totalDuration: roadmapData.totalDuration,
                     experienceLevel: meta.experienceLevel,
+                    backgroundContext: meta.backgroundContext || undefined,
                     weeklyHours: meta.weeklyHours,
                     roadmapData: roadmapData,
                   });
@@ -1712,32 +1728,14 @@ ${lessonContent}`;
                     />
                   </div>
                   <div data-tour="course-level-hours" className="flex flex-col gap-6 border-t border-[#2A2443] pt-6">
-                    <div>
-                      <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
-                        Experience Level
-                      </label>
-                      <div className="grid grid-cols-3 gap-3">
-                        {[
-                          { id: "beginner", icon: "🌱", label: "Beginner" },
-                          { id: "intermediate", icon: "🔥", label: "Intermediate" },
-                          { id: "advanced", icon: "🚀", label: "Advanced" }
-                        ].map((lvl) => (
-                          <button
-                            key={lvl.id}
-                            type="button"
-                            onClick={() => setExperienceLevel(lvl.id)}
-                            className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
-                              experienceLevel === lvl.id 
-                                ? "border-[#4F46E5] bg-[#4F46E5]/10 text-white" 
-                                : "border-[#2A2443] bg-[#0F0D19] text-[#8E88AB] hover:border-[#3F395B]"
-                            }`}
-                          >
-                            <span className="text-2xl mb-2">{lvl.icon}</span>
-                            <span className="font-semibold text-sm">{lvl.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                    <PersonalizationFields
+                      experienceLevel={experienceLevel}
+                      setExperienceLevel={setExperienceLevel}
+                      backgroundContext={backgroundContext}
+                      setBackgroundContext={setBackgroundContext}
+                      tone={tone}
+                      setTone={setTone}
+                    />
 
                     <div>
                       <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">

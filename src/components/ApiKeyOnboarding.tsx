@@ -60,7 +60,7 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
             One last step! 🚀
           </h2>
           <p className="text-sm text-[#8E88AB] leading-relaxed mb-8 max-w-lg">
-            ZachCourse is completely free — you just need your own Gemini API key (also free). 
+            ZachCourse is completely free — you just need your own Gemini API key (also free, though some regions may require a billing account or profile to access the free tier). 
             This unlocks unlimited personalized courses, roadmap generation, and mentor chats.
           </p>
 
@@ -76,7 +76,7 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
                 >
                   Get Free Key <ExternalLink className="w-3.5 h-3.5" />
                 </a>
-                <p className="text-xs text-[#8E88AB] mt-1">Sign in with Google and click "Create API key".</p>
+                <p className="text-xs text-[#8E88AB] mt-1">Sign in with Google and click "Create API key". (Note: Depending on your region, Google AI Studio may require linking a billing account to verify your account, but the standard Tier is completely free of charge).</p>
               </div>
             </div>
 

@@ -145,6 +145,8 @@ model Course {
   totalDuration      String?
   prerequisites      Json            @default("[]")
   experienceLevel    String          @default("beginner")
+  backgroundContext  String?
+  tone               String          @default("friendly")
   weeklyHours        Int             @default(5)
   isActive           Boolean         @default(true)
   roadmapData        Json
@@ -200,6 +202,8 @@ model VisualRoadmap {
   difficulty          String   @default("Beginner")
   totalDuration       String?
   experienceLevel     String   @default("beginner")
+  backgroundContext   String?
+  tone                String   @default("friendly")
   weeklyHours         Int      @default(5)
   roadmapData         Json
   completedNodeIds    Json     @default("[]")

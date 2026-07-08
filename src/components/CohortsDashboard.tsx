@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { trpc } from "../lib/trpc-client";
-import { Users, Plus, Hash, Trophy, Activity, ArrowRight, Loader2, BookOpen, Map, Check, Trash2, LogOut, Github } from "lucide-react";
+import { Users, Plus, Hash, Trophy, Activity, ArrowRight, Loader2, BookOpen, Map, Check, Trash2, LogOut, Github, Sparkles } from "lucide-react";
 import { DiscordIcon } from "./DiscordIcon";
 import { toast } from "sonner";
 import { useSession } from "../lib/auth-client";
 import { Pagination } from "./Pagination";
+import { PersonalizationFields } from "./PersonalizationFields";
 
 interface CohortsDashboardProps {
   onNavigateToCourse?: (courseId: string) => void;
@@ -33,6 +34,10 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
   const [previewCohort, setPreviewCohort] = useState<any | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isJoinLoading, setIsJoinLoading] = useState(false);
+
+  const [experienceLevel, setExperienceLevel] = useState("beginner");
+  const [backgroundContext, setBackgroundContext] = useState("");
+  const [tone, setTone] = useState("friendly");
 
   const loadCohorts = async (page = 1) => {
     try {
@@ -127,7 +132,12 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
     if (!joinCode) return;
     setIsJoinLoading(true);
     try {
-      const res = await trpc.joinCohortAndClone.mutate({ inviteCode: joinCode.trim().toUpperCase() });
+      const res = await trpc.joinCohortAndClone.mutate({
+        inviteCode: joinCode.trim().toUpperCase(),
+        experienceLevel,
+        backgroundContext: backgroundContext || undefined,
+        tone,
+      });
       toast.success("Successfully joined cohort!");
       setJoinCode("");
       setPreviewCohort(null);
@@ -355,6 +365,24 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
                 </div>
               </div>
 
+              <div className="pt-4 border-t border-[#2A2443] space-y-4">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-4.5 h-4.5 text-indigo-400" />
+                  Personalize Your Cloned Content
+                </h4>
+                <p className="text-xs text-[#8E88AB]">
+                  Customize how lessons, roadmaps, and mentors talk to you! This will build a bespoke curriculum tailored to your starting level.
+                </p>
+                <PersonalizationFields
+                  experienceLevel={experienceLevel}
+                  setExperienceLevel={setExperienceLevel}
+                  backgroundContext={backgroundContext}
+                  setBackgroundContext={setBackgroundContext}
+                  tone={tone}
+                  setTone={setTone}
+                />
+              </div>
+
               <p className="text-sm text-[#8E88AB]">
                 💡 Joining this cohort will automatically clone the required course and/or roadmap onto your personal account so you can learn and compete on the leaderboard!
               </p>
@@ -530,6 +558,34 @@ function CohortDetail({
   const [profileData, setProfileData] = useState<any | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
 
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
+  const [regenType, setRegenType] = useState<"course" | "roadmap">("course");
+  const [regenId, setRegenId] = useState("");
+  const [regenLevel, setRegenLevel] = useState("beginner");
+  const [regenBgContext, setRegenBgContext] = useState("");
+  const [regenTone, setRegenTone] = useState("friendly");
+  const [isRegenerating, setIsRegenerating] = useState(false);
+
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    try {
+      await trpc.regenerateClonedCohortContent.mutate({
+        id: regenId,
+        type: regenType,
+        experienceLevel: regenLevel,
+        backgroundContext: regenBgContext,
+        tone: regenTone,
+      });
+      toast.success("Successfully customized curriculum!");
+      setShowRegenerateModal(false);
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to customize curriculum");
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const handleNameClick = async (userId: string) => {
     setSelectedProfileUserId(userId);
     setIsProfileLoading(true);
@@ -698,6 +754,37 @@ function CohortDetail({
           )}
         </div>
       </div>
+
+      {/* Curriculum Customization Banner */}
+      {!isOwner && (userCourseId || userRoadmapId) && (
+        <div className="bg-indigo-950/40 border border-[#4F46E5]/30 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-xl animate-in fade-in slide-in-from-top-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-indigo-400 font-bold text-sm">
+              <Sparkles className="w-4 h-4" />
+              <span>Tailor Curriculum to Your Level</span>
+            </div>
+            <h3 className="text-base font-bold text-white">Is this cohort's content too easy or too hard for you?</h3>
+            <p className="text-sm text-[#CECADF]">
+              You can regenerate a personalized course roadmap or node graph specifically designed for your experience level and background context.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              if (userCourseId) {
+                setRegenType("course");
+                setRegenId(userCourseId);
+              } else if (userRoadmapId) {
+                setRegenType("roadmap");
+                setRegenId(userRoadmapId);
+              }
+              setShowRegenerateModal(true);
+            }}
+            className="px-5 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-900/20 whitespace-nowrap cursor-pointer"
+          >
+            Regenerate curriculum for my level
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -996,6 +1083,57 @@ function CohortDetail({
                 No profile details could be retrieved.
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showRegenerateModal && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121021] border border-[#2A2443] rounded-3xl max-w-lg w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div>
+              <h3 className="text-2xl font-bold text-[#FAF9FD] flex items-center gap-2">
+                <Sparkles className="w-6 h-6 text-indigo-400" />
+                Customize Curriculum
+              </h3>
+              <p className="text-sm text-[#CECADF] mt-2">
+                Regenerate the curriculum to match your specific background. This will replace the default course roadmap with a brand new, AI-personalized set of lessons. Your current progress on this curriculum will be reset to 0%.
+              </p>
+            </div>
+
+            <PersonalizationFields
+              experienceLevel={regenLevel}
+              setExperienceLevel={setRegenLevel}
+              backgroundContext={regenBgContext}
+              setBackgroundContext={setRegenBgContext}
+              tone={regenTone}
+              setTone={setRegenTone}
+            />
+
+            <div className="flex gap-3 justify-end pt-4 border-t border-[#2A2443]">
+              <button
+                type="button"
+                onClick={() => setShowRegenerateModal(false)}
+                className="px-5 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer"
+                disabled={isRegenerating}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleRegenerate}
+                className="px-6 py-2.5 bg-[#4F46E5] hover:bg-[#4338CA] text-white rounded-xl transition font-bold text-xs flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                disabled={isRegenerating}
+              >
+                {isRegenerating ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Regenerating...
+                  </>
+                ) : (
+                  "Customize & Regenerate"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

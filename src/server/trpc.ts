@@ -253,6 +253,8 @@ export const appRouter = router({
       totalDuration: z.string().optional(),
       prerequisites: z.array(z.string()).default([]),
       experienceLevel: z.string().default("beginner"),
+      backgroundContext: z.string().optional(),
+      tone: z.string().default("friendly"),
       weeklyHours: z.number().default(5),
       roadmapData: z.any(),
     }))
@@ -686,6 +688,7 @@ Return ONLY valid JSON matching this schema:
       difficulty: z.string(),
       totalDuration: z.string().optional(),
       experienceLevel: z.string(),
+      backgroundContext: z.string().optional(),
       weeklyHours: z.number(),
       roadmapData: z.any(),
     }))
@@ -783,10 +786,25 @@ Return ONLY valid JSON matching this schema:
       });
       if (existing) return existing;
 
+      // Get course details for personalized context and tone
+      const course = await ctx.prisma.course.findUnique({
+        where: { id: input.courseId }
+      });
+      const tone = course?.tone || "friendly";
+      const bgContext = course?.backgroundContext || "";
+
+      const { TONE_INSTRUCTIONS } = await import("../lib/tone-options.js");
+      const toneInstruction = TONE_INSTRUCTIONS[tone as keyof typeof TONE_INSTRUCTIONS] || TONE_INSTRUCTIONS.friendly;
+
       const systemPrompt = `You are a highly supportive and encouraging technical mentor creating a hands-on learning project for a student.
 Topic: ${input.topic}
 Module: ${input.moduleTitle}
 Level: ${input.level}
+${bgContext ? `Student's Background & Context: ${bgContext}` : ""}
+
+TONE AND STYLE REQUIREMENT:
+You must strictly follow this tone and style throughout the project description, objectives, and steps:
+${toneInstruction}
 
 Generate a highly structured, engaging, and beginner-friendly project that applies the concepts learned in this module.
 If the level is "Beginner" or if the topic is new, ensure the project is easy to digest, uses highly accessible phrasing, does not require complex boilerplate setup, and has clear, step-by-step instructions. Keep estimatedHours reasonable (e.g., 1-2 hours for beginners). Avoid daunting, overly complicated architecture. The instructions should be warm and guiding, making the student feel successful.
@@ -1016,7 +1034,12 @@ Return ONLY JSON matching this schema:
     }),
 
   joinCohortAndClone: protectedProcedure
-    .input(z.object({ inviteCode: z.string() }))
+    .input(z.object({
+      inviteCode: z.string(),
+      experienceLevel: z.string().optional(),
+      backgroundContext: z.string().optional(),
+      tone: z.string().optional(),
+    }))
     .mutation(async ({ ctx, input }) => {
       const cohort = await ctx.prisma.cohort.findUnique({
         where: { inviteCode: input.inviteCode },
@@ -1056,17 +1079,50 @@ Return ONLY JSON matching this schema:
           if (existingClonedCourse) {
             userCourseId = existingClonedCourse.id;
           } else if (cohort.course) {
+            let roadmapData = cohort.course.roadmapData;
+            let title = cohort.course.title;
+            let description = cohort.course.description;
+            let difficulty = cohort.course.difficulty;
+            let experienceLevel = input.experienceLevel || cohort.course.experienceLevel;
+            let backgroundContext = input.backgroundContext !== undefined ? input.backgroundContext : cohort.course.backgroundContext;
+            let tone = input.tone || cohort.course.tone;
+
+            if (input.experienceLevel || input.backgroundContext || input.tone) {
+              try {
+                const { generateRoadmapContent } = await import("./agents/roadmap-agent.js");
+                const generated = await generateRoadmapContent({
+                  topic: cohort.course.topic,
+                  experienceLevel,
+                  backgroundContext: backgroundContext || "",
+                  weeklyHours: cohort.course.weeklyHours,
+                  sourceUrl: cohort.course.sourceUrl || "",
+                  tone,
+                  referenceRoadmapData: cohort.course.roadmapData,
+                });
+                if (generated) {
+                  roadmapData = generated;
+                  title = generated.title || title;
+                  description = generated.description || description;
+                  difficulty = generated.difficulty || difficulty;
+                }
+              } catch (err) {
+                console.error("Personalized course regeneration failed, falling back to original roadmap data:", err);
+              }
+            }
+
             const cloned = await ctx.prisma.course.create({
               data: {
                 userId: ctx.user.id,
-                title: cohort.course.title,
-                description: cohort.course.description,
+                title,
+                description,
                 topic: cohort.course.topic,
                 sourceUrl: cohort.course.sourceUrl,
-                difficulty: cohort.course.difficulty,
+                difficulty,
                 totalDuration: cohort.course.totalDuration,
-                roadmapData: cohort.course.roadmapData || {},
-                experienceLevel: cohort.course.experienceLevel,
+                roadmapData: roadmapData || {},
+                experienceLevel,
+                backgroundContext,
+                tone,
                 weeklyHours: cohort.course.weeklyHours,
                 completedLessons: [],
                 completedQuizzes: {},
@@ -1075,6 +1131,16 @@ Return ONLY JSON matching this schema:
               }
             });
             userCourseId = cloned.id;
+
+            // Welcome message for personalized regenerated course
+            const welcomeMessage = `Hey! 👋 I've generated your personalized study guide for **${title}** based on your background and preferences. Let's make this journey amazing! 🚀`;
+            await ctx.prisma.courseMessage.create({
+              data: {
+                courseId: cloned.id,
+                role: "assistant",
+                content: welcomeMessage,
+              }
+            });
           }
         }
       }
@@ -1096,17 +1162,50 @@ Return ONLY JSON matching this schema:
           if (existingClonedRoadmap) {
             userRoadmapId = existingClonedRoadmap.id;
           } else if (cohort.visualRoadmap) {
+            let roadmapData = cohort.visualRoadmap.roadmapData;
+            let title = cohort.visualRoadmap.title;
+            let description = cohort.visualRoadmap.description;
+            let difficulty = cohort.visualRoadmap.difficulty;
+            let experienceLevel = input.experienceLevel || cohort.visualRoadmap.experienceLevel;
+            let backgroundContext = input.backgroundContext !== undefined ? input.backgroundContext : cohort.visualRoadmap.backgroundContext;
+            let tone = input.tone || cohort.visualRoadmap.tone;
+
+            if (input.experienceLevel || input.backgroundContext || input.tone) {
+              try {
+                const { generateVisualRoadmapContent } = await import("./agents/roadmap-agent.js");
+                const generated = await generateVisualRoadmapContent({
+                  topic: cohort.visualRoadmap.topic,
+                  experienceLevel,
+                  backgroundContext: backgroundContext || "",
+                  weeklyHours: cohort.visualRoadmap.weeklyHours,
+                  sourceUrl: "",
+                  tone,
+                  referenceRoadmapData: cohort.visualRoadmap.roadmapData,
+                });
+                if (generated) {
+                  roadmapData = generated;
+                  title = generated.title || title;
+                  description = generated.description || description;
+                  difficulty = generated.difficulty || difficulty;
+                }
+              } catch (err) {
+                console.error("Personalized visual roadmap regeneration failed, falling back to original roadmap data:", err);
+              }
+            }
+
             const cloned = await ctx.prisma.visualRoadmap.create({
               data: {
                 userId: ctx.user.id,
-                title: cohort.visualRoadmap.title,
+                title,
                 topic: cohort.visualRoadmap.topic,
-                description: cohort.visualRoadmap.description,
-                difficulty: cohort.visualRoadmap.difficulty,
+                description,
+                difficulty,
                 totalDuration: cohort.visualRoadmap.totalDuration,
-                experienceLevel: cohort.visualRoadmap.experienceLevel,
+                experienceLevel,
+                backgroundContext,
+                tone,
                 weeklyHours: cohort.visualRoadmap.weeklyHours,
-                roadmapData: cohort.visualRoadmap.roadmapData || {},
+                roadmapData: roadmapData || {},
                 completedNodeIds: [],
                 clonedFromRoadmapId: cohort.visualRoadmapId,
                 isFavorite: false
@@ -1128,6 +1227,92 @@ Return ONLY JSON matching this schema:
         courseId: userCourseId,
         visualRoadmapId: userRoadmapId
       };
+    }),
+
+  regenerateClonedCohortContent: protectedProcedure
+    .input(z.object({
+      id: z.string(),
+      type: z.enum(["course", "roadmap"]),
+      experienceLevel: z.string(),
+      backgroundContext: z.string().optional(),
+      tone: z.string().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      if (input.type === "course") {
+        const course = await ctx.prisma.course.findFirst({
+          where: { id: input.id, userId: ctx.user.id }
+        });
+        if (!course) throw new TRPCError({ code: "NOT_FOUND", message: "Cloned course not found" });
+
+        const { generateRoadmapContent } = await import("./agents/roadmap-agent.js");
+        const generated = await generateRoadmapContent({
+          topic: course.topic,
+          experienceLevel: input.experienceLevel,
+          backgroundContext: input.backgroundContext || "",
+          weeklyHours: course.weeklyHours,
+          sourceUrl: course.sourceUrl || "",
+          tone: input.tone || course.tone || "friendly",
+          referenceRoadmapData: course.roadmapData,
+        });
+
+        const updatedCourse = await ctx.prisma.course.update({
+          where: { id: input.id },
+          data: {
+            roadmapData: generated || {},
+            experienceLevel: input.experienceLevel,
+            backgroundContext: input.backgroundContext || null,
+            tone: input.tone || course.tone || "friendly",
+            difficulty: (generated as any)?.difficulty || "Beginner",
+            title: (generated as any)?.title || course.title,
+            description: (generated as any)?.description || course.description,
+            completedLessons: [],
+            completedQuizzes: {},
+          }
+        });
+
+        const welcomeMessage = `Hey! 👋 I've regenerated your **${updatedCourse.title}** roadmap specifically tailored to your background context (${input.experienceLevel} level). Let's start learning! 🚀`;
+        await ctx.prisma.courseMessage.create({
+          data: {
+            courseId: course.id,
+            role: "assistant",
+            content: welcomeMessage
+          }
+        });
+
+        return { type: "course", data: updatedCourse };
+      } else {
+        const roadmap = await ctx.prisma.visualRoadmap.findFirst({
+          where: { id: input.id, userId: ctx.user.id }
+        });
+        if (!roadmap) throw new TRPCError({ code: "NOT_FOUND", message: "Cloned visual roadmap not found" });
+
+        const { generateVisualRoadmapContent } = await import("./agents/roadmap-agent.js");
+        const generated = await generateVisualRoadmapContent({
+          topic: roadmap.topic,
+          experienceLevel: input.experienceLevel,
+          backgroundContext: input.backgroundContext || "",
+          weeklyHours: roadmap.weeklyHours,
+          sourceUrl: "",
+          tone: input.tone || roadmap.tone || "friendly",
+          referenceRoadmapData: roadmap.roadmapData,
+        });
+
+        const updatedRoadmap = await ctx.prisma.visualRoadmap.update({
+          where: { id: input.id },
+          data: {
+            roadmapData: generated || {},
+            experienceLevel: input.experienceLevel,
+            backgroundContext: input.backgroundContext || null,
+            tone: input.tone || roadmap.tone || "friendly",
+            difficulty: (generated as any)?.difficulty || "Beginner",
+            title: (generated as any)?.title || roadmap.title,
+            description: (generated as any)?.description || roadmap.description,
+            completedNodeIds: [],
+          }
+        });
+
+        return { type: "roadmap", data: updatedRoadmap };
+      }
     }),
 
   createCohort: protectedProcedure

@@ -6,6 +6,7 @@ import VisualRoadmapGraph from "./VisualRoadmapGraph";
 import { DocumentUpload } from "./DocumentUpload";
 import { apiFetch } from "../lib/api";
 import { Pagination } from "./Pagination";
+import { PersonalizationFields } from "./PersonalizationFields";
 
 export interface VisualRoadmapsTabProps {
   roadmaps: any[];
@@ -37,6 +38,8 @@ export default function VisualRoadmapsTab({
   const [isGenerating, setIsGenerating] = useState(false);
   const [topic, setTopic] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("beginner");
+  const [backgroundContext, setBackgroundContext] = useState("");
+  const [tone, setTone] = useState("friendly");
   const [weeklyHours, setWeeklyHours] = useState(5);
   const [sourceUrl, setSourceUrl] = useState("");
   const [documentContext, setDocumentContext] = useState("");
@@ -61,13 +64,13 @@ export default function VisualRoadmapsTab({
           "Content-Type": "application/json",
           "x-user-key": userKey 
         },
-        body: JSON.stringify({ topic, experienceLevel, weeklyHours, sourceUrl, documentContext }),
+        body: JSON.stringify({ topic, experienceLevel, backgroundContext, weeklyHours, sourceUrl, documentContext, tone }),
       });
       const data = await res.json();
       
       if (!res.ok) throw new Error(data.error || "Generation failed");
 
-      await onRoadmapGenerated(data.roadmap, { topic, experienceLevel, weeklyHours });
+      await onRoadmapGenerated(data.roadmap, { topic, experienceLevel, backgroundContext, weeklyHours, tone });
       setShowForm(false);
       setTopic("");
       setSourceUrl("");
@@ -159,32 +162,14 @@ export default function VisualRoadmapsTab({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
-                Experience Level
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { id: "beginner", icon: "🌱", label: "Beginner" },
-                  { id: "intermediate", icon: "🔥", label: "Intermediate" },
-                  { id: "advanced", icon: "🚀", label: "Advanced" }
-                ].map((lvl) => (
-                  <button
-                    key={lvl.id}
-                    type="button"
-                    onClick={() => setExperienceLevel(lvl.id)}
-                    className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
-                      experienceLevel === lvl.id 
-                        ? "border-[#4F46E5] bg-[#4F46E5]/10 text-white" 
-                        : "border-[#2A2443] bg-[#0F0D19] text-[#8E88AB] hover:border-[#3F395B]"
-                    }`}
-                  >
-                    <span className="text-2xl mb-2">{lvl.icon}</span>
-                    <span className="font-semibold text-sm">{lvl.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
+            <PersonalizationFields
+              experienceLevel={experienceLevel}
+              setExperienceLevel={setExperienceLevel}
+              backgroundContext={backgroundContext}
+              setBackgroundContext={setBackgroundContext}
+              tone={tone}
+              setTone={setTone}
+            />
 
             <div>
               <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">

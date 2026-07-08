@@ -63,9 +63,16 @@ For our node-graph roadmaps, we utilize `@xyflow/react`.
 - **Progress Tracking:** Active nodes dynamically update color based on their state in `completedNodeIds`.
 - **Sizing:** The node graph container utilizes a `ResizeObserver` pattern instead of fixed viewport heights to handle dynamic container or side-menu sizing gracefully.
 
-### Course Personalization Controls (Experience Level & Commitment)
-- **Granular Controls in New Course Creator:** The "New Course" creator UI contains interactive experience level selector cards (🌱 Beginner, 🔥 Intermediate, 🚀 Advanced) and an elegant range slider input for specifying weekly commitment (1h casual to 30h intensive), mirroring the layout of the visual roadmaps customizer.
-- **Dual Flow Integration:** The state is synchronized across both the local client-side generation (when using a custom API key) and the proxy server-side `POST /api/generate-roadmap` endpoint.
+### Course Personalization Controls (Experience, Background & Tone)
+- **Granular Controls & Learner Background:** The "New Course" and "Visual Roadmap" creator UI includes a reusable `PersonalizationFields` component supporting interactive experience level selector cards (🌱 Beginner, 🔥 Intermediate, 🚀 Advanced), a 4-option stylized Tone Picker (Professional, Friendly, Gen Z, ELI5), and an optional 500-character custom text area to input the learner's specific background and preferences (e.g., past programming languages, favorite learning styles).
+- **Style Instructions Layer:** Style and tone guidelines are declared inside `src/lib/tone-options.ts`. These instructions define specific vocabulary choices, explanation techniques, and syntactic moods that give each tone option its distinct voice (e.g., emojis and acronyms for Gen Z, relatable analogies and simplified vocabulary for ELI5).
+- **Multi-Agent Flow Integration:** The custom `tone` and `backgroundContext` are persisted to the database and threaded through all seven AI agents:
+  - **Roadmap & Visual Roadmap Agents:** Shape course structure, node density, difficulty, and pacing.
+  - **Lesson Agent:** Governs the writing style and conceptual depth of lazy-generated study guides.
+  - **Quiz Agent:** Adapts question scenarios and explanation texts to match the student's selected voice.
+  - **Mentor Agent:** Feeds the tone guidelines and background context to the 24/7 personal tutor for personalized conversation.
+  - **Project Agent:** Extracts course configurations to style the hands-on project description, guidelines, and objectives.
+- **On-Demand & Join Cohort Personalization:** When a student joins a cohort using an invite code, they are presented with a beautiful "Join & Clone Cohort" dialog where they can personalize their experience level, background context, and tone before cloning. Furthermore, members can click "Regenerate" on their cohort dashboard to adjust these parameters on the fly, triggering safe curriculum regeneration via the `regenerateClonedCohortContent` procedure.
 
 ### Interactive Onboarding Tour & Event-Driven Joyride
 - **Bulletproof Onboarding Flow:** The onboarding system (driven by `React Joyride` in `TourController.tsx`) features robust step transition logic. It monitors DOM changes, dynamically pre-opens UI components (e.g., the user profile dropdown or sidebar menus) by dispatching target-driven custom events (`tour-step`) prior to rendering overlays, and automatically pauses/resumes Joyride execution to allow route changes or lazy asset loading to settle safely.

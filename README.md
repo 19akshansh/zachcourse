@@ -125,16 +125,21 @@ ZachCourse is powered by a team of specialized AI agents working together:
 │   │   └── page.tsx        # Base entry redirector
 │   ├── components/         # Reusable frontend components
 │   │   ├── tour/           # React Joyride tour onboarding modules
+│   │   ├── PersonalizationFields.tsx # User experience & style personalization form
 │   │   ├── AppHeader.tsx   # Header controls & user profile dropdown
 │   │   ├── AppSidebar.tsx  # Dynamic course selection side menu
 │   │   └── VisualRoadmapGraph.tsx  # Interactive @xyflow/react canvas
 │   ├── features/
 │   │   └── auth/           # Better Auth logic & social connectors
 │   ├── lib/                # Core helper utilities
+│   │   ├── tone-options.ts # Curated learning tones and instruction prompts
 │   │   ├── resource-link.ts # Safe resource URL verification & domain blocklist
 │   │   ├── SSRF-guard.ts   # Server-side request forgery safety rules
 │   │   └── mentor-tools.ts # Search and link-fetching tool specifications
 │   ├── server/             # tRPC database backend procedures & models
+│   │   ├── agents/         # Centralized Multi-Agent content engines
+│   │   │   └── roadmap-agent.ts # Roadmap & Visual Roadmap Agent definitions
+│   │   └── trpc.ts         # tRPC root router and service procedure handlers
 │   └── types/              # Shared TypeScript definition types
 ├── mcp_server.ts           # Standalone Model Context Protocol (MCP) tool server
 ├── server.ts               # Unified Express backend & Vite middleware server

@@ -50,7 +50,7 @@ export async function validateUserKey(key: string): Promise<{ valid: boolean, er
     const google = createGoogleGenerativeAI({ apiKey: key.trim() })
     
     const { text } = await generateText({
-      model: google("gemini-3.5-flash"),
+      model: google("gemini-2.5-flash"),
       prompt: "Say: ok",
       maxOutputTokens: 5,
     })
@@ -58,18 +58,25 @@ export async function validateUserKey(key: string): Promise<{ valid: boolean, er
     return { valid: !!text }
     
   } catch (err: any) {
-    const msg = err?.message || ""
-    // Quota/rate limit = key IS valid, just exhausted
-    if (msg.includes("429") || msg.includes("quota") || 
-        msg.includes("rate")) {
-      return { valid: true }
-    }
-    // 400 bad request but key accepted = valid key
-    if (msg.includes("400") && !msg.toLowerCase().includes("api key not valid")) {
-      return { valid: true }
+    const status = err?.status || err?.statusCode || err?.response?.status;
+    const msg = (err?.message || "").toLowerCase();
+    
+    // Quota/rate limit (429) or overloaded/resource exhausted = key IS valid but exhausted
+    if (status === 429 || msg.includes("quota") || msg.includes("limit") || msg.includes("exhausted") || msg.includes("resource_exhausted")) {
+      return { valid: true };
     }
     
-    console.error("[validateUserKey] failed:", msg)
-    return { valid: false, error: msg }
+    // Invalid API key (usually 400 or 403 with API_KEY_INVALID or key not valid)
+    if (status === 403 || (status === 400 && (msg.includes("invalid") || msg.includes("not valid") || msg.includes("api_key_invalid")))) {
+      return { valid: false, error: "The API key provided is invalid." };
+    }
+    
+    // General 400 bad request with a valid key (e.g. wrong parameter formatting) is treated as a valid key
+    if (status === 400) {
+      return { valid: true };
+    }
+    
+    console.error("[validateUserKey] failed:", err);
+    return { valid: false, error: err?.message || "Verification failed" };
   }
 }

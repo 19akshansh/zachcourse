@@ -20,6 +20,8 @@ import { extractTextFromBuffer, detectPromptInjection } from "./src/lib/document
 import { retrieveRelevantMemories, storeMentorExchange } from "./src/lib/memory";
 import { isBlockedUrl, isBlockedUrlResolved } from "./src/lib/ssrf-guard";
 import { getLocalFallbackRoadmap, getLocalFallbackLesson, getLocalFallbackQuiz, getLocalFallbackMentorReply } from "./src/lib/local-fallbacks";
+import { generateRoadmapContent, generateVisualRoadmapContent } from "./src/server/agents/roadmap-agent";
+import { TONE_INSTRUCTIONS } from "./src/lib/tone-options";
 import { fetchUrlTool, searchWebTool } from "./src/lib/mentor-tools";
 import { sanitizeResourceUrl } from "./src/lib/resource-link";
 
@@ -395,102 +397,20 @@ app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
     }
 
     const experienceLevel = req.body.experienceLevel || "beginner";
+    const backgroundContext = req.body.backgroundContext || "";
+    const tone = req.body.tone || "friendly";
     const weeklyHours = req.body.weeklyHours || 5;
 
-    const schema = z.object({
-      title: z.string(),
-      description: z.string(),
-      difficulty: z.string(),
-      totalDuration: z.string().optional(),
-      prerequisites: z.array(z.string()).default([]),
-      modules: z.array(z.object({
-        id: z.string(),
-        title: z.string(),
-        description: z.string(),
-        lessons: z.array(z.object({
-          id: z.string(),
-          title: z.string(),
-          duration: z.string(),
-          concepts: z.array(z.string()),
-          difficulty: z.string().optional(),
-          type: z.string().optional(),
-          description: z.string().optional(),
-        }))
-      }))
+    const roadmapData = await generateRoadmapContent({
+      topic,
+      experienceLevel,
+      backgroundContext,
+      weeklyHours,
+      sourceUrl,
+      textContent,
+      documentContext,
+      tone,
     });
-
-    // Validate documentContext
-    const safeDocContext = typeof documentContext === "string"
-      ? documentContext.slice(0, 40_000)
-      : "";
-
-    const prompt = `You are an expert curriculum designer.
-Create a personalized learning roadmap for:
-Topic: ${topic}
-Experience level: ${experienceLevel}
-Hours per week: ${weeklyHours}
-${sourceUrl ? "Reference URL: " + sourceUrl : ""}
-${textContent ? "Syllabus excerpt: " + textContent.slice(0, 3000) : ""}
-${safeDocContext ? `
-Reference Document Content (use this as primary source):
-<document_context>
-${safeDocContext}
-</document_context>
-Prioritise this document content over general knowledge 
-when creating the roadmap. Extract real module names, 
-topics, and structure from it where possible.
-` : ""}
-
-Rules:
-- 3-5 modules, each with 3-5 lessons
-- Progressive difficulty
-- Last lesson must be a hands-on project
-- First lesson completable in under 30 min
-- Adapt depth to experience level`;
-
-    let roadmapData = await callAI(prompt, { schema })
-      ?? getLocalFallbackRoadmap(topic || "Technology Mastery", sourceUrl, textContent);
-
-    // --- CRITIC AGENT ---
-    let reviewMeta = { revised: false, issuesFound: 0 };
-    if (roadmapData) {
-      const criticSchema = z.object({
-        approved: z.boolean(),
-        issues: z.array(z.object({
-          severity: z.enum(["minor", "major"]),
-          location: z.string(),
-          problem: z.string(),
-          suggestion: z.string(),
-        })),
-        revisionNotes: z.string().optional(),
-      });
-
-      const criticPrompt = `You are an expert curriculum reviewer. Review the following generated roadmap against these criteria:
-- Logical lesson ordering and prerequisites
-- Appropriate difficulty progression
-- No duplicate or overlapping lessons
-- Realistic time estimates
-
-Roadmap to review:
-${JSON.stringify(roadmapData)}
-`;
-      const critique = await callAI(criticPrompt, { schema: criticSchema });
-      
-      if (critique && !critique.approved && critique.revisionNotes) {
-        console.log(`[Critic Agent] Roadmap rejected. Issues: ${critique.issues.length}. Retrying...`);
-        const revisionPrompt = prompt + `\n\nNOTE: A reviewer evaluated your previous attempt and found the following issues:\n${critique.revisionNotes}\n\nPlease revise the roadmap to address these issues.`;
-        
-        roadmapData = await callAI(revisionPrompt, { schema }) ?? roadmapData;
-        reviewMeta = { revised: true, issuesFound: critique.issues.length };
-      } else if (critique) {
-        reviewMeta = { revised: false, issuesFound: critique.issues.length };
-      }
-    }
-    
-    if (roadmapData) {
-      (roadmapData as any)._reviewMeta = reviewMeta;
-    }
-    // --------------------
 
     res.json({ roadmap: roadmapData });
   } catch (error: any) {
@@ -514,163 +434,25 @@ ${JSON.stringify(roadmapData)}
 //   graphs without risking timeouts.
 // ============================================================================
 app.post("/api/generate-visual-roadmap", aiRateLimit, async (req, res) => {
-  const { topic, experienceLevel, weeklyHours, sourceUrl, documentContext } = req.body
+  const { topic, experienceLevel, backgroundContext, weeklyHours, sourceUrl, documentContext, tone } = req.body
   
-  // Validate documentContext
-  const safeDocContext = typeof documentContext === "string"
-    ? documentContext.slice(0, 40_000)
-    : "";
-
-  const schema = z.object({
-    title: z.string(),
-    description: z.string(),
-    difficulty: z.enum(["Beginner", "Intermediate", "Advanced"]),
-    totalDuration: z.string(),
-    prerequisites: z.array(z.string()),
-    nodes: z.array(z.object({
-      id: z.string(),
-      type: z.enum([
-        "start",
-        "module",
-        "lesson",
-        "milestone",
-        "project",
-        "end"
-      ]),
-      label: z.string(),
-      description: z.string(),
-      duration: z.string().optional(),
-      difficulty: z.enum(["Beginner","Intermediate","Advanced"]).optional(),
-      concepts: z.array(z.string()).optional(),
-      moduleId: z.string().optional(),
-      order: z.number(),
-      resources: z.array(z.object({
-        title: z.string(),
-        type: z.enum(["video","article","doc","practice"]),
-        url: z.string().optional(),
-      })).optional(),
-    })),
-    edges: z.array(z.object({
-      id: z.string(),
-      source: z.string(),
-      target: z.string(),
-      label: z.string().optional(),
-      type: z.enum(["required","optional","parallel"]),
-    })),
-  })
-
-  const prompt = `You are a world-class curriculum architect.
-Generate a comprehensive visual learning roadmap as a graph.
-
-Topic: "${topic}"
-Experience level: ${experienceLevel || "beginner"}
-Hours per week: ${weeklyHours || 5}
-${sourceUrl ? "Reference: " + sourceUrl : ""}
-${safeDocContext ? `
-Reference Document Content (use this as primary source):
-<document_context>
-${safeDocContext}
-</document_context>
-Prioritise this document content over general knowledge 
-when creating the roadmap. Extract real module names, 
-topics, and structure from it where possible.
-` : ""}
-
-GRAPH STRUCTURE RULES:
-1. Start with exactly ONE "start" node (id: "start")
-2. Create 3-5 module nodes (id: "module_1", "module_2" etc)
-3. Each module has 3-5 lesson nodes 
-   (id: "m1_lesson_1", "m1_lesson_2" etc)
-4. After each module add a "milestone" node with a 
-   mini-project or quiz checkpoint
-5. At least 2 "project" nodes (real hands-on builds)
-6. End with exactly ONE "end" node (id: "end") 
-   labeled "You're Job-Ready! 🎉" or similar
-7. Edges define the path:
-   - Lessons connect linearly within a module
-   - Some lessons can have parallel optional paths
-   - Milestones gate the next module
-8. Include 2-3 OPTIONAL side-path nodes for "going deeper"
-   connected with type: "optional"
-
-CONTENT RULES:
-- Every lesson node MUST have: concepts (3-5 terms), 
-  duration, difficulty, and 2-3 resources.
-- For resources:
-  - Only reference well-known, stable resources you're confident exist: 
-    official docs (developer.mozilla.org, react.dev, docs.python.org, etc.), 
-    major learning platforms (freeCodeCamp, W3Schools, YouTube, GitHub), or 
-    the primary official site for the topic.
-  - NEVER invent a specific article/blog post URL, path, or slug you 
-    cannot verify exists.
-  - If unsure of an exact URL, set url to the site's known homepage/search 
-    page instead of a fabricated deep link, or omit url entirely.
-  - Explicitly forbid example.com, example.org, placeholder.com, or any 
-    other placeholder/dummy domain.
-- Make descriptions specific and actionable
-  (not "learn about X" but "build a X that does Y")
-- Progressive difficulty: Beginner → Intermediate → Advanced
-- First lesson: completable in 20 minutes
-- Last project: portfolio-worthy, takes 2-4 hours
-
-Produce a graph with 20-35 total nodes and 25-40 edges.`
-
   try {
     const userKey = req.headers["x-user-key"] as string | undefined;
-    let data = await callAI(prompt, { schema, apiKey: userKey })
+    const data = await generateVisualRoadmapContent({
+      topic,
+      experienceLevel,
+      backgroundContext,
+      weeklyHours,
+      sourceUrl,
+      documentContext,
+      tone,
+      userKey,
+    });
+
     if (!data) {
       res.status(500).json({ error: "Generation failed" })
       return
     }
-
-    // --- CRITIC AGENT ---
-    let reviewMeta = { revised: false, issuesFound: 0 };
-    const criticSchema = z.object({
-      approved: z.boolean(),
-      issues: z.array(z.object({
-        severity: z.enum(["minor", "major"]),
-        location: z.string(),
-        problem: z.string(),
-        suggestion: z.string(),
-      })),
-      revisionNotes: z.string().optional(),
-    });
-
-    const criticPrompt = `You are an expert curriculum reviewer. Review the following generated visual roadmap graph against these criteria:
-- Logical lesson ordering and prerequisites
-- Appropriate difficulty progression
-- No duplicate or overlapping lessons
-- Realistic time estimates
-- Valid graph structure: single start/end node, no orphaned nodes, edges reference real node ids.
-
-Visual Roadmap to review:
-${JSON.stringify(data)}
-`;
-    const critique = await callAI(criticPrompt, { schema: criticSchema, apiKey: userKey });
-    
-    if (critique && !critique.approved && critique.revisionNotes) {
-      console.log(`[Critic Agent] Visual Roadmap rejected. Issues: ${critique.issues.length}. Retrying...`);
-      const revisionPrompt = prompt + `\n\nNOTE: A reviewer evaluated your previous attempt and found the following issues:\n${critique.revisionNotes}\n\nPlease revise the visual roadmap graph to address these issues.`;
-      
-      data = await callAI(revisionPrompt, { schema, apiKey: userKey }) ?? data;
-      reviewMeta = { revised: true, issuesFound: critique.issues.length };
-    } else if (critique) {
-      reviewMeta = { revised: false, issuesFound: critique.issues.length };
-    }
-    
-    // Defensive server-side sanitization
-    if (data && Array.isArray(data.nodes)) {
-      for (const node of data.nodes) {
-        if (Array.isArray(node.resources)) {
-          for (const resItem of node.resources) {
-            resItem.url = sanitizeResourceUrl(resItem.url, resItem.title, resItem.type);
-          }
-        }
-      }
-    }
-
-    (data as any)._reviewMeta = reviewMeta;
-    // --------------------
 
     res.json({ roadmap: data })
   } catch (err: any) {
@@ -694,7 +476,7 @@ ${JSON.stringify(data)}
 // ============================================================================
 // 2. API: Generate Study Guide Content
 app.post("/api/generate-lesson", requireAuth, async (req, res) => {
-  const { roadmapKey, moduleId, lessonId, lessonTitle, concepts, courseContext, documentContext, courseId } = req.body;
+  const { roadmapKey, moduleId, lessonId, lessonTitle, concepts, courseContext, documentContext, courseId, experienceLevel, backgroundContext, tone } = req.body;
   try {
     if (!lessonTitle) {
       res.status(400).json({ error: "Missing lessonTitle" });
@@ -705,10 +487,15 @@ app.post("/api/generate-lesson", requireAuth, async (req, res) => {
       ? documentContext.slice(0, 20_000)
       : "";
 
+    const toneInstruction = TONE_INSTRUCTIONS[tone || "friendly"] ?? TONE_INSTRUCTIONS.friendly;
+
     const prompt = `You are an expert tutor. Write a complete, 
 engaging study guide for:
 Lesson: "${lessonTitle}"
 Concepts: ${JSON.stringify(concepts || [])}
+Target Level: ${experienceLevel || "beginner"}
+Content tone: ${toneInstruction}
+${backgroundContext ? `Learner Background: ${backgroundContext}` : ""}
 ${safeDocContext ? `
 Relevant source material for this lesson:
 <document_context>
@@ -806,7 +593,7 @@ ${contentToEvaluate}
 // ============================================================================
 // 3. API: Generate Quiz
 app.post("/api/generate-quiz", requireAuth, async (req, res) => {
-  const { lessonTitle, lessonContent } = req.body;
+  const { lessonTitle, lessonContent, tone } = req.body;
   try {
     if (!lessonTitle) {
       res.status(400).json({ error: "Missing lessonTitle" });
@@ -823,9 +610,12 @@ app.post("/api/generate-quiz", requireAuth, async (req, res) => {
       })).length(3)
     });
 
+    const toneInstruction = TONE_INSTRUCTIONS[tone || "friendly"] ?? TONE_INSTRUCTIONS.friendly;
+
     const prompt = `Generate exactly 3 multiple-choice quiz 
 questions to test understanding of: "${lessonTitle}"
 ${lessonContent ? "Content summary: " + lessonContent.slice(0, 600) : ""}
+Content tone (especially for explanations): ${toneInstruction}
 
 Requirements:
 - Test understanding not memorization
@@ -893,7 +683,20 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
       return;
     }
 
+    let backgroundContext = "";
+    let experienceLevel = "beginner";
+    let tone = "friendly";
+
     if (courseId) {
+      const course = await db.course.findUnique({
+        where: { id: courseId },
+        select: { backgroundContext: true, experienceLevel: true, tone: true },
+      });
+      if (course) {
+        backgroundContext = course.backgroundContext || "";
+        experienceLevel = course.experienceLevel || "beginner";
+        tone = course.tone || "friendly";
+      }
       await db.courseMessage.create({ data: { courseId, role: "user", content: message } });
     }
 
@@ -924,10 +727,15 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
     res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
 
+    const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.friendly;
+
     const systemPrompt = `You are ZachCourse Assistant — a brilliant, warm, highly knowledgeable AI mentor.
 
 PRIMARY FOCUS: Help the student with "${currentCourseTitle || 'General Learning'}"
 ${currentLessonTitle ? `Current lesson: "${currentLessonTitle}"` : ""}
+Target Level: ${experienceLevel}
+Content tone: ${toneInstruction}
+${backgroundContext ? `Learner Background: ${backgroundContext}` : ""}
 ${memoryContext}
 
 CRITICAL INSTRUCTIONS FOR TOOLS:

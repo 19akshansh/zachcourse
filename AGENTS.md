@@ -26,6 +26,22 @@ All routes protected by `requireAuth` middleware (Better Auth session check) and
 
 ---
 
+## Course Personalization Engine (Tone & Background Context)
+
+ZachCourse implements a centralized personalization engine that dynamically alters the voice, formatting, and complexity of every single agent's response based on the learner's preferences:
+1. **Personalization Fields:**
+   - `experienceLevel`:🌱 Beginner, 🔥 Intermediate, 🚀 Advanced.
+   - `backgroundContext`: A 500-character free-text field highlighting past programming languages, favorite learning styles, and goals.
+   - `tone`: A 4-way style guideline configuration (Professional, Friendly, Gen Z, ELI5) stored in `src/lib/tone-options.ts`.
+2. **Multi-Agent Threading:**
+   - **Roadmap / Visual Roadmap Agents:** Adapts lesson topics, graph node counts, sequencing, and pacing parameters.
+   - **Lesson Agent:** Adapts the explanation style, vocabulary complexity, and introductory pacing.
+   - **Quiz Agent:** Shapes question scenarios, options, and explanations to mirror the chosen style.
+   - **Mentor Agent:** Feeds system guidelines directly into conversational system prompts for adaptive tutee chats.
+   - **Project Generation (generateProject):** Automatically extracts the course's `tone` and `backgroundContext` to customize the description, steps, and success criteria for module-end projects.
+
+---
+
 ## Agent 1 — Roadmap Agent
 
 **File:** `server.ts` → `POST /api/generate-roadmap`
@@ -41,6 +57,7 @@ All routes protected by `requireAuth` middleware (Better Auth session check) and
   sourceUrl?: string,     // optional reference URL
   textContent?: string,   // optional pasted syllabus, capped at 3000 chars in prompt
   experienceLevel: "beginner" | "intermediate" | "advanced",
+  backgroundContext?: string, // optional learner background and preferences
   weeklyHours: number
 }
 ```
@@ -149,7 +166,8 @@ z.object({
   lessonTitle: string,
   courseTopic: string,
   concepts: string[],
-  experienceLevel: string
+  experienceLevel: string,
+  backgroundContext?: string // optional learner background and preferences
 }
 ```
 
