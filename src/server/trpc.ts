@@ -254,7 +254,7 @@ export const appRouter = router({
                isTranslated = false;
             }
           } else {
-            isTranslated = false;
+             isTranslated = false;
           }
         }
 
@@ -1028,19 +1028,17 @@ Language instruction: ${languageInstruction}`;
 
       const mappedItems = items.map(roadmap => {
         let isTranslated = true;
-        if (language !== "en") {
-          if (roadmap.visualRoadmapTranslations && roadmap.visualRoadmapTranslations.length > 0) {
+        if (roadmap.visualRoadmapTranslations && roadmap.visualRoadmapTranslations.length > 0) {
             const trans = roadmap.visualRoadmapTranslations[0];
             let isValid = true;
             if (roadmap.roadmapData && typeof roadmap.roadmapData === 'object' && !Array.isArray(roadmap.roadmapData)) {
               const originalNodes = (roadmap.roadmapData as any).nodes || [];
               const transNodes = (trans.roadmapData as any)?.nodes || [];
-              
               if (originalNodes.length !== transNodes.length) {
                 isValid = false;
               } else {
-                const originalNodeIds = originalNodes.map((n: any) => n.id);
-                const transNodeIds = transNodes.map((n: any) => n.id);
+                const originalNodeIds = originalNodes.map((n) => n.id);
+                const transNodeIds = transNodes.map((n) => n.id);
                 for (let i = 0; i < originalNodeIds.length; i++) {
                   if (originalNodeIds[i] !== transNodeIds[i]) {
                     isValid = false;
@@ -1048,16 +1046,14 @@ Language instruction: ${languageInstruction}`;
                   }
                 }
               }
-
               if (isValid) {
                 const originalEdges = (roadmap.roadmapData as any).edges || [];
                 const transEdges = (trans.roadmapData as any)?.edges || [];
-                
                 if (originalEdges.length !== transEdges.length) {
                   isValid = false;
                 } else {
-                  const originalEdgeIds = originalEdges.map((e: any) => e.id);
-                  const transEdgeIds = transEdges.map((e: any) => e.id);
+                  const originalEdgeIds = originalEdges.map((e) => e.id || `${e.source}-${e.target}-${e.type}`);
+                  const transEdgeIds = transEdges.map((e) => e.id || `${e.source}-${e.target}-${e.type}`);
                   for (let i = 0; i < originalEdgeIds.length; i++) {
                     if (originalEdgeIds[i] !== transEdgeIds[i]) {
                       isValid = false;
@@ -1107,10 +1103,9 @@ Language instruction: ${languageInstruction}`;
                }
                isTranslated = false;
             }
-          } else {
+          } else if (language !== "en") {
             isTranslated = false;
           }
-        }
         const { visualRoadmapTranslations, ...rest } = roadmap;
         return { ...rest, _isTranslated: isTranslated };
       });
@@ -1136,43 +1131,39 @@ Language instruction: ${languageInstruction}`;
       if (!roadmap) throw new TRPCError({ code: "NOT_FOUND" });
 
       let isTranslated = true;
-      if (input.language !== "en") {
-        if (roadmap.visualRoadmapTranslations && roadmap.visualRoadmapTranslations.length > 0) {
+      if (roadmap.visualRoadmapTranslations && roadmap.visualRoadmapTranslations.length > 0) {
           const trans = roadmap.visualRoadmapTranslations[0];
           let isValid = true;
           if (roadmap.roadmapData && typeof roadmap.roadmapData === 'object' && !Array.isArray(roadmap.roadmapData)) {
             const originalNodes = (roadmap.roadmapData as any).nodes || [];
             const transNodes = (trans.roadmapData as any)?.nodes || [];
-            
-            if (originalNodes.length !== transNodes.length) {
-              isValid = false;
-            } else {
-              const originalNodeIds = originalNodes.map((n: any) => n.id);
-              const transNodeIds = transNodes.map((n: any) => n.id);
-              for (let i = 0; i < originalNodeIds.length; i++) {
-                if (originalNodeIds[i] !== transNodeIds[i]) {
-                  isValid = false;
-                  break;
-                }
-              }
-            }
-
-            if (isValid) {
-              const originalEdges = (roadmap.roadmapData as any).edges || [];
-              const transEdges = (trans.roadmapData as any)?.edges || [];
-              
-              if (originalEdges.length !== transEdges.length) {
+              if (originalNodes.length !== transNodes.length) {
                 isValid = false;
               } else {
-                const originalEdgeIds = originalEdges.map((e: any) => e.id);
-                const transEdgeIds = transEdges.map((e: any) => e.id);
-                for (let i = 0; i < originalEdgeIds.length; i++) {
-                  if (originalEdgeIds[i] !== transEdgeIds[i]) {
+                const originalNodeIds = originalNodes.map((n) => n.id);
+                const transNodeIds = transNodes.map((n) => n.id);
+                for (let i = 0; i < originalNodeIds.length; i++) {
+                  if (originalNodeIds[i] !== transNodeIds[i]) {
                     isValid = false;
                     break;
                   }
                 }
               }
+            if (isValid) {
+              const originalEdges = (roadmap.roadmapData as any).edges || [];
+              const transEdges = (trans.roadmapData as any)?.edges || [];
+                if (originalEdges.length !== transEdges.length) {
+                  isValid = false;
+                } else {
+                  const originalEdgeIds = originalEdges.map((e) => e.id || `${e.source}-${e.target}-${e.type}`);
+                  const transEdgeIds = transEdges.map((e) => e.id || `${e.source}-${e.target}-${e.type}`);
+                  for (let i = 0; i < originalEdgeIds.length; i++) {
+                    if (originalEdgeIds[i] !== transEdgeIds[i]) {
+                      isValid = false;
+                      break;
+                    }
+                  }
+                }
             }
 
             if (isValid && NON_LATIN_LANGUAGES.includes(input.language)) {
@@ -1215,10 +1206,9 @@ Language instruction: ${languageInstruction}`;
              }
              isTranslated = false;
           }
-        } else {
+        } else if (input.language !== "en") {
           isTranslated = false;
         }
-      }
 
       const { visualRoadmapTranslations, ...rest } = roadmap;
       return { ...rest, _isTranslated: isTranslated };
@@ -1242,6 +1232,26 @@ Language instruction: ${languageInstruction}`;
       })
     }),
 
+  
+  deleteVisualRoadmapTranslation: protectedProcedure
+    .input(z.object({
+      visualRoadmapId: z.string(),
+      language: z.string()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const roadmap = await ctx.prisma.visualRoadmap.findFirst({
+        where: { id: input.visualRoadmapId, userId: ctx.user.id }
+      });
+      if (!roadmap) throw new TRPCError({ code: "NOT_FOUND" });
+      
+      return await ctx.prisma.visualRoadmapTranslation.deleteMany({
+        where: {
+          visualRoadmapId: input.visualRoadmapId,
+          language: input.language
+        }
+      });
+    }),
+
   saveVisualRoadmapTranslation: protectedProcedure
     .input(z.object({
       visualRoadmapId: z.string(),
@@ -1262,25 +1272,16 @@ Language instruction: ${languageInstruction}`;
       if (roadmap.roadmapData && typeof roadmap.roadmapData === 'object' && !Array.isArray(roadmap.roadmapData)) {
         const originalNodes = (roadmap.roadmapData as any).nodes || [];
         const transNodes = (input.roadmapData as any)?.nodes || [];
-
         if (originalNodes.length !== transNodes.length) {
           console.warn(`[Translation Warning] trpc.saveVisualRoadmapTranslation nodes count mismatch. Original: ${originalNodes.length}, Translated: ${transNodes.length}`);
-          throw new TRPCError({
-            code: "BAD_REQUEST",
-            message: "Translation failed completeness check: nodes count mismatch"
-          });
+          throw new Error("Translation failed completeness check: nodes count mismatch");
         }
-
-        const originalNodeIds = originalNodes.map((n: any) => n.id);
-        const transNodeIds = transNodes.map((n: any) => n.id);
-
+        const originalNodeIds = originalNodes.map((n) => n.id);
+        const transNodeIds = transNodes.map((n) => n.id);
         for (let i = 0; i < originalNodeIds.length; i++) {
           if (originalNodeIds[i] !== transNodeIds[i]) {
             console.warn(`[Translation Warning] trpc.saveVisualRoadmapTranslation node ID mismatch at index ${i}. Original: ${originalNodeIds[i]}, Translated: ${transNodeIds[i]}`);
-            throw new TRPCError({
-              code: "BAD_REQUEST",
-              message: `Translation failed completeness check: node ID mismatch at index ${i}`
-            });
+            throw new Error(`Translation failed completeness check: node ID mismatch at index ${i}`);
           }
         }
       }

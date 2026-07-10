@@ -20,6 +20,8 @@ export interface VisualRoadmapsTabProps {
   onRoadmapGenerated: (data: any, meta: any) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onToggleFavorite: (id: string, val: boolean) => Promise<void>;
+  onForceRetranslate?: () => void;
+  isForceRetranslating?: boolean;
   onToggleNodeComplete: (roadmapId: string, nodeId: string) => Promise<void>;
   isRetranslating?: boolean;
 }
@@ -36,7 +38,9 @@ export default function VisualRoadmapsTab({
   onDelete,
   onToggleFavorite,
   onToggleNodeComplete,
-  isRetranslating = false
+  isRetranslating = false,
+  onForceRetranslate,
+  isForceRetranslating
 }: VisualRoadmapsTabProps) {
   const { t, i18n } = useTranslation(["roadmap", "common"]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -48,7 +52,8 @@ export default function VisualRoadmapsTab({
   const [sourceUrl, setSourceUrl] = useState("");
   const [documentContext, setDocumentContext] = useState("");
   const [uploadedFileNames, setUploadedFileNames] = useState<string[]>([]);
-  const [showForm, setShowForm] = useState(roadmaps.length === 0);
+  const [isFormExplicitlyOpen, setIsFormExplicitlyOpen] = useState(false);
+  const showForm = isFormExplicitlyOpen || roadmaps.length === 0;
   const [roadmapToDelete, setRoadmapToDelete] = useState<{ id: string; topic: string } | null>(null);
   const [isDeletingRoadmap, setIsDeletingRoadmap] = useState(false);
 
@@ -75,7 +80,7 @@ export default function VisualRoadmapsTab({
       if (!res.ok) throw new Error(data.error || t("common:toastGenerationFailed", { defaultValue: "Generation failed" }));
 
       await onRoadmapGenerated(data.roadmap, { topic, experienceLevel, backgroundContext, weeklyHours, tone });
-      setShowForm(false);
+      setIsFormExplicitlyOpen(false);
       setTopic("");
       setSourceUrl("");
     } catch (err: any) {
@@ -142,7 +147,7 @@ export default function VisualRoadmapsTab({
           </div>
           {roadmaps.length > 0 && (
             <button 
-              onClick={() => setShowForm(false)}
+              onClick={() => setIsFormExplicitlyOpen(false)}
               className="text-[#8E88AB] hover:text-white transition-colors"
             >
               {t("common:cancel", { defaultValue: "Cancel" })}
@@ -276,7 +281,7 @@ export default function VisualRoadmapsTab({
           </h2>
         </div>
         <button 
-          onClick={() => setShowForm(true)}
+          onClick={() => setIsFormExplicitlyOpen(true)}
           className="bg-[#2A2443] hover:bg-[#3F395B] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors border border-[#3F395B]"
         >
           {t("common:newRoadmap", { defaultValue: "+ New Roadmap" })}
@@ -372,6 +377,8 @@ export default function VisualRoadmapsTab({
               roadmapData={activeRoadmap.roadmapData}
               completedNodeIds={completedNodeIds}
               onToggleComplete={(nodeId) => onToggleNodeComplete(activeRoadmap.id, nodeId)}
+              onForceRetranslate={onForceRetranslate}
+              isForceRetranslating={isForceRetranslating}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-[#8E88AB]">

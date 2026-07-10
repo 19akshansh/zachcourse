@@ -388,6 +388,8 @@ export default function App() {
   const [activeCourse, setActiveCourse] = useState<any | null>(null);
   const [reloadCourseTrigger, setReloadCourseTrigger] = useState<number>(0);
   const [isForceRetranslating, setIsForceRetranslating] = useState<boolean>(false);
+  const [isForceRetranslatingVR, setIsForceRetranslatingVR] = useState<boolean>(false);
+  const [reloadVRoadmapTrigger, setReloadVRoadmapTrigger] = useState<number>(0);
   const [courses, setCourses] = useState<CourseListItem[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [isLoadingCourse, setIsLoadingCourse] = useState(false);
@@ -474,7 +476,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [activeVRoadmapId, i18n.language, sessionData]);
+  }, [activeVRoadmapId, i18n.language, sessionData, reloadVRoadmapTrigger]);
 
   // Derived states from activeCourse
   const currentRoadmap = activeCourse?.roadmapData;
@@ -1072,6 +1074,62 @@ Rules:
     }
   };
 
+
+  
+  const handleForceRetranslateVR = async () => {
+    if (!activeVRoadmapId) return;
+    const currentLanguage = i18n.language;
+
+    const confirmReset = window.confirm(
+      `Are you sure you want to force a re-translation of this roadmap into ${currentLanguage}? This will clear the cached translation and request a fresh translation from the AI model.`
+    );
+    if (!confirmReset) return;
+
+    setIsForceRetranslatingVR(true);
+    const toastId = toast.loading("Clearing translation cache and requesting fresh translation...");
+
+    try {
+      const userKey = localStorage.getItem("zc_user_key");
+      if (!userKey) {
+        toast.error("API Key required for translation.", { id: toastId });
+        setIsForceRetranslatingVR(false);
+        return;
+      }
+
+      // Delete existing translation
+      await trpc.deleteVisualRoadmapTranslation.mutate({
+        visualRoadmapId: activeVRoadmapId,
+        language: currentLanguage
+      });
+
+      // Fetch the raw roadmap
+      const rawRoadmap = await trpc.getVisualRoadmap.query({ id: activeVRoadmapId, language: "en" }); // fetching raw
+      if (!rawRoadmap) throw new Error("Roadmap not found");
+
+      // Translate it
+      const translatedVRoadmap = await translateWithRetry({ type: "vroadmap", content: rawRoadmap.roadmapData, language: currentLanguage }, userKey);
+      
+      // Save translation
+      await trpc.saveVisualRoadmapTranslation.mutate({
+        visualRoadmapId: activeVRoadmapId,
+        language: currentLanguage,
+        title: translatedVRoadmap.title || rawRoadmap.title,
+        topic: translatedVRoadmap.topic || rawRoadmap.topic,
+        description: translatedVRoadmap.description || rawRoadmap.description || "",
+        roadmapData: translatedVRoadmap
+      });
+
+      // Trigger reload
+      setReloadVRoadmapTrigger(prev => prev + 1);
+
+      toast.success("Retranslation completed successfully!", { id: toastId });
+    } catch (err: any) {
+      console.error("Force retranslate failed:", err);
+      toast.error(`Force retranslate failed: ${err.message || "Unknown error"}`, { id: toastId });
+    } finally {
+      setIsForceRetranslatingVR(false);
+    }
+  };
 
   const handleForceRetranslate = async () => {
     if (!activeCourseId) return;
@@ -1963,6 +2021,8 @@ ${lessonContent}`;
                 totalPages={vroadmapsTotalPages}
                 onPageChange={setVroadmapsPage}
                 hasKey={hasKey}
+                onForceRetranslate={handleForceRetranslateVR}
+                isForceRetranslating={isForceRetranslatingVR}
                 onRoadmapGenerated={async (roadmapData, meta) => {
                   const saved = await trpc.saveVisualRoadmap.mutate({
                     title: roadmapData.title,

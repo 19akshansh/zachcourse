@@ -284,11 +284,16 @@ topics, and structure from it where possible.
 6. End with exactly ONE "end" node (id: "end") 
    labeled "You're Job-Ready! 🎉" or similar
 7. Edges define the path:
-   - Lessons connect linearly within a module
+   - The "start" node must connect to the first module node.
+   - Each module node must connect to its first lesson node.
+   - Lessons connect linearly within a module.
+   - The last lesson in a module must connect to its milestone.
+   - Milestones gate the next module (connect milestone to next module node).
+   - The final milestone connects to the "end" node.
    - Some lessons can have parallel optional paths
-   - Milestones gate the next module
 8. Include 2-3 OPTIONAL side-path nodes for "going deeper"
    connected with type: "optional"
+9. CRITICAL: Every node MUST be connected. No floating nodes.
 
 CONTENT RULES:
 - Every lesson node MUST have: concepts (3-5 terms), 
@@ -350,16 +355,133 @@ ${JSON.stringify(data)}
     reviewMeta = { revised: false, issuesFound: critique.issues.length };
   }
   
-  // Defensive server-side sanitization
-  if (data && Array.isArray(data.nodes)) {
+
+  // Deterministic graph connectivity repair pass
+  if (data && Array.isArray(data.nodes) && Array.isArray(data.edges)) {
+    const connectedSet = new Set();
+    for (const edge of data.edges) {
+      if (edge.source) connectedSet.add(edge.source);
+      if (edge.target) connectedSet.add(edge.target);
+    }
+
     for (const node of data.nodes) {
-      if (Array.isArray(node.resources)) {
-        for (const resItem of node.resources) {
-          resItem.url = sanitizeResourceUrl(resItem.url, resItem.title, resItem.type);
+      if (!connectedSet.has(node.id)) {
+        console.warn(`[Critic Agent] Auto-repairing orphaned node: ${node.id} (${node.type})`);
+        
+        let attached = false;
+        if (node.type === "lesson") {
+          let targetId = null;
+          for (let i = data.nodes.indexOf(node) - 1; i >= 0; i--) {
+            const prev = data.nodes[i];
+            if (prev.moduleId === node.moduleId && connectedSet.has(prev.id)) {
+              targetId = prev.id;
+              break;
+            }
+          }
+          if (!targetId) {
+            const mod = data.nodes.find(n => n.id === node.moduleId || (n.type === "module" && n.id === node.moduleId));
+            if (mod) targetId = mod.id;
+          }
+          if (targetId) {
+            data.edges.push({ id: `repair-${targetId}-${node.id}`, source: targetId, target: node.id, type: "required" });
+            connectedSet.add(node.id);
+            attached = true;
+          }
+        } else if (node.type === "module") {
+          let targetId = "start";
+          for (let i = data.nodes.indexOf(node) - 1; i >= 0; i--) {
+            const prev = data.nodes[i];
+            if (prev.type === "milestone" && connectedSet.has(prev.id)) {
+              targetId = prev.id;
+              break;
+            }
+          }
+          data.edges.push({ id: `repair-${targetId}-${node.id}`, source: targetId, target: node.id, type: "required" });
+          connectedSet.add(node.id);
+          
+          const firstLesson = data.nodes.find(n => n.moduleId === node.id && n.type === "lesson");
+          if (firstLesson) {
+            data.edges.push({ id: `repair-${node.id}-${firstLesson.id}`, source: node.id, target: firstLesson.id, type: "required" });
+            connectedSet.add(firstLesson.id);
+          }
+          attached = true;
+        } else if (node.type === "milestone") {
+          let sourceId = null;
+          for (let i = data.nodes.indexOf(node) - 1; i >= 0; i--) {
+            const prev = data.nodes[i];
+            if (prev.type === "lesson" && prev.moduleId === node.moduleId) {
+              sourceId = prev.id;
+              break;
+            }
+          }
+          if (sourceId) {
+            data.edges.push({ id: `repair-${sourceId}-${node.id}`, source: sourceId, target: node.id, type: "required" });
+          } else {
+            const prev = data.nodes[data.nodes.indexOf(node) - 1];
+            if (prev) {
+              data.edges.push({ id: `repair-${prev.id}-${node.id}`, source: prev.id, target: node.id, type: "required" });
+            }
+          }
+          connectedSet.add(node.id);
+          attached = true;
+        }
+
+        if (!attached) {
+          let targetId = null;
+          for (let i = data.nodes.indexOf(node) - 1; i >= 0; i--) {
+            const prev = data.nodes[i];
+            if ((prev.type === "milestone" || prev.type === "module") && connectedSet.has(prev.id)) {
+              targetId = prev.id;
+              break;
+            }
+          }
+          if (!targetId) {
+            const prev = data.nodes[data.nodes.indexOf(node) - 1];
+            if (prev) targetId = prev.id;
+          }
+          if (targetId) {
+            data.edges.push({ id: `repair-${targetId}-${node.id}`, source: targetId, target: node.id, type: "optional" });
+            connectedSet.add(node.id);
+          }
         }
       }
     }
   }
+
+
+  // Defensive server-side sanitization and async URL reachability check
+  if (data && Array.isArray(data.nodes)) {
+    const urlChecks = [];
+    
+    for (const node of data.nodes) {
+      if (Array.isArray(node.resources)) {
+        for (const resItem of node.resources) {
+          resItem.url = sanitizeResourceUrl(resItem.url, resItem.title, resItem.type);
+          
+          if (resItem.url && !resItem.url.startsWith("https://www.google.com/search")) {
+            urlChecks.push((async () => {
+              try {
+                let response = await fetch(resItem.url, { method: 'HEAD', signal: AbortSignal.timeout(4000) });
+                if (!response.ok && response.status !== 405) {
+                  response = await fetch(resItem.url, { method: 'GET', headers: { 'Range': 'bytes=0-0' }, signal: AbortSignal.timeout(4000) });
+                }
+                if (!response.ok && response.type !== 'opaqueredirect') {
+                  const query = `${resItem.title} ${resItem.type}`.trim();
+                  resItem.url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                }
+              } catch (e) {
+                const query = `${resItem.title} ${resItem.type}`.trim();
+                resItem.url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+              }
+            })());
+          }
+        }
+      }
+    }
+    
+    await Promise.allSettled(urlChecks);
+  }
+
 
   if (data) {
     (data as any)._reviewMeta = reviewMeta;

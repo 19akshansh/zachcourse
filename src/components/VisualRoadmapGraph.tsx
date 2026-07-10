@@ -188,6 +188,10 @@ export interface VisualRoadmapGraphProps {
   completedNodeIds: string[];
   onToggleComplete: (nodeId: string) => Promise<void>;
   onClose?: () => void;
+  onForceRetranslate?: () => void;
+  isForceRetranslating?: boolean;
+  onForceRetranslate?: () => void;
+  isForceRetranslating?: boolean;
 }
 
 function VisualRoadmapGraphInner({
@@ -195,6 +199,8 @@ function VisualRoadmapGraphInner({
   completedNodeIds,
   onToggleComplete,
   onClose,
+  onForceRetranslate,
+  isForceRetranslating,
 }: VisualRoadmapGraphProps) {
   const { t } = useTranslation(["roadmap", "common"]);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -387,6 +393,16 @@ function VisualRoadmapGraphInner({
               <RotateCcw className="w-3.5 h-3.5" />
               {t("common:graph.resetView", { defaultValue: "Reset View" })}
             </button>
+            
+            {onForceRetranslate && (
+              <button 
+                onClick={onForceRetranslate}
+                disabled={isForceRetranslating}
+                className="mt-3 text-xs bg-amber-950/40 hover:bg-amber-900/60 text-amber-400 font-semibold px-3 py-1.5 rounded-lg border border-amber-500/30 transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <span>⚡ {t("common:forceRetranslate", { defaultValue: "Force Retranslate" })}</span>
+              </button>
+            )}
             {onClose && (
               <button 
                 onClick={onClose}
