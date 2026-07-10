@@ -163,24 +163,105 @@ export const appRouter = router({
       return { success: true };
     }),
 
-  getCourses: protectedProcedure.query(async ({ ctx }) => {
-    return await ctx.prisma.course.findMany({
-      where: { userId: ctx.user.id },
-      orderBy: { updatedAt: "desc" },
-      select: {
-        id: true,
-        title: true,
-        topic: true,
-        difficulty: true,
-        experienceLevel: true,
-        completedLessons: true,
-        roadmapData: true,
-        createdAt: true,
-        updatedAt: true,
-        isActive: true,
-      }
-    });
-  }),
+  getCourses: protectedProcedure
+    .input(z.object({ language: z.string().default("en") }).default({ language: "en" }))
+    .query(async ({ ctx, input }) => {
+      const courses = await ctx.prisma.course.findMany({
+        where: { userId: ctx.user.id },
+        orderBy: { updatedAt: "desc" },
+        include: {
+          courseTranslations: {
+            where: { language: input.language }
+          }
+        }
+      });
+
+      return courses.map(c => {
+        let isTranslated = true;
+        if (input.language !== "en") {
+          if (c.courseTranslations && c.courseTranslations.length > 0) {
+            const trans = c.courseTranslations[0];
+            let isValid = true;
+            if (c.roadmapData && typeof c.roadmapData === 'object' && !Array.isArray(c.roadmapData)) {
+              const originalModules = (c.roadmapData as any).modules || [];
+              const transModules = trans.modules as any[] || [];
+              
+              if (originalModules.length !== transModules.length) {
+                isValid = false;
+              } else {
+                const originalLessonIds: string[] = [];
+                const transLessonIds: string[] = [];
+
+                originalModules.forEach((m: any) => {
+                  if (m.lessons) {
+                    m.lessons.forEach((l: any) => originalLessonIds.push(l.id));
+                  }
+                });
+
+                transModules.forEach((m: any) => {
+                  if (m.lessons) {
+                    m.lessons.forEach((l: any) => transLessonIds.push(l.id));
+                  }
+                });
+
+                if (originalLessonIds.length !== transLessonIds.length) {
+                  isValid = false;
+                } else {
+                  for (let i = 0; i < originalLessonIds.length; i++) {
+                    if (originalLessonIds[i] !== transLessonIds[i]) {
+                      isValid = false;
+                      break;
+                    }
+                  }
+                }
+              }
+
+              // Script validation check for non-Latin target languages
+              if (isValid && NON_LATIN_LANGUAGES.includes(input.language)) {
+                if (isBadLatinTranslation(trans.title, input.language) || isBadLatinTranslation(trans.description, input.language)) {
+                  isValid = false;
+                } else {
+                  for (const m of transModules) {
+                    if (isBadLatinTranslation(m.title, input.language) || isBadLatinTranslation(m.description, input.language)) {
+                      isValid = false;
+                      break;
+                    }
+                    if (m.lessons) {
+                      for (const l of m.lessons) {
+                        if (isBadLatinTranslation(l.title, input.language) || isBadLatinTranslation(l.description, input.language)) {
+                          isValid = false;
+                          break;
+                        }
+                      }
+                    }
+                    if (!isValid) break;
+                  }
+                }
+              }
+
+              if (isValid) {
+                c.title = trans.title;
+                (c.roadmapData as any).modules = trans.modules;
+                if (c.roadmapData && typeof c.roadmapData === 'object' && !Array.isArray(c.roadmapData)) {
+                  (c.roadmapData as any).title = trans.title;
+                  (c.roadmapData as any).description = trans.description;
+                }
+              } else {
+                isTranslated = false;
+              }
+            } else {
+               c.title = trans.title;
+               isTranslated = false;
+            }
+          } else {
+            isTranslated = false;
+          }
+        }
+
+        const { courseTranslations, ...rest } = c;
+        return { ...rest, _isTranslated: isTranslated };
+      });
+    }),
 
   issueCertificate: protectedProcedure
     .input(z.object({ courseId: z.string() }))
@@ -268,6 +349,13 @@ export const appRouter = router({
       if (!course) throw new TRPCError({ code: "NOT_FOUND" });
       course.messages = course.messages.reverse();
       
+      // Update user progress currentCourse when they fetch/view a course
+      await ctx.prisma.userProgress.upsert({
+        where: { userId: ctx.user.id },
+        update: { currentCourse: course.title },
+        create: { userId: ctx.user.id, currentCourse: course.title, streakDays: 1 }
+      }).catch(err => console.error("Failed to update userProgress.currentCourse in getCourse", err));
+      
       let isTranslated = true;
       if (input.language !== "en") {
         if (course.courseTranslations && course.courseTranslations.length > 0) {
@@ -334,12 +422,17 @@ export const appRouter = router({
               course.title = trans.title;
               course.description = trans.description;
               (course.roadmapData as any).modules = trans.modules;
+              if (course.roadmapData && typeof course.roadmapData === 'object' && !Array.isArray(course.roadmapData)) {
+                (course.roadmapData as any).title = trans.title;
+                (course.roadmapData as any).description = trans.description;
+              }
             } else {
               isTranslated = false;
             }
           } else {
              course.title = trans.title;
              course.description = trans.description;
+             isTranslated = false;
           }
         } else {
           isTranslated = false;
@@ -847,8 +940,18 @@ Language instruction: ${languageInstruction}`;
         analysis = await callGemini(prompt, systemPrompt, { schema, apiKey: userKey });
       } catch (err) {
         console.error("Analysis failed", err);
+        const language = input.language || "en";
+        const fallbackMap: Record<string, string> = {
+          en: "Keep up the good work!",
+          ar: "واصل العمل الرائع!",
+          de: "Weiter so!",
+          es: "¡Sigue con el buen trabajo!",
+          fr: "Continuez comme ça !",
+          hi: "अच्छा काम करते रहें!",
+          zh: "继续保持！"
+        };
         analysis = {
-          recommendation: "Keep up the good work!",
+          recommendation: fallbackMap[language] || "Keep up the good work!",
           difficultyAdjustment: "maintain",
           reviewTopics: []
         };
@@ -896,10 +999,12 @@ Language instruction: ${languageInstruction}`;
     .input(z.object({
       page: z.number().default(1),
       pageSize: z.number().default(6),
+      language: z.string().optional().default("en")
     }).optional())
     .query(async ({ ctx, input }) => {
       const page = input?.page || 1;
       const pageSize = input?.pageSize || 6;
+      const language = input?.language || "en";
       
       const [items, totalCount] = await Promise.all([
         ctx.prisma.visualRoadmap.findMany({
@@ -908,17 +1013,10 @@ Language instruction: ${languageInstruction}`;
             { isFavorite: "desc" },
             { updatedAt: "desc" }
           ],
-          select: {
-            id: true,
-            title: true,
-            topic: true,
-            difficulty: true,
-            experienceLevel: true,
-            totalDuration: true,
-            isFavorite: true,
-            completedNodeIds: true,
-            roadmapData: true,
-            createdAt: true,
+          include: {
+            visualRoadmapTranslations: {
+              where: { language }
+            }
           },
           skip: (page - 1) * pageSize,
           take: pageSize,
@@ -928,21 +1026,202 @@ Language instruction: ${languageInstruction}`;
         })
       ]);
 
+      const mappedItems = items.map(roadmap => {
+        let isTranslated = true;
+        if (language !== "en") {
+          if (roadmap.visualRoadmapTranslations && roadmap.visualRoadmapTranslations.length > 0) {
+            const trans = roadmap.visualRoadmapTranslations[0];
+            let isValid = true;
+            if (roadmap.roadmapData && typeof roadmap.roadmapData === 'object' && !Array.isArray(roadmap.roadmapData)) {
+              const originalNodes = (roadmap.roadmapData as any).nodes || [];
+              const transNodes = (trans.roadmapData as any)?.nodes || [];
+              
+              if (originalNodes.length !== transNodes.length) {
+                isValid = false;
+              } else {
+                const originalNodeIds = originalNodes.map((n: any) => n.id);
+                const transNodeIds = transNodes.map((n: any) => n.id);
+                for (let i = 0; i < originalNodeIds.length; i++) {
+                  if (originalNodeIds[i] !== transNodeIds[i]) {
+                    isValid = false;
+                    break;
+                  }
+                }
+              }
+
+              if (isValid) {
+                const originalEdges = (roadmap.roadmapData as any).edges || [];
+                const transEdges = (trans.roadmapData as any)?.edges || [];
+                
+                if (originalEdges.length !== transEdges.length) {
+                  isValid = false;
+                } else {
+                  const originalEdgeIds = originalEdges.map((e: any) => e.id);
+                  const transEdgeIds = transEdges.map((e: any) => e.id);
+                  for (let i = 0; i < originalEdgeIds.length; i++) {
+                    if (originalEdgeIds[i] !== transEdgeIds[i]) {
+                      isValid = false;
+                      break;
+                    }
+                  }
+                }
+              }
+
+              if (isValid && NON_LATIN_LANGUAGES.includes(language)) {
+                if (isBadLatinTranslation(trans.title, language) || isBadLatinTranslation(trans.description, language)) {
+                  isValid = false;
+                } else {
+                  for (const n of transNodes) {
+                    if (isBadLatinTranslation(n.label || "", language) || isBadLatinTranslation(n.description || "", language)) {
+                      isValid = false;
+                      break;
+                    }
+                    if (n.concepts) {
+                      for (const c of n.concepts) {
+                        if (isBadLatinTranslation(c || "", language)) {
+                          isValid = false;
+                          break;
+                        }
+                      }
+                    }
+                    if (!isValid) break;
+                  }
+                }
+              }
+              
+              if (isValid) {
+                roadmap.title = trans.title;
+                roadmap.topic = trans.topic;
+                if (trans.description) {
+                  roadmap.description = trans.description;
+                }
+                roadmap.roadmapData = trans.roadmapData;
+              } else {
+                isTranslated = false;
+              }
+            } else {
+               roadmap.title = trans.title;
+               roadmap.topic = trans.topic;
+               if (trans.description) {
+                 roadmap.description = trans.description;
+               }
+               isTranslated = false;
+            }
+          } else {
+            isTranslated = false;
+          }
+        }
+        const { visualRoadmapTranslations, ...rest } = roadmap;
+        return { ...rest, _isTranslated: isTranslated };
+      });
+
       return {
-        items,
+        items: mappedItems,
         totalCount,
         totalPages: Math.ceil(totalCount / pageSize)
       };
     }),
 
   getVisualRoadmap: protectedProcedure
-    .input(z.object({ id: z.string() }))
+    .input(z.object({ id: z.string(), language: z.string().optional().default("en") }))
     .query(async ({ ctx, input }) => {
       const roadmap = await ctx.prisma.visualRoadmap.findFirst({
-        where: { id: input.id, userId: ctx.user.id }
-      })
-      if (!roadmap) throw new TRPCError({ code: "NOT_FOUND" })
-      return roadmap
+        where: { id: input.id, userId: ctx.user.id },
+        include: {
+          visualRoadmapTranslations: {
+            where: { language: input.language }
+          }
+        }
+      });
+      if (!roadmap) throw new TRPCError({ code: "NOT_FOUND" });
+
+      let isTranslated = true;
+      if (input.language !== "en") {
+        if (roadmap.visualRoadmapTranslations && roadmap.visualRoadmapTranslations.length > 0) {
+          const trans = roadmap.visualRoadmapTranslations[0];
+          let isValid = true;
+          if (roadmap.roadmapData && typeof roadmap.roadmapData === 'object' && !Array.isArray(roadmap.roadmapData)) {
+            const originalNodes = (roadmap.roadmapData as any).nodes || [];
+            const transNodes = (trans.roadmapData as any)?.nodes || [];
+            
+            if (originalNodes.length !== transNodes.length) {
+              isValid = false;
+            } else {
+              const originalNodeIds = originalNodes.map((n: any) => n.id);
+              const transNodeIds = transNodes.map((n: any) => n.id);
+              for (let i = 0; i < originalNodeIds.length; i++) {
+                if (originalNodeIds[i] !== transNodeIds[i]) {
+                  isValid = false;
+                  break;
+                }
+              }
+            }
+
+            if (isValid) {
+              const originalEdges = (roadmap.roadmapData as any).edges || [];
+              const transEdges = (trans.roadmapData as any)?.edges || [];
+              
+              if (originalEdges.length !== transEdges.length) {
+                isValid = false;
+              } else {
+                const originalEdgeIds = originalEdges.map((e: any) => e.id);
+                const transEdgeIds = transEdges.map((e: any) => e.id);
+                for (let i = 0; i < originalEdgeIds.length; i++) {
+                  if (originalEdgeIds[i] !== transEdgeIds[i]) {
+                    isValid = false;
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (isValid && NON_LATIN_LANGUAGES.includes(input.language)) {
+              if (isBadLatinTranslation(trans.title, input.language) || isBadLatinTranslation(trans.description, input.language)) {
+                isValid = false;
+              } else {
+                for (const n of transNodes) {
+                  if (isBadLatinTranslation(n.label || "", input.language) || isBadLatinTranslation(n.description || "", input.language)) {
+                    isValid = false;
+                    break;
+                  }
+                  if (n.concepts) {
+                    for (const c of n.concepts) {
+                      if (isBadLatinTranslation(c || "", input.language)) {
+                        isValid = false;
+                        break;
+                      }
+                    }
+                  }
+                  if (!isValid) break;
+                }
+              }
+            }
+            
+            if (isValid) {
+              roadmap.title = trans.title;
+              roadmap.topic = trans.topic;
+              if (trans.description) {
+                roadmap.description = trans.description;
+              }
+              roadmap.roadmapData = trans.roadmapData;
+            } else {
+              isTranslated = false;
+            }
+          } else {
+             roadmap.title = trans.title;
+             roadmap.topic = trans.topic;
+             if (trans.description) {
+               roadmap.description = trans.description;
+             }
+             isTranslated = false;
+          }
+        } else {
+          isTranslated = false;
+        }
+      }
+
+      const { visualRoadmapTranslations, ...rest } = roadmap;
+      return { ...rest, _isTranslated: isTranslated };
     }),
 
   saveVisualRoadmap: protectedProcedure
@@ -961,6 +1240,102 @@ Language instruction: ${languageInstruction}`;
       return await ctx.prisma.visualRoadmap.create({
         data: { userId: ctx.user.id, ...input }
       })
+    }),
+
+  saveVisualRoadmapTranslation: protectedProcedure
+    .input(z.object({
+      visualRoadmapId: z.string(),
+      language: z.string(),
+      title: z.string(),
+      topic: z.string(),
+      description: z.string().optional().default(""),
+      roadmapData: z.any()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify roadmap ownership
+      const roadmap = await ctx.prisma.visualRoadmap.findFirst({
+        where: { id: input.visualRoadmapId, userId: ctx.user.id }
+      });
+      if (!roadmap) throw new TRPCError({ code: "NOT_FOUND" });
+      
+      // Completeness check
+      if (roadmap.roadmapData && typeof roadmap.roadmapData === 'object' && !Array.isArray(roadmap.roadmapData)) {
+        const originalNodes = (roadmap.roadmapData as any).nodes || [];
+        const transNodes = (input.roadmapData as any)?.nodes || [];
+
+        if (originalNodes.length !== transNodes.length) {
+          console.warn(`[Translation Warning] trpc.saveVisualRoadmapTranslation nodes count mismatch. Original: ${originalNodes.length}, Translated: ${transNodes.length}`);
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Translation failed completeness check: nodes count mismatch"
+          });
+        }
+
+        const originalNodeIds = originalNodes.map((n: any) => n.id);
+        const transNodeIds = transNodes.map((n: any) => n.id);
+
+        for (let i = 0; i < originalNodeIds.length; i++) {
+          if (originalNodeIds[i] !== transNodeIds[i]) {
+            console.warn(`[Translation Warning] trpc.saveVisualRoadmapTranslation node ID mismatch at index ${i}. Original: ${originalNodeIds[i]}, Translated: ${transNodeIds[i]}`);
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Translation failed completeness check: node ID mismatch at index ${i}`
+            });
+          }
+        }
+      }
+
+      // Script validation check for non-Latin target languages
+      if (NON_LATIN_LANGUAGES.includes(input.language)) {
+        if (isBadLatinTranslation(input.title, input.language) || isBadLatinTranslation(input.topic, input.language) || (input.description && isBadLatinTranslation(input.description, input.language))) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Translation failed Latin script check: roadmap title, topic or description contains too much Latin script"
+          });
+        }
+        const transNodes = (input.roadmapData as any)?.nodes as any[] || [];
+        for (const n of transNodes) {
+          if (isBadLatinTranslation(n.label || "", input.language) || isBadLatinTranslation(n.description || "", input.language)) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Translation failed Latin script check: node "${n.label}" contains too much Latin script`
+            });
+          }
+          if (n.concepts) {
+            for (const c of n.concepts) {
+              if (isBadLatinTranslation(c || "", input.language)) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: `Translation failed Latin script check: concept "${c}" contains too much Latin script`
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return ctx.prisma.visualRoadmapTranslation.upsert({
+        where: {
+          visualRoadmapId_language: {
+            visualRoadmapId: input.visualRoadmapId,
+            language: input.language
+          }
+        },
+        create: {
+          visualRoadmapId: input.visualRoadmapId,
+          language: input.language,
+          title: input.title,
+          topic: input.topic,
+          description: input.description,
+          roadmapData: input.roadmapData
+        },
+        update: {
+          title: input.title,
+          topic: input.topic,
+          description: input.description,
+          roadmapData: input.roadmapData
+        }
+      });
     }),
 
   toggleFavoriteRoadmap: protectedProcedure
@@ -1121,11 +1496,13 @@ Return ONLY JSON matching this schema:
     .input(z.object({ 
       cohortId: z.string(),
       page: z.number().default(1),
-      pageSize: z.number().default(10)
+      pageSize: z.number().default(10),
+      language: z.string().optional().default("en")
     }))
     .query(async ({ ctx, input }) => {
       const page = input.page;
       const pageSize = input.pageSize;
+      const language = input.language || "en";
 
       const isMember = await ctx.prisma.cohortMember.findUnique({
         where: { cohortId_userId: { cohortId: input.cohortId, userId: ctx.user.id } }
@@ -1150,12 +1527,36 @@ Return ONLY JSON matching this schema:
         })
       ]);
 
-      const items = recentProgress.map(p => ({
-        userId: p.userId,
-        userName: p.user.name,
-        action: p.currentCourse ? `Studied ${p.currentCourse}` : 'Logged activity',
-        time: p.updatedAt
-      }));
+      const courses = await ctx.prisma.course.findMany({
+        where: { userId: { in: memberIds } },
+        include: {
+          courseTranslations: {
+            where: { language }
+          }
+        }
+      });
+
+      const items = recentProgress.map(p => {
+        let displayCourseName = p.currentCourse;
+        if (p.currentCourse) {
+          const userCourses = courses.filter(c => c.userId === p.userId);
+          const matchingCourse = userCourses.find(c => 
+            c.title === p.currentCourse || 
+            (c as any).courseTranslations?.some((t: any) => t.title === p.currentCourse)
+          );
+          if (matchingCourse) {
+            const trans = matchingCourse.courseTranslations?.[0];
+            displayCourseName = trans ? trans.title : matchingCourse.title;
+          }
+        }
+
+        return {
+          userId: p.userId,
+          userName: p.user.name,
+          action: displayCourseName ? `Studied ${displayCourseName}` : 'Logged activity',
+          time: p.updatedAt
+        };
+      });
 
       return {
         items,
@@ -1265,25 +1666,63 @@ Return ONLY JSON matching this schema:
     }),
 
   previewCohortByInviteCode: protectedProcedure
-    .input(z.object({ inviteCode: z.string() }))
+    .input(z.object({ 
+      inviteCode: z.string(),
+      language: z.string().optional().default("en")
+    }))
     .query(async ({ ctx, input }) => {
+      const language = input.language || "en";
       const cohort = await ctx.prisma.cohort.findUnique({
         where: { inviteCode: input.inviteCode },
         include: {
           owner: { select: { name: true } },
           members: true,
-          course: { select: { id: true, title: true, difficulty: true } },
-          visualRoadmap: { select: { id: true, title: true, difficulty: true } }
+          course: { 
+            include: {
+              courseTranslations: {
+                where: { language }
+              }
+            }
+          },
+          visualRoadmap: { 
+            include: {
+              visualRoadmapTranslations: {
+                where: { language }
+              }
+            }
+          }
         }
       });
       if (!cohort) return null;
+
+      if (cohort.course) {
+        const trans = (cohort.course as any).courseTranslations?.[0];
+        if (trans) {
+          cohort.course.title = trans.title;
+        }
+      }
+      if (cohort.visualRoadmap) {
+        const trans = (cohort.visualRoadmap as any).visualRoadmapTranslations?.[0];
+        if (trans) {
+          cohort.visualRoadmap.title = trans.title;
+        }
+      }
+
       return {
         id: cohort.id,
         name: cohort.name,
         ownerName: cohort.owner.name,
         memberCount: cohort.members.length,
-        course: cohort.course,
-        visualRoadmap: cohort.visualRoadmap,
+        course: cohort.course ? {
+          id: cohort.course.id,
+          title: cohort.course.title,
+          difficulty: cohort.course.difficulty
+        } : null,
+        visualRoadmap: cohort.visualRoadmap ? {
+          id: cohort.visualRoadmap.id,
+          title: cohort.visualRoadmap.title,
+          difficulty: cohort.visualRoadmap.difficulty
+        } : null,
         isAlreadyMember: cohort.members.some(m => m.userId === ctx.user.id)
       };
     }),
@@ -1651,10 +2090,12 @@ Return ONLY JSON matching this schema:
     .input(z.object({
       page: z.number().default(1),
       pageSize: z.number().default(8),
+      language: z.string().optional().default("en")
     }).optional())
     .query(async ({ ctx, input }) => {
       const page = input?.page || 1;
       const pageSize = input?.pageSize || 8;
+      const language = input?.language || "en";
       
       const [items, totalCount] = await Promise.all([
         ctx.prisma.cohortMember.findMany({
@@ -1662,8 +2103,20 @@ Return ONLY JSON matching this schema:
           include: {
             cohort: {
               include: {
-                course: true,
-                visualRoadmap: true,
+                course: {
+                  include: {
+                    courseTranslations: {
+                      where: { language }
+                    }
+                  }
+                },
+                visualRoadmap: {
+                  include: {
+                    visualRoadmapTranslations: {
+                      where: { language }
+                    }
+                  }
+                },
                 _count: { select: { members: true } }
               }
             }
@@ -1676,8 +2129,31 @@ Return ONLY JSON matching this schema:
         })
       ]);
 
+      const mappedItems = items.map(item => {
+        const cohort = item.cohort;
+        if (cohort) {
+          if (cohort.course) {
+            const trans = (cohort.course as any).courseTranslations?.[0];
+            if (trans) {
+              cohort.course.title = trans.title;
+              cohort.course.description = trans.description;
+            }
+            delete (cohort.course as any).courseTranslations;
+          }
+          if (cohort.visualRoadmap) {
+            const trans = (cohort.visualRoadmap as any).visualRoadmapTranslations?.[0];
+            if (trans) {
+              cohort.visualRoadmap.title = trans.title;
+              cohort.visualRoadmap.description = trans.description;
+            }
+            delete (cohort.visualRoadmap as any).visualRoadmapTranslations;
+          }
+        }
+        return item;
+      });
+
       return {
-        items,
+        items: mappedItems,
         totalCount,
         totalPages: Math.ceil(totalCount / pageSize)
       };

@@ -65,7 +65,9 @@
     "loadingLeaderboard": "Loading leaderboard...",
     "recentActivity": "Recent Activity",
     "loadingActivity": "Loading activity...",
-    "noRecentActivity": "No recent activity."
+    "noRecentActivity": "No recent activity.",
+    "actionStudied": "Studied {{course}}",
+    "actionLoggedActivity": "Logged activity"
   },
   "deleteConfirmTitle": "Delete Cohort?",
   "deleteConfirmBody": "Are you sure you want to permanently delete {{cohortName}}? This action is absolute and irreversible. All student progress metrics within this cohort will be deleted.",

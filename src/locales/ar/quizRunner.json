@@ -29,5 +29,7 @@
   "startLessonToPracticeDesc": "اختر أي درس من خارطة طريقك النشطة، انقر على 'خذ اختبارًا سريعًا' في عرض دليل دراسة الدرس، واختبر معرفتك هنا!",
   "goToRoadmapButton": "اذهب إلى خارطة الطريق",
   "topicWithTitle": "Topic: {{title}}",
-  "configureQuizDesc": "Customize the difficulty and length of your quiz for: {{title}}"
+  "configureQuizDesc": "Customize the difficulty and length of your quiz for: {{title}}",
+  "questionHeader": "السؤال {{index}}: {{question}}",
+  "keepUpGoodWork": "استمروا في العمل الجيد!"
 }

@@ -25,5 +25,10 @@
   "sourceMaterialLabel": "Material de origen (Opcional)",
   "roadmapUrlPlaceholder": "https://...",
   "generateButton": "Generar hoja de ruta visual ✨",
-  "generatingHint": "Generalmente toma 10-20 segundos"
+  "generatingHint": "Generalmente toma 10-20 segundos",
+  "${selectedNode": {
+    "type}": "${nodo seleccionado.tipo}"
+  },
+  "translatingRoadmap": "Traduciendo la hoja de ruta... 🗺️",
+  "pleaseWaitTranslating": "Espere mientras convertimos su gráfico de aprendizaje al idioma elegido."
 }

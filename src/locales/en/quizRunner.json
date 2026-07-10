@@ -1,4 +1,5 @@
 {
+  "keepUpGoodWork": "Keep up the good work!",
   "quizMasterAssessment": "Quiz master Assessment",
   "subtitle": "Test your retention with conceptual multiple-choice checks.",
   "tutorFormulating": "Tutor is formulating your quiz questions... 🧠",
@@ -29,5 +30,6 @@
   "startLessonToPracticeDesc": "Select any lesson from your active Roadmap, click Take Quick Quiz in the lesson study guide view, and test your knowledge here!",
   "goToRoadmapButton": "Go to Roadmap",
   "topicWithTitle": "Topic: {{title}}",
-  "configureQuizDesc": "Customize the difficulty and length of your quiz for: {{title}}"
+  "configureQuizDesc": "Customize the difficulty and length of your quiz for: {{title}}",
+  "questionHeader": "Question {{index}}: {{question}}"
 }

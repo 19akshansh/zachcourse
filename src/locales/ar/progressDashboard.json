@@ -40,5 +40,7 @@
   "toastCertNotLoaded": "لم يتم تحميل الشهادة.",
   "toastShareSuccess": "تم نسخ رابط الشهادة إلى الحافظة!",
   "share": "مشاركة",
-  "download": "تنزيل"
+  "download": "تنزيل",
+  "streakText": "StreekText",
+  "failedToRetrieveCertificate": "فشل في استرداد الشهادة."
 }

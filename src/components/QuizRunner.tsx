@@ -164,7 +164,11 @@ export const QuizRunner: React.FC<QuizRunnerProps> = ({
                     <Sparkles className="w-5 h-5 text-indigo-400" />
                     <h4 className="text-base font-bold text-[#FAF9FD]">{t("aiFeedbackTitle", { defaultValue: "AI Adaptive Feedback" })}</h4>
                   </div>
-                  <p className="text-[#CECADF] text-sm mb-4 leading-relaxed">{quizAnalysis.recommendation}</p>
+                  <p className="text-[#CECADF] text-sm mb-4 leading-relaxed">
+                    {quizAnalysis.recommendation === "Keep up the good work!"
+                      ? t("keepUpGoodWork", { defaultValue: "Keep up the good work!" })
+                      : quizAnalysis.recommendation}
+                  </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-[#0A0A0F] border border-[#2A2443] rounded-xl p-3">

@@ -40,5 +40,7 @@
   "toastCertNotLoaded": "Zertifikat nicht geladen.",
   "toastShareSuccess": "Zertifikatslink in die Zwischenablage kopiert!",
   "share": "Teilen",
-  "download": "Herunterladen"
+  "download": "Herunterladen",
+  "streakText": "streakText",
+  "failedToRetrieveCertificate": "Zertifikat konnte nicht abgerufen werden."
 }

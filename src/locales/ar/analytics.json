@@ -28,5 +28,7 @@
   "engagement": "مشاركة الطلاب",
   "timeSpent": "الوقت المستغرق (ساعات)",
   "successRate": "معدل نجاح الاختبارات",
-  "dailyActive": "الطلاب النشطون يوميًا"
+  "dailyActive": "الطلاب النشطون يوميًا",
+  "scoreLegend": "نتيجة",
+  "lessonsLegend": "الدروس"
 }

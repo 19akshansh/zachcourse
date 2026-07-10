@@ -29,5 +29,7 @@
   "startLessonToPracticeDesc": "अपने सक्रिय रोडमैप से किसी भी पाठ का चयन करें, पाठ अध्ययन मार्गदर्शिका दृश्य में टेक क्विक क्विज़ पर क्लिक करें, और यहां अपने ज्ञान का परीक्षण करें!",
   "goToRoadmapButton": "रोडमैप पर जाएं",
   "topicWithTitle": "विषय: {{title}}",
-  "configureQuizDesc": "अपनी प्रश्नोत्तरी की कठिनाई और लंबाई को अनुकूलित करें: {{title}}"
+  "configureQuizDesc": "अपनी प्रश्नोत्तरी की कठिनाई और लंबाई को अनुकूलित करें: {{title}}",
+  "questionHeader": "प्रश्न {{index}}: {{question}}",
+  "keepUpGoodWork": "अच्छा काम करते रहें!"
 }

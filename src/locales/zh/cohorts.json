@@ -65,7 +65,9 @@
     "loadingLeaderboard": "正在加载排行榜...",
     "recentActivity": "最近活动",
     "loadingActivity": "正在加载活动...",
-    "noRecentActivity": "没有最近的活动。"
+    "noRecentActivity": "没有最近的活动。",
+    "actionLoggedActivity": "记录的活动",
+    "actionStudied": "研究了{{course}}"
   },
   "deleteConfirmTitle": "删除群组？",
   "deleteConfirmBody": "您确定要永久删除 {{cohortName}} 吗？此操作是不可逆的。此群组内的所有学生进度指标都将被删除。",

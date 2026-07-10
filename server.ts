@@ -20,7 +20,7 @@ import { extractTextFromBuffer, detectPromptInjection } from "./src/lib/document
 import { retrieveRelevantMemories, storeMentorExchange } from "./src/lib/memory";
 import { isBlockedUrl, isBlockedUrlResolved } from "./src/lib/ssrf-guard";
 import { getLocalFallbackRoadmap, getLocalFallbackLesson, getLocalFallbackQuiz, getLocalFallbackMentorReply } from "./src/lib/local-fallbacks";
-import { generateRoadmapContent, generateVisualRoadmapContent, roadmapSchema } from "./src/server/agents/roadmap-agent";
+import { generateRoadmapContent, generateVisualRoadmapContent, roadmapSchema, visualRoadmapSchema } from "./src/server/agents/roadmap-agent";
 import { TONE_INSTRUCTIONS, LANGUAGE_INSTRUCTIONS } from "./src/lib/tone-options";
 import { fetchUrlTool, searchWebTool } from "./src/lib/mentor-tools";
 import { sanitizeResourceUrl } from "./src/lib/resource-link";
@@ -33,6 +33,10 @@ const quizSchema = z.object({
     correctIndex: z.number().min(0).max(3),
     explanation: z.string(),
   })).length(3)
+});
+
+const lessonOutlineSchema = z.object({
+  concepts: z.array(z.string())
 });
 
 const app = express();
@@ -685,6 +689,83 @@ ${typeof content === "string" ? content : JSON.stringify(content)}`;
            return;
          }
        }
+    } else if (req.body.type === "vroadmap") {
+       const prompt = `You are a professional educational curriculum translator.
+Translate the following JSON visual roadmap data (representing nodes and edges) into ${language}.
+Keep the exact JSON keys, structure, IDs, and array lengths intact.
+Translate all student-facing text values into ${language}:
+- "title"
+- "topic" (short human title used for card lists)
+- "description"
+- "totalDuration"
+- "prerequisites" (each item in the array)
+- "label" (for both nodes and edges)
+- "description" (for nodes)
+- "concepts" (each item in the array for nodes)
+- "title" (for resources inside nodes)
+
+CRITICAL SPECIFICATION FOR PROJECT LABELS:
+- For any node that represents a project (e.g. type: "project"), you MUST translate the complete, specific label (e.g., "Module 2 Project: Word Guessing Game") to its equivalent in ${language}, retaining all specific project names. Do NOT truncate or use generic placeholders.
+
+Do NOT translate or modify:
+- Any "id" fields
+- Any "type" fields
+- Any "source" or "target" fields in edges
+- Any "moduleId" fields
+- Any "order" fields
+- Any "url" fields in resources
+
+JSON content to translate:
+${typeof content === "string" ? content : JSON.stringify(content)}`;
+
+       translatedContent = await callAI(prompt, { schema: visualRoadmapSchema, apiKey: activeKey });
+
+       // Completeness & validation check for Visual Roadmap
+       let original;
+       try { original = typeof content === "string" ? JSON.parse(content) : content; } catch(e) {}
+       if (original && translatedContent) {
+         if (original.nodes && translatedContent.nodes) {
+           if (original.nodes.length !== translatedContent.nodes.length) {
+             console.warn(`[Translation Warning] Visual Roadmap nodes count mismatch. Original: ${original.nodes.length}, Translated: ${translatedContent.nodes.length}`);
+             res.status(500).json({ error: "Translation failed completeness check: nodes count mismatch" });
+             return;
+           }
+           
+           // Ensure original IDs and order are preserved
+           for (let i = 0; i < original.nodes.length; i++) {
+             translatedContent.nodes[i].id = original.nodes[i].id;
+             translatedContent.nodes[i].type = original.nodes[i].type;
+             if (original.nodes[i].moduleId) {
+               translatedContent.nodes[i].moduleId = original.nodes[i].moduleId;
+             }
+             if (original.nodes[i].order !== undefined) {
+               translatedContent.nodes[i].order = original.nodes[i].order;
+             }
+             if (original.nodes[i].resources && translatedContent.nodes[i].resources) {
+               for (let j = 0; j < original.nodes[i].resources.length; j++) {
+                 if (original.nodes[i].resources[j].url) {
+                   translatedContent.nodes[i].resources[j].url = original.nodes[i].resources[j].url;
+                 }
+               }
+             }
+           }
+         }
+         
+         if (original.edges && translatedContent.edges) {
+           if (original.edges.length !== translatedContent.edges.length) {
+             console.warn(`[Translation Warning] Visual Roadmap edges count mismatch. Original: ${original.edges.length}, Translated: ${translatedContent.edges.length}`);
+             res.status(500).json({ error: "Translation failed completeness check: edges count mismatch" });
+             return;
+           }
+           
+           for (let i = 0; i < original.edges.length; i++) {
+             translatedContent.edges[i].id = original.edges[i].id;
+             translatedContent.edges[i].source = original.edges[i].source;
+             translatedContent.edges[i].target = original.edges[i].target;
+             translatedContent.edges[i].type = original.edges[i].type;
+           }
+         }
+       }
     } else if (req.body.type === "roadmap") {
        const prompt = `You are a professional educational curriculum translator.
 Translate the following JSON roadmap data into ${language}.
@@ -767,6 +848,11 @@ ${typeof content === "string" ? content : JSON.stringify(content)}`;
            }
          }
        }
+    } else if (req.body.type === "lesson-outline") {
+       const prompt = `Translate the following lesson outline concepts into ${language}. Return ONLY the translated concepts as a flat JSON array under the "concepts" key.
+JSON content to translate:
+${typeof content === "string" ? content : JSON.stringify(content)}`;
+       translatedContent = await callAI(prompt, { schema: lessonOutlineSchema, apiKey: activeKey });
     } else {
        const prompt = `Translate the following educational content into ${language} exactly. Preserve all markdown formatting, structure, emojis, and code blocks.
 Content to translate:

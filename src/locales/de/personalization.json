@@ -11,6 +11,9 @@
     "friendly": "Freundlich",
     "professional": "Professionell",
     "genz": "Gen Z",
-    "eli5": "ELI5"
+    "eli5": "ELI5",
+    "${opt": {
+      "id}": "Töne.${opt.id}"
+    }
   }
 }

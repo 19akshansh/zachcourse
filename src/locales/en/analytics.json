@@ -28,5 +28,7 @@
   "engagement": "Student Engagement",
   "timeSpent": "Time Spent (Hours)",
   "successRate": "Quiz Success Rate",
-  "dailyActive": "Daily Active Students"
+  "dailyActive": "Daily Active Students",
+  "lessonsLegend": "lessons",
+  "scoreLegend": "score"
 }

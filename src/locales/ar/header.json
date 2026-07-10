@@ -35,5 +35,11 @@
   "profileSubtitle": "تحقق من وجودك كمطور وخصص هويتك التعليمية.",
   "loadingSettings": "جارٍ تحميل الإعدادات...",
   "userMenu": "قائمة حساب المستخدم",
-  "toggleMenu": "تبديل قائمة التنقل"
+  "toggleMenu": "تبديل قائمة التنقل",
+  "bioUpdateFailed": "فشل في تحديث السيرة الذاتية",
+  "disconnectSuccess": "تم قطع اتصال حسابك ${providerName} بنجاح.",
+  "bioUpdatedSuccess": "تم تحديث السيرة الذاتية بنجاح! ✓",
+  "disconnectFailed": "فشل في قطع اتصال ${providerName}",
+  "disconnectConfirm": "هل أنت متأكد أنك تريد قطع اتصال حسابك ${providerName}؟",
+  "connectedAs": "متصل كـ {{username}}"
 }

@@ -28,5 +28,7 @@
   "engagement": "Engagement des Étudiants",
   "timeSpent": "Temps Passé (Heures)",
   "successRate": "Taux de Réussite aux Quiz",
-  "dailyActive": "Étudiants Actifs Quotidiens"
+  "dailyActive": "Étudiants Actifs Quotidiens",
+  "scoreLegend": "score",
+  "lessonsLegend": "leçons"
 }

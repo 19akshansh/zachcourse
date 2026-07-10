@@ -25,5 +25,10 @@
   "sourceMaterialLabel": "源材料（可选）",
   "roadmapUrlPlaceholder": "https://...",
   "generateButton": "生成视觉路线图 ✨",
-  "generatingHint": "通常需要 10-20 秒"
+  "generatingHint": "通常需要 10-20 秒",
+  "${selectedNode": {
+    "type}": "${selectedNode.type}"
+  },
+  "pleaseWaitTranslating": "我们正在将您的学习图表转换为您选择的语言，请稍候。",
+  "translatingRoadmap": "翻译路线图...🗺️"
 }

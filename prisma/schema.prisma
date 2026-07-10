@@ -188,8 +188,24 @@ model VisualRoadmap {
   user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   clonedFromRoadmapId String?
   cohorts             Cohort[]
+  visualRoadmapTranslations VisualRoadmapTranslation[]
 
   @@map("visual_roadmap")
+}
+
+model VisualRoadmapTranslation {
+  id               String        @id @default(cuid())
+  visualRoadmapId  String
+  language         String
+  title            String
+  topic            String
+  description      String
+  roadmapData      Json          // Translated node graph data
+
+  visualRoadmap    VisualRoadmap @relation(fields: [visualRoadmapId], references: [id], onDelete: Cascade)
+
+  @@unique([visualRoadmapId, language])
+  @@map("visual_roadmap_translation")
 }
 
 model LessonMemory {

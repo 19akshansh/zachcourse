@@ -33,6 +33,7 @@ interface AppSidebarProps {
   onDeleteCourse: (id: string) => void;
   onRenameCourse: (id: string, newTitle: string) => void;
   isLoadingCourses?: boolean;
+  isRetranslatingCourse?: boolean;
 }
 
 export default function AppSidebar({
@@ -50,6 +51,7 @@ export default function AppSidebar({
   onDeleteCourse,
   onRenameCourse,
   isLoadingCourses,
+  isRetranslatingCourse = false,
 }: AppSidebarProps) {
   const { t } = useTranslation("common");
   const [contextMenuCourseId, setContextMenuCourseId] = useState<string | null>(null);
@@ -300,6 +302,9 @@ export default function AppSidebar({
           {!effectivelyCollapsed && (
             <div className="flex items-center justify-between px-2 mb-2">
               <span className="text-[10px] font-bold text-[#8E88AB] uppercase tracking-wider">{t("yourCourses", { defaultValue: "Your Courses" })}</span>
+              {isRetranslatingCourse && (
+                <Loader2 className="w-3.5 h-3.5 text-[#4F46E5] animate-spin shrink-0" />
+              )}
             </div>
           )}
           

@@ -28,5 +28,7 @@
   "engagement": "学生参与度",
   "timeSpent": "花费的时间 (小时)",
   "successRate": "测验成功率",
-  "dailyActive": "每日活跃学生"
+  "dailyActive": "每日活跃学生",
+  "scoreLegend": "分数",
+  "lessonsLegend": "教训"
 }

@@ -28,5 +28,7 @@
   "engagement": "Compromiso del Estudiante",
   "timeSpent": "Tiempo Dedicado (Horas)",
   "successRate": "Tasa de Éxito en Cuestionarios",
-  "dailyActive": "Estudiantes Activos Diarios"
+  "dailyActive": "Estudiantes Activos Diarios",
+  "scoreLegend": "puntaje",
+  "lessonsLegend": "lecciones"
 }

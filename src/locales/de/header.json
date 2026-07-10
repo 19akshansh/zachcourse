@@ -35,5 +35,11 @@
   "profileSubtitle": "Überprüfen Sie Ihre Entwicklerpräsenz.",
   "loadingSettings": "Einstellungen werden geladen...",
   "userMenu": "Benutzermenü",
-  "toggleMenu": "Menü umschalten"
+  "toggleMenu": "Menü umschalten",
+  "disconnectConfirm": "Sind Sie sicher, dass Sie Ihr ${providerName}-Konto trennen möchten?",
+  "bioUpdatedSuccess": "Bio erfolgreich aktualisiert! ✓",
+  "disconnectFailed": "${providerName} konnte nicht getrennt werden",
+  "connectedAs": "Verbunden als {{username}}",
+  "bioUpdateFailed": "Bio konnte nicht aktualisiert werden",
+  "disconnectSuccess": "Ihr ${providerName}-Konto wurde erfolgreich getrennt."
 }

@@ -153,7 +153,7 @@ export default function AnalyticsDashboard() {
                   contentStyle={{ backgroundColor: '#1E1A33', borderColor: '#2A2443', borderRadius: '8px', color: '#FAF9FD' }}
                   itemStyle={{ color: '#818CF8' }}
                 />
-                <Bar dataKey="lessons" fill="#4F46E5" radius={[4, 4, 0, 0]} />
+                <Bar name={t("lessonsLegend", { defaultValue: "lessons" })} dataKey="lessons" fill="#4F46E5" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -186,7 +186,7 @@ export default function AnalyticsDashboard() {
                   contentStyle={{ backgroundColor: '#1E1A33', borderColor: '#2A2443', borderRadius: '8px', color: '#FAF9FD' }}
                   itemStyle={{ color: '#10B981' }}
                 />
-                <Line type="monotone" dataKey="score" stroke="#10B981" strokeWidth={3} dot={{ r: 4, fill: '#10B981' }} activeDot={{ r: 6 }} />
+                <Line name={t("scoreLegend", { defaultValue: "score" })} type="monotone" dataKey="score" stroke="#10B981" strokeWidth={3} dot={{ r: 4, fill: '#10B981' }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>

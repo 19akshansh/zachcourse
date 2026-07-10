@@ -24,12 +24,12 @@ import { useTranslation } from "react-i18next";
 // --- CUSTOM NODES ---
 
 const StartNode = ({ data }: any) => {
-  const { t } = useTranslation(["roadmap"]);
+  const { t } = useTranslation(["roadmap", "common"]);
   return (
   <div className="flex items-center justify-center w-20 h-20 bg-[#10B981]/20 rounded-full border-2 border-[#10B981] shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-pulse">
     <div className="text-center">
       <div className="text-2xl">🚀</div>
-      <div className="text-[10px] font-bold text-[#10B981] uppercase tracking-wider mt-1">{t("graph.startNode", { defaultValue: "Start" })}</div>
+      <div className="text-[10px] font-bold text-[#10B981] uppercase tracking-wider mt-1">{t("common:graph.startNode", { defaultValue: "Start" })}</div>
     </div>
     <Handle type="source" position={Position.Bottom} className="opacity-0" />
   </div>
@@ -43,7 +43,7 @@ const ModuleNode = ({ data }: any) => {
     <Handle type="target" position={Position.Top} className="opacity-0" />
     <div className="bg-[#4F46E5] px-4 py-2 flex items-center justify-between">
       <span className="text-xs font-bold text-white uppercase tracking-wider">{t("common:graph.modulePrefix", { defaultValue: "Module" })} {data.order}</span>
-      <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{data.lessonCount || 0} {t("graph.lessonsCountLabel", { defaultValue: "Lessons" })}</span>
+      <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{data.lessonCount || 0} {t("common:graph.lessonsCountLabel", { defaultValue: "Lessons" })}</span>
     </div>
     <div className="p-4">
       <h3 className="font-bold text-white text-sm">{data.label}</h3>
@@ -56,12 +56,16 @@ const ModuleNode = ({ data }: any) => {
 const LessonNode = ({ data }: any) => {
   const { t } = useTranslation(["roadmap", "common"]);
   const isCompleted = data.isCompleted;
+  const difficultyLabel = data.difficulty 
+    ? t(`common:${data.difficulty.toLowerCase()}`, { defaultValue: data.difficulty })
+    : t("common:graph.beginnerDifficulty", { defaultValue: "Beginner" });
+
   return (
     <div className={`w-[180px] bg-[#111118] border-2 ${isCompleted ? 'border-[#10B981]' : data.isActive ? 'border-[#4F46E5]' : 'border-[#2A2443]'} rounded-xl p-4 shadow-xl transition-all cursor-pointer hover:border-[#4F46E5]`}>
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <div className="flex justify-between items-start mb-2">
         <span className={`text-[10px] font-bold px-2 py-1 rounded-md ${data.difficulty === 'Beginner' ? 'bg-emerald-500/10 text-emerald-400' : data.difficulty === 'Intermediate' ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'}`}>
-          {data.difficulty || t("graph.beginnerDifficulty", { defaultValue: "Beginner" })}
+          {difficultyLabel}
         </span>
         {isCompleted && <CheckCircle className="w-4 h-4 text-[#10B981]" />}
       </div>
@@ -73,14 +77,14 @@ const LessonNode = ({ data }: any) => {
 };
 
 const MilestoneNode = ({ data }: any) => {
-  const { t } = useTranslation(["roadmap"]);
+  const { t } = useTranslation(["roadmap", "common"]);
   return (
   <div className="w-[160px] h-[160px] flex items-center justify-center relative">
     <Handle type="target" position={Position.Top} className="opacity-0" />
     <div className="absolute inset-0 bg-[#F59E0B]/10 border-2 border-[#F59E0B] rotate-45 rounded-2xl shadow-[0_0_30px_rgba(245,158,11,0.2)]"></div>
     <div className="relative z-10 text-center p-4">
       <Trophy className="w-8 h-8 text-[#F59E0B] mx-auto mb-2" />
-      <div className="text-xs font-bold text-[#F59E0B] uppercase tracking-wider mb-1">{t("graph.milestoneNode", { defaultValue: "Milestone" })}</div>
+      <div className="text-xs font-bold text-[#F59E0B] uppercase tracking-wider mb-1">{t("common:graph.milestoneNode", { defaultValue: "Milestone" })}</div>
       <h4 className="font-bold text-white text-xs leading-tight">{data.label}</h4>
     </div>
     <Handle type="source" position={Position.Bottom} className="opacity-0" />
@@ -107,13 +111,13 @@ const ProjectNode = ({ data }: any) => {
 };
 
 const EndNode = ({ data }: any) => {
-  const { t } = useTranslation(["roadmap"]);
+  const { t } = useTranslation(["roadmap", "common"]);
   return (
   <div className="flex items-center justify-center w-24 h-24 bg-[#EAB308]/20 rounded-full border-4 border-[#EAB308] shadow-[0_0_40px_rgba(234,179,8,0.4)] relative">
     <Handle type="target" position={Position.Top} className="opacity-0" />
     <div className="text-center relative z-10">
       <div className="text-3xl mb-1">🏆</div>
-      <div className="text-[10px] font-bold text-[#EAB308] uppercase tracking-wider">{t("graph.completeNode", { defaultValue: "Complete!" })}</div>
+      <div className="text-[10px] font-bold text-[#EAB308] uppercase tracking-wider">{t("common:graph.completeNode", { defaultValue: "Complete!" })}</div>
     </div>
   </div>
   );
@@ -192,7 +196,7 @@ function VisualRoadmapGraphInner({
   onToggleComplete,
   onClose,
 }: VisualRoadmapGraphProps) {
-  const { t } = useTranslation("roadmap");
+  const { t } = useTranslation(["roadmap", "common"]);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -369,11 +373,11 @@ function VisualRoadmapGraphInner({
         />
         
         <Panel position="top-left" className="bg-[#1A172E]/90 backdrop-blur border border-[#2A2443] p-4 rounded-xl shadow-2xl m-4">
-          <h2 className="text-xl font-bold text-white mb-1">{roadmapData?.title || t("graph.visualRoadmap", { defaultValue: "Visual Roadmap" })}</h2>
+          <h2 className="text-xl font-bold text-white mb-1">{roadmapData?.title || t("common:graph.visualRoadmap", { defaultValue: "Visual Roadmap" })}</h2>
           <div className="flex items-center gap-4 text-xs font-medium text-[#8E88AB]">
-            <span>{roadmapData?.nodes?.length || 0} {t("graph.nodesCount", { defaultValue: "Nodes" })}</span>
-            <span>{completedNodeIds.length} {t("graph.completedCount", { defaultValue: "Completed" })}</span>
-            <span>{roadmapData?.totalDuration || t("graph.estDuration", { defaultValue: "Est. 4 weeks" })}</span>
+            <span>{roadmapData?.nodes?.length || 0} {t("common:graph.nodesCount", { defaultValue: "Nodes" })}</span>
+            <span>{completedNodeIds.length} {t("common:graph.completedCount", { defaultValue: "Completed" })}</span>
+            <span>{roadmapData?.totalDuration || t("common:graph.estDuration", { defaultValue: "Est. 4 weeks" })}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -381,14 +385,14 @@ function VisualRoadmapGraphInner({
               className="mt-3 text-xs bg-[#2A2443] hover:bg-[#3F395B] text-white px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              {t("graph.resetView", { defaultValue: "Reset View" })}
+              {t("common:graph.resetView", { defaultValue: "Reset View" })}
             </button>
             {onClose && (
               <button 
                 onClick={onClose}
                 className="mt-3 text-xs bg-[#2A2443] hover:bg-[#3F395B] text-white px-3 py-1.5 rounded-lg transition-colors"
               >
-                {t("graph.backToRoadmaps", { defaultValue: "Back to Roadmaps" })}
+                {t("common:graph.backToRoadmaps", { defaultValue: "Back to Roadmaps" })}
               </button>
             )}
           </div>
@@ -397,7 +401,7 @@ function VisualRoadmapGraphInner({
         {!isTouchDevice && (
           <Panel position="bottom-right" className="mb-2 mr-2">
             <div className="text-[10px] text-[#8E88AB] bg-[#1A172E]/80 backdrop-blur px-2 py-1 rounded-md border border-[#2A2443]">
-              {t("graph.clickToJump", { defaultValue: "💡 Click the map to jump around" })}
+              {t("common:graph.clickToJump", { defaultValue: "💡 Click the map to jump around" })}
             </div>
           </Panel>
         )}
@@ -407,94 +411,106 @@ function VisualRoadmapGraphInner({
       <div 
         className={`absolute top-0 right-0 h-full w-[320px] bg-[#111118]/95 backdrop-blur-xl border-l border-[#2A2443] shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${selectedNodeId ? 'translate-x-0' : 'translate-x-full'}`}
       >
-        {selectedNode && (
-          <div className="h-full flex flex-col">
-            <div className="p-4 border-b border-[#2A2443] flex justify-between items-center">
-              <span className="text-xs font-bold text-[#8E88AB] uppercase tracking-wider">
-                {t("graph.typeDetails", { type: selectedNode.type, defaultValue: "{{type}} Details", interpolation: { escapeValue: false } })}
-              </span>
-              <button onClick={() => setSelectedNodeId(null)} className="p-1 hover:bg-[#2A2443] rounded-lg transition-colors text-[#8E88AB] hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 flex-1 overflow-y-auto">
-              <h3 className="text-xl font-bold text-white mb-2">{selectedNode.label}</h3>
+        {selectedNode && (() => {
+          const typeLabel = t(`common:graph.${selectedNode.type}Node`, {
+            defaultValue: t(`roadmap:${selectedNode.type}`, {
+              defaultValue: selectedNode.type.charAt(0).toUpperCase() + selectedNode.type.slice(1)
+            })
+          });
+          const detailsLabel = `${typeLabel} ${t("common:details", { defaultValue: "Details" })}`;
+          const difficultyLabel = selectedNode.difficulty
+            ? t(`common:${selectedNode.difficulty.toLowerCase()}`, { defaultValue: selectedNode.difficulty })
+            : undefined;
+
+          return (
+            <div className="h-full flex flex-col">
+              <div className="p-4 border-b border-[#2A2443] flex justify-between items-center">
+                <span className="text-xs font-bold text-[#8E88AB] uppercase tracking-wider">
+                  {detailsLabel}
+                </span>
+                <button onClick={() => setSelectedNodeId(null)} className="p-1 hover:bg-[#2A2443] rounded-lg transition-colors text-[#8E88AB] hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
               
-              <div className="flex gap-2 mb-6">
-                {selectedNode.duration && (
-                  <span className="bg-[#1A172E] text-[#8E88AB] px-2.5 py-1 rounded-md text-xs font-medium">
-                    ⏱️ {selectedNode.duration}
-                  </span>
-                )}
-                {selectedNode.difficulty && (
-                  <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${selectedNode.difficulty === 'Beginner' ? 'bg-emerald-500/10 text-emerald-400' : selectedNode.difficulty === 'Intermediate' ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                    {selectedNode.difficulty}
-                  </span>
-                )}
-              </div>
-
-              <div className="prose prose-invert prose-sm mb-6">
-                <p className="text-[#8E88AB] leading-relaxed">{selectedNode.description}</p>
-              </div>
-
-              {selectedNode.concepts && selectedNode.concepts.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3">{t("graph.keyConcepts", { defaultValue: "Key Concepts" })}</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedNode.concepts.map((concept: string, i: number) => (
-                      <span key={i} className="bg-[#4F46E5]/10 text-[#4F46E5] px-2 py-1 rounded border border-[#4F46E5]/20 text-xs font-medium">
-                        {concept}
-                      </span>
-                    ))}
-                  </div>
+              <div className="p-6 flex-1 overflow-y-auto">
+                <h3 className="text-xl font-bold text-white mb-2">{selectedNode.label}</h3>
+                
+                <div className="flex gap-2 mb-6">
+                  {selectedNode.duration && (
+                    <span className="bg-[#1A172E] text-[#8E88AB] px-2.5 py-1 rounded-md text-xs font-medium">
+                      ⏱️ {selectedNode.duration}
+                    </span>
+                  )}
+                  {difficultyLabel && (
+                    <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${selectedNode.difficulty === 'Beginner' ? 'bg-emerald-500/10 text-emerald-400' : selectedNode.difficulty === 'Intermediate' ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                      {difficultyLabel}
+                    </span>
+                  )}
                 </div>
-              )}
 
-              {selectedNode.resources && selectedNode.resources.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3">{t("graph.resources", { defaultValue: "Resources" })}</h4>
-                  <div className="space-y-2">
-                    {selectedNode.resources.map((res: any, i: number) => (
-                      <a 
-                        key={i} 
-                        href={sanitizeResourceUrl(res.url, res.title, res.type)} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg bg-[#1A172E] border border-[#2A2443] hover:border-[#4F46E5] transition-colors group"
-                      >
-                        <span className="text-lg">
-                          {res.type === 'video' ? '📹' : res.type === 'article' ? '📄' : res.type === 'doc' ? '📚' : '💻'}
+                <div className="prose prose-invert prose-sm mb-6">
+                  <p className="text-[#8E88AB] leading-relaxed">{selectedNode.description}</p>
+                </div>
+
+                {selectedNode.concepts && selectedNode.concepts.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3">{t("common:graph.keyConcepts", { defaultValue: "Key Concepts" })}</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedNode.concepts.map((concept: string, i: number) => (
+                        <span key={i} className="bg-[#4F46E5]/10 text-[#4F46E5] px-2 py-1 rounded border border-[#4F46E5]/20 text-xs font-medium">
+                          {concept}
                         </span>
-                        <span className="text-sm font-medium text-[#FAF9FD] group-hover:text-[#4F46E5] transition-colors">{res.title}</span>
-                      </a>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 border-t border-[#2A2443] bg-[#0F0D19]">
-              <button
-                onClick={handleToggle}
-                className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
-                  isCompleted 
-                    ? 'bg-[#1A172E] text-[#10B981] border border-[#10B981]/30 hover:bg-[#10B981]/10' 
-                    : 'bg-[#10B981] text-white hover:bg-[#059669] shadow-[0_4px_14px_rgba(16,185,129,0.4)]'
-                }`}
-              >
-                {isCompleted ? (
-                  <>
-                    <CheckCircle className="w-5 h-5" />
-                    {t("graph.completedClickUndo", { defaultValue: "Completed — Click to undo" })}
-                  </>
-                ) : (
-                  t("graph.markAsComplete", { defaultValue: "Mark as Complete" })
                 )}
-              </button>
+
+                {selectedNode.resources && selectedNode.resources.length > 0 && (
+                  <div className="mb-6">
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-3">{t("common:graph.resources", { defaultValue: "Resources" })}</h4>
+                    <div className="space-y-2">
+                      {selectedNode.resources.map((res: any, i: number) => (
+                        <a 
+                          key={i} 
+                          href={sanitizeResourceUrl(res.url, res.title, res.type)} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="flex items-center gap-3 p-3 rounded-lg bg-[#1A172E] border border-[#2A2443] hover:border-[#4F46E5] transition-colors group"
+                        >
+                          <span className="text-lg">
+                            {res.type === 'video' ? '📹' : res.type === 'article' ? '📄' : res.type === 'doc' ? '📚' : '💻'}
+                          </span>
+                          <span className="text-sm font-medium text-[#FAF9FD] group-hover:text-[#4F46E5] transition-colors">{res.title}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 border-t border-[#2A2443] bg-[#0F0D19]">
+                <button
+                  onClick={handleToggle}
+                  className={`w-full py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                    isCompleted 
+                      ? 'bg-[#1A172E] text-[#10B981] border border-[#10B981]/30 hover:bg-[#10B981]/10' 
+                      : 'bg-[#10B981] text-white hover:bg-[#059669] shadow-[0_4px_14px_rgba(16,185,129,0.4)]'
+                  }`}
+                >
+                  {isCompleted ? (
+                    <>
+                      <CheckCircle className="w-5 h-5" />
+                      {t("common:graph.completedClickUndo", { defaultValue: "Completed — Click to undo" })}
+                    </>
+                  ) : (
+                    t("common:graph.markAsComplete", { defaultValue: "Mark as Complete" })
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

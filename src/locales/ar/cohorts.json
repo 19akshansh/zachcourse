@@ -65,7 +65,9 @@
     "loadingLeaderboard": "جارٍ تحميل لوحة المتصدرين...",
     "recentActivity": "النشاط الأخير",
     "loadingActivity": "جارٍ تحميل النشاط...",
-    "noRecentActivity": "لا يوجد نشاط حديث."
+    "noRecentActivity": "لا يوجد نشاط حديث.",
+    "actionLoggedActivity": "النشاط المسجل",
+    "actionStudied": "تمت الدراسة {{course}}"
   },
   "deleteConfirmTitle": "حذف المجموعة؟",
   "deleteConfirmBody": "هل أنت متأكد أنك تريد حذف {{cohortName}} نهائيًا؟ هذا الإجراء مطلق ولا رجعة فيه. سيتم حذف جميع مقاييس تقدم الطلاب داخل هذه المجموعة.",

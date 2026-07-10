@@ -1,21 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Lock, Eye, EyeOff, Check, AlertCircle } from "lucide-react";
+import { Loader2, Lock, Eye, EyeOff, Check } from "lucide-react";
 import { authClient } from "../../../lib/auth-client";
 import { navigate } from "../../../lib/router";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
-const schema = z.object({
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
-
-type FormData = z.infer<typeof schema>;
+interface FormData {
+  password: string;
+  confirmPassword: string;
+}
 
 function getResetToken(): string | undefined {
   const pathMatch = window.location.pathname.match(/^\/reset-password\/(.+)$/);
@@ -25,6 +21,7 @@ function getResetToken(): string | undefined {
 }
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation("auth");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -32,14 +29,22 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false);
   const [countdown, setCountdown] = useState(2);
 
+  const schema = useMemo(() => z.object({
+    password: z.string().min(6, t("passwordMinLength", { defaultValue: "Password must be at least 6 characters" })),
+    confirmPassword: z.string().min(1, t("confirmPasswordRequired", { defaultValue: "Please confirm your password" })),
+  }).refine((data) => data.password === data.confirmPassword, {
+    message: t("passwordsDontMatch", { defaultValue: "Passwords do not match" }),
+    path: ["confirmPassword"],
+  }), [t]);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const errorParam = params.get("error");
     if (errorParam === "INVALID_TOKEN") {
-      setGlobalError("This reset link is invalid or has expired. Please request a new one.");
-      toast.error("Invalid or expired reset link");
+      setGlobalError(t("resetLinkInvalidOrExpired", { defaultValue: "This reset link is invalid or has expired. Please request a new one." }));
+      toast.error(t("toast.invalidOrExpiredResetLink", { defaultValue: "Invalid or expired reset link" }));
     }
-  }, []);
+  }, [t]);
 
   const {
     register,
@@ -58,7 +63,7 @@ export default function ResetPasswordPage() {
 
   const getPasswordStrength = (pass: string) => {
     if (!pass) return { score: 0, text: "", color: "bg-[#1E1E2E]" };
-    if (pass.length < 6) return { score: 1, text: "Weak", color: "bg-rose-500 w-1/3" };
+    if (pass.length < 6) return { score: 1, text: t("passwordStrength_Weak", { defaultValue: "Weak" }), color: "bg-rose-500 w-1/3" };
 
     const hasLetters = /[a-zA-Z]/.test(pass);
     const hasNumbers = /[0-9]/.test(pass);
@@ -67,12 +72,12 @@ export default function ResetPasswordPage() {
     const hasLowercase = /[a-z]/.test(pass);
 
     if (pass.length >= 8 && hasLetters && hasNumbers && hasSpecial && hasUppercase && hasLowercase) {
-      return { score: 3, text: "Strong", color: "bg-emerald-500 w-full" };
+      return { score: 3, text: t("passwordStrength_Strong", { defaultValue: "Strong" }), color: "bg-emerald-500 w-full" };
     }
     if (pass.length >= 6 && hasLetters && hasNumbers) {
-      return { score: 2, text: "Medium", color: "bg-amber-500 w-2/3" };
+      return { score: 2, text: t("passwordStrength_Medium", { defaultValue: "Medium" }), color: "bg-amber-500 w-2/3" };
     }
-    return { score: 1, text: "Weak", color: "bg-rose-500 w-1/3" };
+    return { score: 1, text: t("passwordStrength_Weak", { defaultValue: "Weak" }), color: "bg-rose-500 w-1/3" };
   };
 
   const strength = getPasswordStrength(passwordVal);
@@ -90,23 +95,23 @@ export default function ResetPasswordPage() {
       if (res?.error) {
         const msg = res.error.message?.toLowerCase() || "";
         if (msg.includes("expire") || msg.includes("token") || msg.includes("invalid")) {
-          toast.error("This reset link has expired — request a new one");
+          toast.error(t("toast.resetLinkHasExpired", { defaultValue: "This reset link has expired — request a new one" }));
         } else {
-          toast.error(res.error.message || "Failed to reset your password.");
+          toast.error(res.error.message || t("toast.failedToResetPassword", { defaultValue: "Failed to reset your password." }));
         }
-        setGlobalError(res.error.message || "Failed to reset your password.");
+        setGlobalError(res.error.message || t("toast.failedToResetPassword", { defaultValue: "Failed to reset your password." }));
       } else {
-        toast.success("Password updated! Redirecting to sign in...");
+        toast.success(t("toast.passwordUpdatedRedirecting", { defaultValue: "Password updated! Redirecting to sign in..." }));
         setSuccess(true);
       }
     } catch (err: any) {
       const msg = err.message?.toLowerCase() || "";
       if (msg.includes("expire") || msg.includes("token") || msg.includes("invalid")) {
-        toast.error("This reset link has expired — request a new one");
+        toast.error(t("toast.resetLinkHasExpired", { defaultValue: "This reset link has expired — request a new one" }));
       } else {
-        toast.error(err.message || "Connection issue — please try again");
+        toast.error(err.message || t("toast.connectionIssue", { defaultValue: "Connection issue — please try again" }));
       }
-      setGlobalError(err.message || "Failed to reset your password.");
+      setGlobalError(err.message || t("toast.failedToResetPassword", { defaultValue: "Failed to reset your password." }));
     } finally {
       setLoading(false);
     }
@@ -140,8 +145,8 @@ export default function ResetPasswordPage() {
           <div>
             <div className="text-center mb-8 relative">
               <span className="text-4xl select-none">🔒</span>
-              <h2 className="text-2xl font-extrabold text-[#FAF9FD] tracking-tight mt-3">Reset Password</h2>
-              <p className="text-sm text-[#8E88AB] mt-1 font-medium">Choose a strong, memorable new password</p>
+              <h2 className="text-2xl font-extrabold text-[#FAF9FD] tracking-tight mt-3">{t("resetPasswordTitle", { defaultValue: "Reset Password" })}</h2>
+              <p className="text-sm text-[#8E88AB] mt-1 font-medium">{t("resetPasswordSubtitle", { defaultValue: "Choose a strong, memorable new password" })}</p>
             </div>
 
             {globalError && (
@@ -154,7 +159,7 @@ export default function ResetPasswordPage() {
               {/* New Password */}
               <div>
                 <label className="block text-xs font-semibold text-[#CECADF] uppercase tracking-wider mb-2">
-                  New Password
+                  {t("newPasswordLabel", { defaultValue: "New Password" })}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
@@ -182,10 +187,10 @@ export default function ResetPasswordPage() {
                       <div className={`h-full transition-all duration-300 ${strength.color}`} />
                     </div>
                     <p className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                      <span className="text-[#8E88AB]">Password Strength:</span>
+                      <span className="text-[#8E88AB]">{t("passwordStrengthLabel", { defaultValue: "Password Strength:" })}</span>
                       <span className={
-                        strength.text === "Weak" ? "text-rose-400" :
-                        strength.text === "Medium" ? "text-amber-400" : "text-emerald-400"
+                        strength.text === t("passwordStrength_Weak", { defaultValue: "Weak" }) ? "text-rose-400" :
+                        strength.text === t("passwordStrength_Medium", { defaultValue: "Medium" }) ? "text-amber-400" : "text-emerald-400"
                       }>
                         {strength.text}
                       </span>
@@ -203,7 +208,7 @@ export default function ResetPasswordPage() {
               {/* Confirm Password */}
               <div>
                 <label className="block text-xs font-semibold text-[#CECADF] uppercase tracking-wider mb-2">
-                  Confirm Password
+                  {t("confirmPasswordLabel", { defaultValue: "Confirm Password" })}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
@@ -238,10 +243,10 @@ export default function ResetPasswordPage() {
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>Resetting password...</span>
+                    <span>{t("resettingPasswordButton", { defaultValue: "Resetting password..." })}</span>
                   </>
                 ) : (
-                  "Reset Password"
+                  t("resetPasswordButton", { defaultValue: "Reset Password" })
                 )}
               </button>
             </form>
@@ -251,12 +256,12 @@ export default function ResetPasswordPage() {
             <div className="w-16 h-16 bg-emerald-950/40 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg shadow-emerald-500/15">
               <Check className="w-8 h-8 text-emerald-400" />
             </div>
-            <h2 className="text-xl font-extrabold text-[#FAF9FD] tracking-tight mb-3">Password updated!</h2>
+            <h2 className="text-xl font-extrabold text-[#FAF9FD] tracking-tight mb-3">{t("passwordUpdatedTitle", { defaultValue: "Password updated!" })}</h2>
             <p className="text-sm text-[#8E88AB] leading-relaxed max-w-xs mx-auto mb-6 font-medium">
-              Your password has been reset successfully.
+              {t("passwordUpdatedMessage", { defaultValue: "Your password has been reset successfully." })}
             </p>
             <p className="text-xs text-[#8E88AB] font-medium">
-              Redirecting to sign in page in <span className="text-[#818CF8] font-bold">{countdown}</span> seconds...
+              {t("redirectingCountdown", { defaultValue: "Redirecting to sign in page in {{countdown}} seconds...", countdown: countdown })}
             </p>
           </div>
         )}

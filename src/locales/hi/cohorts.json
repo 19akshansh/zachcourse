@@ -65,7 +65,9 @@
     "loadingLeaderboard": "लीडरबोर्ड लोड हो रहा है...",
     "recentActivity": "हाल की गतिविधि",
     "loadingActivity": "गतिविधि लोड हो रही है...",
-    "noRecentActivity": "कोई हालिया गतिविधि नहीं।"
+    "noRecentActivity": "कोई हालिया गतिविधि नहीं।",
+    "actionLoggedActivity": "लॉग गतिविधि",
+    "actionStudied": "{{course}} का अध्ययन किया गया"
   },
   "deleteConfirmTitle": "कोहॉर्ट हटाएं?",
   "deleteConfirmBody": "क्या आप वाकई {{cohortName}} को स्थायी रूप से हटाना चाहते हैं? यह कार्रवाई पूर्ण और अपरिवर्तनीय है। इस कोहॉर्ट के भीतर सभी छात्र प्रगति मेट्रिक्स हटा दिए जाएंगे।",

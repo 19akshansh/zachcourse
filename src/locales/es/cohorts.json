@@ -65,7 +65,9 @@
     "loadingLeaderboard": "Cargando tabla de clasificación...",
     "recentActivity": "Actividad reciente",
     "loadingActivity": "Cargando actividad...",
-    "noRecentActivity": "No hay actividad reciente."
+    "noRecentActivity": "No hay actividad reciente.",
+    "actionStudied": "Estudiado {{course}}",
+    "actionLoggedActivity": "Actividad registrada"
   },
   "deleteConfirmTitle": "¿Eliminar Cohorte?",
   "deleteConfirmBody": "¿Estás seguro de que deseas eliminar permanentemente {{cohortName}}? Esta acción es absoluta e irreversible. Todas las métricas de progreso de los estudiantes dentro de esta cohorte serán eliminadas.",

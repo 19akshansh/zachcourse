@@ -43,7 +43,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
 
   const loadCohorts = async (page = 1) => {
     try {
-      const res = await trpc.getUserCohorts.query({ page, pageSize: 8 });
+      const res = await trpc.getUserCohorts.query({ page, pageSize: 8, language: i18n.language });
       if (Array.isArray(res)) {
         setMemberships(res);
       } else {
@@ -70,7 +70,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
 
   useEffect(() => {
     loadCohorts(cohortsPage);
-  }, [cohortsPage]);
+  }, [cohortsPage, i18n.language]);
 
   useEffect(() => {
     loadUserContent();
@@ -115,7 +115,7 @@ export default function CohortsDashboard({ onNavigateToCourse, onNavigateToRoadm
     if (!joinCode) return;
     setIsPreviewLoading(true);
     try {
-      const res = await trpc.previewCohortByInviteCode.query({ inviteCode: joinCode.trim().toUpperCase() });
+      const res = await trpc.previewCohortByInviteCode.query({ inviteCode: joinCode.trim().toUpperCase(), language: i18n.language });
       if (!res) {
         toast.error(t("toastInvalidInvite", { defaultValue: "Invalid invite code" }));
         setPreviewCohort(null);
@@ -620,7 +620,7 @@ function CohortDetail({
   }, [cohortId, leaderboardPage]);
 
   useEffect(() => {
-    trpc.getCohortActivity.query({ cohortId, page: activityPage, pageSize: 10 })
+    trpc.getCohortActivity.query({ cohortId, page: activityPage, pageSize: 10, language: i18n.language })
       .then(res => {
         if (Array.isArray(res)) setActivity(res);
         else {
@@ -629,7 +629,7 @@ function CohortDetail({
         }
       })
       .catch(err => console.error("Failed to load activity", err));
-  }, [cohortId, activityPage]);
+  }, [cohortId, activityPage, i18n.language]);
 
   const handleDelete = () => {
     setShowDeleteConfirm(true);
@@ -883,7 +883,11 @@ function CohortDetail({
                     >
                       {act.userName}
                     </button>{" "}
-                    {act.action}
+                    {act.action?.startsWith("Studied ") 
+                      ? t("detail.actionStudied", { course: act.action.substring(8), defaultValue: "Studied {{course}}" })
+                      : act.action === "Logged activity"
+                      ? t("detail.actionLoggedActivity", { defaultValue: "Logged activity" })
+                      : act.action}
                   </p>
                   <p className="text-xs text-[#8E88AB] mt-0.5">
                     {new Date(act.time).toLocaleDateString()}

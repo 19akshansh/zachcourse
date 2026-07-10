@@ -40,5 +40,7 @@
   "toastCertNotLoaded": "Certificat non chargé.",
   "toastShareSuccess": "Lien du certificat copié dans le presse-papiers !",
   "share": "Partager",
-  "download": "Télécharger"
+  "download": "Télécharger",
+  "streakText": "streakTexte",
+  "failedToRetrieveCertificate": "Échec de la récupération du certificat."
 }

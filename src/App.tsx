@@ -267,7 +267,7 @@ function formatJsonLessonToMarkdown(content: string): string {
 }
 
 async function translateWithRetry(
-  params: { type?: "roadmap" | "quiz"; content: any; language: string },
+  params: { type?: "roadmap" | "quiz" | "vroadmap"; content: any; language: string },
   userKey: string,
   retries = 2,
   delayMs = 1500
@@ -391,6 +391,7 @@ export default function App() {
   const [courses, setCourses] = useState<CourseListItem[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [isLoadingCourse, setIsLoadingCourse] = useState(false);
+  const lastActiveCourseIdRef = useRef<string | null>(null);
 
   // Visual Roadmaps states
   const [vroadmaps, setVRoadmaps] = useState<any[]>([]);
@@ -398,10 +399,10 @@ export default function App() {
   const [vroadmapsTotalPages, setVroadmapsTotalPages] = useState(1);
   const [activeVRoadmapId, setActiveVRoadmapId] = useState<string | null>(null);
 
-  // Load visual roadmaps on mount and page change
+  // Load visual roadmaps on mount, page change and language change
   useEffect(() => {
     if (!sessionData?.user) return;
-    trpc.getVisualRoadmaps.query({ page: vroadmapsPage, pageSize: 6 }).then(data => {
+    trpc.getVisualRoadmaps.query({ page: vroadmapsPage, pageSize: 6, language: i18n.language }).then(data => {
       if (Array.isArray(data)) {
         setVRoadmaps(data);
       } else {
@@ -409,7 +410,71 @@ export default function App() {
         setVroadmapsTotalPages(data.totalPages);
       }
     }).catch(console.error);
-  }, [sessionData, vroadmapsPage]);
+  }, [sessionData, vroadmapsPage, i18n.language]);
+
+  // Load, fetch, or translate full visual roadmap when activeVRoadmapId or language changes
+  useEffect(() => {
+    if (!activeVRoadmapId || !sessionData?.user) return;
+    
+    let cancelled = false;
+
+    const loadAndTranslateVR = async () => {
+      setIsRetranslatingVRoadmap(true);
+      try {
+        const currentLang = i18n.language;
+        const roadmap = await trpc.getVisualRoadmap.query({ id: activeVRoadmapId, language: currentLang });
+        if (cancelled) return;
+        
+        let loadedRoadmap = roadmap;
+        if (currentLang !== 'en' && !(roadmap as any)._isTranslated) {
+          const userKey = localStorage.getItem("zc_user_key");
+          if (userKey) {
+            try {
+              const translatedVRoadmap = await translateWithRetry({ type: "vroadmap", content: roadmap.roadmapData, language: currentLang }, userKey);
+              if (cancelled) return;
+              loadedRoadmap = {
+                ...roadmap,
+                roadmapData: translatedVRoadmap,
+                title: translatedVRoadmap.title || roadmap.title,
+                topic: translatedVRoadmap.topic || roadmap.topic,
+                description: translatedVRoadmap.description || roadmap.description,
+                _isTranslated: true
+              } as any;
+
+              trpc.saveVisualRoadmapTranslation.mutate({
+                visualRoadmapId: roadmap.id,
+                language: currentLang,
+                title: translatedVRoadmap.title || roadmap.title,
+                topic: translatedVRoadmap.topic || roadmap.topic,
+                description: translatedVRoadmap.description || roadmap.description || "",
+                roadmapData: translatedVRoadmap
+              }).catch(console.error);
+            } catch (e) {
+              console.error("Visual roadmap translation failed", e);
+            }
+          }
+        }
+
+        if (cancelled) return;
+        // Update vroadmaps state with the fully loaded/translated version
+        setVRoadmaps(prev => prev.map(r => r.id === activeVRoadmapId ? loadedRoadmap : r));
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Failed to load/translate visual roadmap:", err);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsRetranslatingVRoadmap(false);
+        }
+      }
+    };
+
+    loadAndTranslateVR();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeVRoadmapId, i18n.language, sessionData]);
 
   // Derived states from activeCourse
   const currentRoadmap = activeCourse?.roadmapData;
@@ -417,11 +482,11 @@ export default function App() {
   const completedQuizzes = activeCourse?.completedQuizzes || {};
   const mentorMessages = activeCourse?.messages || [];
 
-  // Load courses list on mount
+  // Load courses list on mount and language change
   useEffect(() => {
     if (!sessionData?.user) return;
     setIsLoadingCourses(true);
-    trpc.getCourses.query()
+    trpc.getCourses.query({ language: i18n.language })
       .then((data: any) => {
         setCourses(data);
         setIsLoadingCourses(false);
@@ -436,20 +501,24 @@ export default function App() {
           toast.error(t("toast.couldntLoadYourCoursesPleaseRefresh", { defaultValue: "Couldn't load your courses — please refresh" }));
         }
       });
-  }, [sessionData]);
+  }, [sessionData, i18n.language]);
 
   // Load full course when activeCourseId changes
   useEffect(() => {
     if (!activeCourseId) {
       setActiveCourse(null);
+      lastActiveCourseIdRef.current = null;
       return;
     }
     setIsLoadingCourse(true);
+    
+    let cancelled = false;
     
     const loadCourse = async () => {
       try {
         if (!navigator.onLine) throw new Error("Offline");
         const course = await trpc.getCourse.query({ courseId: activeCourseId, language: i18n.language });
+        if (cancelled) return;
         
         let loadedCourse = course;
         if (i18n.language !== 'en' && !(course as any)._isTranslated) {
@@ -457,9 +526,13 @@ export default function App() {
           if (userKey) {
             try {
               const translatedRoadmap = await translateWithRetry({ type: "roadmap", content: course.roadmapData, language: i18n.language }, userKey);
+              if (cancelled) return;
               loadedCourse = { 
                 ...course, 
-                roadmapData: translatedRoadmap, 
+                roadmapData: {
+                  ...translatedRoadmap,
+                  title: translatedRoadmap.title || course.title,
+                }, 
                 title: translatedRoadmap.title || course.title, 
                 description: translatedRoadmap.description || course.description 
               } as any;
@@ -472,26 +545,36 @@ export default function App() {
                  modules: translatedRoadmap.modules
               }).catch(console.error);
             } catch (e: any) {
+              if (cancelled) return;
               console.error("Roadmap translation failed", e);
               toast.error(t("toast.failedToTranslateRoadmap", { defaultValue: "Roadmap translation failed. Displaying the original English version." }));
             }
           }
         }
         
+        if (cancelled) return;
         setActiveCourse(loadedCourse as any);
         setIsLoadingCourse(false);
-        setActiveTab("roadmap");
-        setSelectedLesson(null);
-        setQuizData(null);
-        setLessonContent("");
+        
+        if (lastActiveCourseIdRef.current !== activeCourseId) {
+          setActiveTab("roadmap");
+          setSelectedLesson(null);
+          setSelectedProject(null);
+          setSelectedModuleId(null);
+          setQuizData(null);
+          setLessonContent("");
+          lastActiveCourseIdRef.current = activeCourseId;
+        }
         
         // Cache for offline
         const localforage = (await import('localforage')).default;
         await localforage.setItem(`course-${activeCourseId}`, course);
       } catch (err) {
+        if (cancelled) return;
         // Fallback to cache
         const localforage = (await import('localforage')).default;
         const cached = await localforage.getItem(`course-${activeCourseId}`);
+        if (cancelled) return;
         if (cached) {
           setActiveCourse(cached as any);
           toast.success(t("toast.loadedOfflineVersion", { defaultValue: "Loaded offline version 📶" }));
@@ -503,7 +586,11 @@ export default function App() {
     };
     
     loadCourse();
-  }, [activeCourseId, reloadCourseTrigger]);
+    
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCourseId, reloadCourseTrigger, i18n.language]);
 
   // Load user progress
   useEffect(() => {
@@ -590,6 +677,11 @@ export default function App() {
   const [mentorInput, setMentorInput] = useState<string>("");
   const [mentorLoading, setMentorLoading] = useState<boolean>(false);
 
+  const [isRetranslatingCourse, setIsRetranslatingCourse] = useState(false);
+  const [isRetranslatingVRoadmap, setIsRetranslatingVRoadmap] = useState(false);
+  const [isTranslatingLesson, setIsTranslatingLesson] = useState(false);
+  const [isTranslatingProject, setIsTranslatingProject] = useState(false);
+
   const [hasKey, setHasKey] = useState(() => {
     if (typeof window !== "undefined") {
       const k = localStorage.getItem("zc_user_key");
@@ -607,6 +699,57 @@ export default function App() {
     return () => window.removeEventListener("zc-key-status-changed", handleKeyChange);
   }, []);
 
+  // Load or translate active project when language changes
+  useEffect(() => {
+    if (!activeCourseId || !selectedModuleId || !selectedProject) return;
+
+    let cancelled = false;
+
+    const reloadProject = async () => {
+      setIsTranslatingProject(true);
+      setGeneratingLesson(true);
+      try {
+        const project = await trpc.getModuleProject.query({ 
+          courseId: activeCourseId, 
+          moduleId: selectedModuleId, 
+          language: i18n.language 
+        });
+        if (cancelled) return;
+
+        if (project) {
+          setSelectedProject(project);
+        } else {
+          const currentRoadmap = activeCourse?.roadmapData;
+          const newProj = await trpc.generateProject.mutate({
+            courseId: activeCourseId,
+            moduleId: selectedModuleId,
+            moduleTitle: lessonModuleTitle,
+            topic: currentRoadmap?.title || activeCourse?.title || "",
+            level: currentRoadmap?.difficulty || "Beginner",
+            language: i18n.language
+          });
+          if (cancelled) return;
+          setSelectedProject(newProj);
+        }
+      } catch (err) {
+        console.error("Failed to reload/translate project:", err);
+      } finally {
+        if (!cancelled) {
+          setGeneratingLesson(false);
+          setIsTranslatingProject(false);
+        }
+      }
+    };
+
+    if (selectedProject.language !== i18n.language) {
+      reloadProject();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, selectedModuleId, activeCourseId, activeCourse, lessonModuleTitle]);
+
   // Handle dynamic language switching for loaded content
   useEffect(() => {
     const handleLangChange = async (lng: string) => {
@@ -614,6 +757,7 @@ export default function App() {
       if (!userKey || !activeCourseId) return;
 
       if (selectedLesson && lessonContent && !generatingLesson) {
+        setIsTranslatingLesson(true);
         setGeneratingLesson(true);
         try {
           // Check DB cache via TRPC
@@ -642,38 +786,7 @@ export default function App() {
           console.error("Failed to translate lesson:", e);
         }
         setGeneratingLesson(false);
-      }
-
-      // Translate Roadmap (Course) if active
-      if (activeCourse) {
-         try {
-            const course = await trpc.getCourse.query({ courseId: activeCourse.id, language: lng });
-            if ((course as any)._isTranslated) {
-               setActiveCourse(course as any);
-            } else {
-               try {
-                 const translatedRoadmap = await translateWithRetry({ type: "roadmap", content: activeCourse.roadmapData, language: lng }, userKey);
-                 setActiveCourse(prev => {
-                    if (!prev) return prev;
-                    return { 
-                      ...prev, 
-                      roadmapData: translatedRoadmap,
-                      title: translatedRoadmap.title || prev.title,
-                      description: translatedRoadmap.description || prev.description
-                    };
-                 });
-                 trpc.saveCourseTranslation.mutate({
-                    courseId: activeCourse.id,
-                    language: lng,
-                    title: translatedRoadmap.title || activeCourse.title,
-                    description: translatedRoadmap.description || activeCourse.description,
-                    modules: translatedRoadmap.modules
-                 }).catch(console.error);
-               } catch (e) {
-                 console.error("Roadmap translation failed", e);
-               }
-            }
-         } catch(e) { console.error("Roadmap translation failed", e); }
+        setIsTranslatingLesson(false);
       }
 
       // Translate Quiz if active
@@ -1729,6 +1842,7 @@ ${lessonContent}`;
         isOpen={sidebarOpen}
         isCollapsed={sidebarCollapsed}
         isLoadingCourses={isLoadingCourses}
+        isRetranslatingCourse={isRetranslatingCourse}
         onClose={() => setSidebarOpen(false)}
         onToggleCollapse={() => {
           setSidebarCollapsed(p => !p)
@@ -1811,7 +1925,7 @@ ${lessonContent}`;
               <CohortsDashboard 
                 onNavigateToCourse={(courseId) => {
                   setIsLoadingCourses(true);
-                  trpc.getCourses.query()
+                  trpc.getCourses.query({ language: i18n.language })
                     .then((data: any) => {
                       setCourses(data);
                       setIsLoadingCourses(false);
@@ -1826,7 +1940,7 @@ ${lessonContent}`;
                     });
                 }}
                 onNavigateToRoadmap={(roadmapId) => {
-                  trpc.getVisualRoadmaps.query()
+                  trpc.getVisualRoadmaps.query({ language: i18n.language })
                     .then((data: any) => {
                       setVRoadmaps(data);
                       setActiveVRoadmapId(roadmapId);
@@ -1916,12 +2030,21 @@ ${lessonContent}`;
                     toast.error(t("toast.failedToSaveProgress", { defaultValue: "Failed to save progress" }));
                   }
                 }}
+                isRetranslating={isRetranslatingVRoadmap}
               />
             )}
 
             {/* TAB 1: ROADMAP & LESSON VIEW */}
         {activeTab === "roadmap" && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="relative">
+            {(isRetranslatingCourse || isLoadingCourse) && (
+              <div className="absolute inset-0 bg-[#0F0D19]/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center text-center p-6 rounded-3xl animate-in fade-in duration-200" style={{ minHeight: '600px' }}>
+                <Loader2 className="w-12 h-12 text-[#4F46E5] animate-spin mb-4" />
+                <h3 className="text-lg font-bold text-[#FAF9FD] mb-2">{t("translatingCourse", { defaultValue: "Translating Course... 📚" })}</h3>
+                <p className="text-sm text-[#8E88AB] max-w-sm mx-auto">{t("pleaseWaitTranslatingCourse", { defaultValue: "Please wait while we convert your personalized learning course and modules to your chosen language." })}</p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             {/* LEFT COLUMN: CREATOR & NAVIGATION */}
             <div className="lg:col-span-5 flex flex-col gap-8">
@@ -2130,10 +2253,10 @@ ${lessonContent}`;
                   <div>
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className="text-xs bg-indigo-950/40 text-[#818CF8] font-bold px-3 py-1 rounded-full border border-[#4F46E5]/30">
-                        {currentRoadmap.difficulty}
+                        {t(currentRoadmap.difficulty?.toLowerCase(), { defaultValue: currentRoadmap.difficulty })}
                       </span>
                       <span className="text-sm text-[#818CF8] font-bold">
-                        {currentRoadmap.modules?.length || 0} modules setup
+                        {t("modulesSetup", { count: currentRoadmap.modules?.length || 0, defaultValue: "{{count}} modules setup" })}
                       </span>
                       {i18n.language !== "en" && (
                         <button
@@ -2155,13 +2278,13 @@ ${lessonContent}`;
                       onClick={() => handleToggleRoadmapView("list")}
                       className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${roadmapView === "list" ? "bg-[#2A2443] text-[#FAF9FD] shadow" : "text-[#8E88AB] hover:text-[#FAF9FD]"}`}
                     >
-                      List
+                      {t("listView", { defaultValue: "List" })}
                     </button>
                     <button
                       onClick={() => handleToggleRoadmapView("graph")}
                       className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${roadmapView === "graph" ? "bg-[#2A2443] text-[#FAF9FD] shadow" : "text-[#8E88AB] hover:text-[#FAF9FD]"}`}
                     >
-                      Graph
+                      {t("graphView", { defaultValue: "Graph" })}
                     </button>
                   </div>
                 </div>
@@ -2337,8 +2460,26 @@ ${lessonContent}`;
                           <Sparkles className="w-5 h-5 text-amber-400 absolute -top-1 -right-1 animate-pulse" />
                         </div>
                         <div className="text-center">
-                          <p className="text-lg text-[#FAF9FD] font-bold">{t("writingStudyGuide", { defaultValue: "Writing your study guide... ✏️" })}</p>
-                          <p className="text-sm text-[#8E88AB] mt-2 max-w-sm">{t("writingStudyGuideDesc", { defaultValue: "Generating custom explanations, friendly real-world analogies, and safe examples to help you understand." })}</p>
+                          <p className="text-lg text-[#FAF9FD] font-bold">
+                            {isTranslatingLesson 
+                              ? t("translatingStudyGuide", { defaultValue: "Translating study guide... 📚" }) 
+                              : isTranslatingProject
+                                ? t("translatingProject", { defaultValue: "Translating project... 📚" })
+                                : selectedProject
+                                  ? t("generatingProject", { defaultValue: "Formulating your project... 🏗️" })
+                                  : t("writingStudyGuide", { defaultValue: "Writing your study guide... ✏️" })
+                            }
+                          </p>
+                          <p className="text-sm text-[#8E88AB] mt-2 max-w-sm">
+                            {isTranslatingLesson 
+                              ? t("translatingStudyGuideDesc", { defaultValue: "Please wait while we convert your custom lesson explanations to your chosen language." }) 
+                              : isTranslatingProject
+                                ? t("translatingProjectDesc", { defaultValue: "Please wait while we convert your project details to your chosen language." })
+                                : selectedProject
+                                  ? t("generatingProjectDesc", { defaultValue: "Tutor is drafting an immersive hands-on project with clear milestones and goals for this module." })
+                                  : t("writingStudyGuideDesc", { defaultValue: "Generating custom explanations, friendly real-world analogies, and safe examples to help you understand." })
+                            }
+                          </p>
                         </div>
                       </div>
                     ) : (
@@ -2584,6 +2725,7 @@ ${lessonContent}`;
 
             </div>
 
+          </div>
           </div>
         )}
 

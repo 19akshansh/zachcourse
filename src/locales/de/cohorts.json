@@ -65,7 +65,9 @@
     "loadingLeaderboard": "Bestenliste laden...",
     "recentActivity": "Letzte Aktivität",
     "loadingActivity": "Aktivität laden...",
-    "noRecentActivity": "Keine aktuellen Aktivitäten."
+    "noRecentActivity": "Keine aktuellen Aktivitäten.",
+    "actionStudied": "Studiert {{course}}",
+    "actionLoggedActivity": "Protokollierte Aktivität"
   },
   "deleteConfirmTitle": "Kohorte löschen?",
   "deleteConfirmBody": "Sind Sie sicher, dass Sie {{cohortName}} dauerhaft löschen möchten? Diese Aktion ist absolut und irreversibel. Alle Fortschrittsmetriken der Studenten innerhalb dieser Kohorte werden gelöscht.",

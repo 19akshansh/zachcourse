@@ -40,5 +40,7 @@
   "toastCertNotLoaded": "证书未加载。",
   "toastShareSuccess": "证书链接已复制到剪贴板！",
   "share": "分享",
-  "download": "下载"
+  "download": "下载",
+  "streakText": "条纹文本",
+  "failedToRetrieveCertificate": "检索证书失败。"
 }

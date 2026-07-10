@@ -11,6 +11,9 @@
     "friendly": "亲切友好",
     "professional": "专业严谨",
     "genz": "Gen Z 网络风",
-    "eli5": "通俗易懂 (ELI5)"
+    "eli5": "通俗易懂 (ELI5)",
+    "${opt": {
+      "id}": "音调。${opt.id}"
+    }
   }
 }

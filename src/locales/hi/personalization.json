@@ -11,6 +11,9 @@
     "friendly": "मैत्रीपूर्ण",
     "professional": "व्यावसायिक",
     "genz": "जेन जेड",
-    "eli5": "ELI5"
+    "eli5": "ELI5",
+    "${opt": {
+      "id}": "टोन.${opt.id}"
+    }
   }
 }

@@ -25,5 +25,10 @@
   "sourceMaterialLabel": "Quellmaterial (Optional)",
   "roadmapUrlPlaceholder": "https://...",
   "generateButton": "Visuelle Roadmap generieren ✨",
-  "generatingHint": "Dauert normalerweise 10-20 Sekunden"
+  "generatingHint": "Dauert normalerweise 10-20 Sekunden",
+  "translatingRoadmap": "Roadmap übersetzen... 🗺️",
+  "pleaseWaitTranslating": "Bitte warten Sie, während wir Ihr Lerndiagramm in die von Ihnen gewählte Sprache konvertieren.",
+  "${selectedNode": {
+    "type}": "${selectedNode.type}"
+  }
 }

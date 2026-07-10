@@ -25,5 +25,10 @@
   "sourceMaterialLabel": "المواد المصدر (اختياري)",
   "roadmapUrlPlaceholder": "https://... (وثائق، منهج دراسي، أو رابط دورة)",
   "generateButton": "إنشاء خريطة طريق مرئية ✨",
-  "generatingHint": "يستغرق عادة من 10 إلى 20 ثانية"
+  "generatingHint": "يستغرق عادة من 10 إلى 20 ثانية",
+  "${selectedNode": {
+    "type}": "${selectedNode.type}"
+  },
+  "pleaseWaitTranslating": "يرجى الانتظار بينما نقوم بتحويل الرسم البياني التعليمي الخاص بك إلى اللغة التي اخترتها.",
+  "translatingRoadmap": "ترجمة خارطة الطريق... 🗺️"
 }

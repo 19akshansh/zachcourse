@@ -29,6 +29,45 @@ export const roadmapSchema = z.object({
   }))
 });
 
+export const visualRoadmapSchema = z.object({
+  title: z.string(),
+  topic: z.string(),
+  description: z.string(),
+  difficulty: z.enum(["Beginner", "Intermediate", "Advanced"]),
+  totalDuration: z.string(),
+  prerequisites: z.array(z.string()),
+  nodes: z.array(z.object({
+    id: z.string(),
+    type: z.enum([
+      "start",
+      "module",
+      "lesson",
+      "milestone",
+      "project",
+      "end"
+    ]),
+    label: z.string(),
+    description: z.string(),
+    duration: z.string().optional(),
+    difficulty: z.enum(["Beginner","Intermediate","Advanced"]).optional(),
+    concepts: z.array(z.string()).optional(),
+    moduleId: z.string().optional(),
+    order: z.number(),
+    resources: z.array(z.object({
+      title: z.string(),
+      type: z.enum(["video","article","doc","practice"]),
+      url: z.string().optional(),
+    })).optional(),
+  })),
+  edges: z.array(z.object({
+    id: z.string(),
+    source: z.string(),
+    target: z.string(),
+    label: z.string().optional(),
+    type: z.enum(["required","optional","parallel"]),
+  })),
+});
+
 // Helper for sleep/delay during backoff
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -204,43 +243,7 @@ export async function generateVisualRoadmapContent(input: GenerateRoadmapInput) 
     language = "en"
   } = input;
 
-  const schema = z.object({
-    title: z.string(),
-    description: z.string(),
-    difficulty: z.enum(["Beginner", "Intermediate", "Advanced"]),
-    totalDuration: z.string(),
-    prerequisites: z.array(z.string()),
-    nodes: z.array(z.object({
-      id: z.string(),
-      type: z.enum([
-        "start",
-        "module",
-        "lesson",
-        "milestone",
-        "project",
-        "end"
-      ]),
-      label: z.string(),
-      description: z.string(),
-      duration: z.string().optional(),
-      difficulty: z.enum(["Beginner","Intermediate","Advanced"]).optional(),
-      concepts: z.array(z.string()).optional(),
-      moduleId: z.string().optional(),
-      order: z.number(),
-      resources: z.array(z.object({
-        title: z.string(),
-        type: z.enum(["video","article","doc","practice"]),
-        url: z.string().optional(),
-      })).optional(),
-    })),
-    edges: z.array(z.object({
-      id: z.string(),
-      source: z.string(),
-      target: z.string(),
-      label: z.string().optional(),
-      type: z.enum(["required","optional","parallel"]),
-    })),
-  });
+  const schema = visualRoadmapSchema;
 
   const safeDocContext = documentContext ? documentContext.slice(0, 40_000) : "";
   const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.friendly;

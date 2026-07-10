@@ -40,5 +40,7 @@
   "toastCertNotLoaded": "प्रमाणपत्र लोड नहीं हुआ।",
   "toastShareSuccess": "प्रमाणपत्र लिंक क्लिपबोर्ड पर कॉपी किया गया!",
   "share": "साझा करें",
-  "download": "डाउनलोड"
+  "download": "डाउनलोड",
+  "failedToRetrieveCertificate": "प्रमाणपत्र पुनर्प्राप्त करने में विफल.",
+  "streakText": "स्ट्रीकटेक्स्ट"
 }

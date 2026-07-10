@@ -11,6 +11,9 @@
     "friendly": "Amistoso",
     "professional": "Profesional",
     "genz": "Gen Z",
-    "eli5": "ELI5"
+    "eli5": "ELI5",
+    "${opt": {
+      "id}": "tonos.${opt.id}"
+    }
   }
 }

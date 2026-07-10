@@ -35,5 +35,11 @@
   "profileSubtitle": "Verifica tu presencia de desarrollador.",
   "loadingSettings": "Cargando configuraciones...",
   "userMenu": "Menú de usuario",
-  "toggleMenu": "Alternar menú"
+  "toggleMenu": "Alternar menú",
+  "disconnectFailed": "No se pudo desconectar ${providerName}",
+  "connectedAs": "Conectado como {{username}}",
+  "bioUpdatedSuccess": "¡Biografía actualizada con éxito! ✓",
+  "disconnectSuccess": "Desconectó exitosamente su cuenta ${providerName}.",
+  "disconnectConfirm": "¿Está seguro de que desea desconectar su cuenta ${providerName}?",
+  "bioUpdateFailed": "No se pudo actualizar la biografía"
 }

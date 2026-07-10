@@ -28,5 +28,7 @@
   "engagement": "छात्र सहभागिता",
   "timeSpent": "समय बिताया (घंटे)",
   "successRate": "क्विज़ सफलता दर",
-  "dailyActive": "दैनिक सक्रिय छात्र"
+  "dailyActive": "दैनिक सक्रिय छात्र",
+  "scoreLegend": "अंक",
+  "lessonsLegend": "पाठ"
 }
