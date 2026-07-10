@@ -4,7 +4,7 @@
   "topicPlaceholder": "z.B. Python Backend, React...",
   "generate": "Erstellen",
   "generating": "Reise wird abgebildet... 🗺️",
-  "weeklyCommitment": "Wöchentliche Arbeitszeit (Stunden)",
+  "weeklyCommitment": "Wöchentliche Arbeitszeit {{hours}}",
   "difficultyLevel": "Zielschwierigkeit",
   "startLearning": "Lernen starten!",
   "module": "Modul",

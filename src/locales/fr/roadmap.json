@@ -4,7 +4,7 @@
   "topicPlaceholder": "ex. Backend Python, React...",
   "generate": "Générer",
   "generating": "Cartographie de votre parcours... 🗺️",
-  "weeklyCommitment": "Engagement hebdomadaire (Heures)",
+  "weeklyCommitment": "Engagement hebdomadaire {{hours}}",
   "difficultyLevel": "Difficulté visée",
   "startLearning": "Commencer l'apprentissage !",
   "module": "Module",

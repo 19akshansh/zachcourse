@@ -7,5 +7,6 @@
   "coursesAssigned": "Courses Assigned",
   "avgQuizScore": "Avg Quiz Score",
   "activeStudents": "Active Students",
-  "emptyState": "You have no active classrooms. Create one to start monitoring student progress!"
+  "emptyState": "You have no active classrooms. Create one to start monitoring student progress!",
+  "createClassroom": "Create Classroom"
 }

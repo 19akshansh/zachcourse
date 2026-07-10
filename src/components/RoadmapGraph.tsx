@@ -38,7 +38,7 @@ export default function RoadmapGraph({
   selectedLessonId,
   onSelectLesson
 }: RoadmapGraphProps) {
-  const { t } = useTranslation(["roadmap"]);
+  const { t } = useTranslation(["roadmap", "common"]);
   // Check if a lesson is locked (only the first incomplete lesson is available, everything after is locked)
   // To keep it simple, let's say a lesson is available if all previous lessons are completed.
   
@@ -82,7 +82,7 @@ export default function RoadmapGraph({
 
             {/* Module Header */}
             <div className="bg-[#1A172E] border border-[#2A2443] rounded-xl px-4 py-3 text-center mb-8 w-full z-10 shadow-lg">
-              <span className="text-xs font-bold text-[#818CF8] uppercase tracking-wider mb-1 block">{t("moduleNumber", { defaultValue: "Module {{number}}", number: modIdx + 1 })}</span>
+              <span className="text-xs font-bold text-[#818CF8] uppercase tracking-wider mb-1 block">{t("common:moduleNumber", { defaultValue: "Module {{number}}", number: modIdx + 1 })}</span>
               <h4 className="text-sm font-bold text-[#FAF9FD] truncate" title={mod.title}>{mod.title}</h4>
             </div>
 
@@ -123,7 +123,7 @@ export default function RoadmapGraph({
                       <div className="flex items-center justify-between mt-2">
                         <span className="text-[10px] text-[#8E88AB]">{lesson.duration}</span>
                         {completedQuizzes[lesson.id] !== undefined && (
-                          <span className="text-[10px] font-bold text-[#10B981]">{t("scorePercentage", { defaultValue: "Score: {{score}}%", score: completedQuizzes[lesson.id] })}</span>
+                          <span className="text-[10px] font-bold text-[#10B981]">{t("common:scorePercentage", { defaultValue: "Score: {{score}}%", score: completedQuizzes[lesson.id] })}</span>
                         )}
                       </div>
                       {/* Triangle pointer */}

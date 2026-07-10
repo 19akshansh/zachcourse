@@ -8,5 +8,5 @@
   "avgQuizScore": "औसत प्रश्नोत्तरी स्कोर",
   "activeStudents": "सक्रिय छात्र",
   "emptyState": "आपके पास कोई सक्रिय कक्षा नहीं है। छात्र प्रगति की निगरानी शुरू करने के लिए एक बनाएं!",
-  "classroomNamePlaceholder": "उदा. CS101 Autumn 2026"
+  "createClassroom": "createClassroom"
 }

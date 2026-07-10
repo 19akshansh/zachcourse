@@ -15,5 +15,6 @@
   "toastMemoryClearFailed": "मेमोरी साफ़ करने में विफल",
   "clearHistory": "मेमोरी साफ़ करें",
   "tutorWriting": "ट्यूटर लिख रहा है...",
-  "inputPlaceholder": "कुछ भी पूछें — कोई URL पेस्ट करें और मैं उसे पढ़ लूंगा 🔗"
+  "inputPlaceholder": "कुछ भी पूछें — कोई URL पेस्ट करें और मैं उसे पढ़ लूंगा 🔗",
+  "selectedTopic": "🎯 चयनित विषय: {{title}}"
 }

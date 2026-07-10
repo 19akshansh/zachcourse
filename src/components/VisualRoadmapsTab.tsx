@@ -36,7 +36,7 @@ export default function VisualRoadmapsTab({
   onToggleFavorite,
   onToggleNodeComplete
 }: VisualRoadmapsTabProps) {
-  const { t, i18n } = useTranslation(["roadmap"]);
+  const { t, i18n } = useTranslation(["roadmap", "common"]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [topic, setTopic] = useState("");
   const [experienceLevel, setExperienceLevel] = useState("beginner");
@@ -254,8 +254,8 @@ export default function VisualRoadmapsTab({
              ) : (
                <div className="text-center opacity-50">
                  <Map className="w-16 h-16 text-[#8E88AB] mx-auto mb-4" />
-                 <h3 className="text-lg font-bold text-white mb-2">{t("livePreview", { defaultValue: "Live Preview" })}</h3>
-                 <p className="text-[#8E88AB] max-w-xs mx-auto">{t("graphWillAppearHere", { defaultValue: "Your generated node graph will appear here." })}</p>
+                 <h3 className="text-lg font-bold text-white mb-2">{t("common:livePreview", { defaultValue: "Live Preview" })}</h3>
+                 <p className="text-[#8E88AB] max-w-xs mx-auto">{t("common:graphWillAppearHere", { defaultValue: "Your generated node graph will appear here." })}</p>
                </div>
              )}
           </div>

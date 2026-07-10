@@ -7,5 +7,6 @@
   "coursesAssigned": "الدورات المعينة",
   "avgQuizScore": "متوسط درجة الاختبار",
   "activeStudents": "الطلاب النشطون",
-  "emptyState": "ليس لديك فصول دراسية نشطة. قم بإنشاء واحد للبدء في مراقبة تقدم الطلاب!"
+  "emptyState": "ليس لديك فصول دراسية نشطة. قم بإنشاء واحد للبدء في مراقبة تقدم الطلاب!",
+  "createClassroom": "createClassroom"
 }

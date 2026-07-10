@@ -7,5 +7,6 @@
   "coursesAssigned": "已分配课程",
   "avgQuizScore": "测验平均分",
   "activeStudents": "活跃学生",
-  "emptyState": "您没有活跃的教室。创建一个以开始监控学生进度！"
+  "emptyState": "您没有活跃的教室。创建一个以开始监控学生进度！",
+  "createClassroom": "createClassroom"
 }

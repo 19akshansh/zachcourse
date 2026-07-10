@@ -20,10 +20,20 @@ import { extractTextFromBuffer, detectPromptInjection } from "./src/lib/document
 import { retrieveRelevantMemories, storeMentorExchange } from "./src/lib/memory";
 import { isBlockedUrl, isBlockedUrlResolved } from "./src/lib/ssrf-guard";
 import { getLocalFallbackRoadmap, getLocalFallbackLesson, getLocalFallbackQuiz, getLocalFallbackMentorReply } from "./src/lib/local-fallbacks";
-import { generateRoadmapContent, generateVisualRoadmapContent } from "./src/server/agents/roadmap-agent";
+import { generateRoadmapContent, generateVisualRoadmapContent, roadmapSchema } from "./src/server/agents/roadmap-agent";
 import { TONE_INSTRUCTIONS, LANGUAGE_INSTRUCTIONS } from "./src/lib/tone-options";
 import { fetchUrlTool, searchWebTool } from "./src/lib/mentor-tools";
 import { sanitizeResourceUrl } from "./src/lib/resource-link";
+
+const quizSchema = z.object({
+  questions: z.array(z.object({
+    id: z.string(),
+    question: z.string(),
+    options: z.array(z.string()).length(4),
+    correctIndex: z.number().min(0).max(3),
+    explanation: z.string(),
+  })).length(3)
+});
 
 const app = express();
 
@@ -202,6 +212,21 @@ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Helper to resolve API key from request, strictly using user's key only (no developer key fallback)
+function resolveApiKey(req: any): string | undefined {
+  let userKey = req.headers["x-user-key"] as string | undefined;
+  if (userKey && userKey !== "null" && userKey !== "undefined" && userKey.trim() !== "") {
+    let trimmed = userKey.trim();
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+      trimmed = trimmed.slice(1, -1).trim();
+    }
+    if (trimmed.length >= 20) {
+      return trimmed;
+    }
+  }
+  return undefined;
+}
+
 // Highly robust wrapper for calling Gemini API with exponential backoff and model/local fallbacks
 async function callAI(
   prompt: string,
@@ -213,10 +238,25 @@ async function callAI(
     "gemini-2.5-pro"
   ];
   
+  let userKey = options.apiKey;
+  
+  // Clean user key
+  if (userKey) {
+    userKey = userKey.trim();
+    if ((userKey.startsWith('"') && userKey.endsWith('"')) || (userKey.startsWith("'") && userKey.endsWith("'"))) {
+      userKey = userKey.slice(1, -1).trim();
+    }
+  }
+  
+  if (!userKey || userKey === "" || userKey === "null" || userKey === "undefined" || userKey.length < 20) {
+    throw new Error("MISSING_API_KEY");
+  }
+
+  let lastError: any = null;
+  
   for (const modelId of models) {
     try {
-      if (!options.apiKey) throw new Error("MISSING_API_KEY");
-      const googleClient = createGoogleGenerativeAI({ apiKey: options.apiKey });
+      const googleClient = createGoogleGenerativeAI({ apiKey: userKey });
       const model = googleClient(modelId);
       
       if (options.schema) {
@@ -241,21 +281,34 @@ async function callAI(
       return text;
       
     } catch (err: any) {
-      const msg = err?.message || "";
-      const isRetryable = 
-        msg.includes("503") || 
-        msg.includes("429") || 
-        msg.includes("overloaded") ||
-        msg.includes("quota") ||
-        msg.includes("high demand");
+      lastError = err;
+      const status = err?.status || err?.statusCode || err?.response?.status;
+      const msg = (err?.message || "").toLowerCase();
+      console.error(`Model ${modelId} failed:`, err);
       
-      console.error(`Model ${modelId} failed:`, msg);
-      if (!isRetryable) break;
+      const isAuthError = 
+        status === 401 ||
+        status === 403 ||
+        msg.includes("api_key_invalid") || 
+        msg.includes("missing_api_key") || 
+        msg.includes("invalid_api_key") || 
+        msg.includes("api key not valid") || 
+        msg.includes("unauthorized") ||
+        msg.includes("forbidden") ||
+        msg.includes("invalid authentication credentials") ||
+        msg.includes("oauth 2") ||
+        msg.includes("credentials");
+        
+      if (isAuthError) {
+        throw err; // Propagate auth error immediately
+      }
+      
+      // For any other error (such as validation, rate limit, overload, etc.), try the next model after a short sleep
       await sleep(1500);
     }
   }
   
-  return null; // caller handles fallback
+  throw lastError || new Error("All models in the cascade failed");
 }
 
 // Memory storage only — never touch disk
@@ -380,14 +433,9 @@ app.post(
 // 1. API: Generate Roadmap
 app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
   const { topic, sourceUrl, textContent, documentContext, language } = req.body;
-  let userKey = req.headers["x-user-key"] as string | undefined;
-  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
-    if (!userKey) {
-      res.status(403).json({ error: "Missing API key" });
-      return;
-    }
-  if (!userKey) {
-    res.status(403).json({ error: "Missing API key" });
+  const activeKey = resolveApiKey(req);
+  if (!activeKey) {
+    res.status(403).json({ error: "MISSING_API_KEY" });
     return;
   }
   if (topic && topic.length > 500) {
@@ -419,7 +467,7 @@ app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
       documentContext,
       tone,
       language,
-      userKey,
+      userKey: activeKey,
     });
 
     res.json({ roadmap: roadmapData });
@@ -447,8 +495,11 @@ app.post("/api/generate-visual-roadmap", aiRateLimit, async (req, res) => {
   const { topic, experienceLevel, backgroundContext, weeklyHours, sourceUrl, documentContext, tone, language } = req.body
   
   try {
-    let userKey = req.headers["x-user-key"] as string | undefined;
-  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
+    const activeKey = resolveApiKey(req);
+    if (!activeKey) {
+      res.status(403).json({ error: "MISSING_API_KEY" });
+      return;
+    }
     const data = await generateVisualRoadmapContent({
       topic,
       experienceLevel,
@@ -456,7 +507,7 @@ app.post("/api/generate-visual-roadmap", aiRateLimit, async (req, res) => {
       weeklyHours,
       sourceUrl,
       documentContext,
-      tone, language, userKey, });
+      tone, language, userKey: activeKey, });
 
     if (!data) {
       res.status(500).json({ error: "Generation failed" })
@@ -465,31 +516,18 @@ app.post("/api/generate-visual-roadmap", aiRateLimit, async (req, res) => {
 
     res.json({ roadmap: data })
   } catch (err: any) {
-    res.status(500).json({ error: err.message })
+    console.error("Error generating visual roadmap:", err)
+    res.status(500).json({ error: err.message || "Failed to generate visual roadmap" })
   }
 })
 
 // ============================================================================
-// LESSON AGENT (STUDY GUIDE) & JUDGE AGENT EVALUATION FLOW
-// ============================================================================
-// • Purpose: Authors a highly detailed Markdown study guide for a given lesson,
-//   custom-scoped to the lesson's concept list and optional reference document context.
-// • Technique Selection: Employs standard free-form text generation (`generateText` / no schema)
-//   because study guides require high-density, conversational prose, creative code examples,
-//   and fluid Markdown formatting which strict schema generation would overly constrain.
-// • Inline Judge Agent: Integrates an automated evaluator (Judge Agent) which critiques the
-//   study guide's clarity, technical accuracy, depth, and engagement against a rubric.
-// • Resiliency Loop: If the score falls below standard or a verdict of revision/fail is issued,
-//   the Lesson Agent is re-prompted. The loop caps at exactly 1 self-correction step
-//   to balance learning quality with fast generation performance.
-// ============================================================================
 // 2. API: Generate Study Guide Content
 app.post("/api/generate-lesson", requireAuth, async (req, res) => {
   const { roadmapKey, moduleId, lessonId, lessonTitle, concepts, courseContext, documentContext, courseId, experienceLevel, backgroundContext, tone, language } = req.body;
-  let userKey = req.headers["x-user-key"] as string | undefined;
-  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
-  if (!userKey) {
-    res.status(403).json({ error: "Missing API key" });
+  const activeKey = resolveApiKey(req);
+  if (!activeKey) {
+    res.status(403).json({ error: "MISSING_API_KEY" });
     return;
   }
   try {
@@ -527,9 +565,11 @@ Format in Markdown with sections:
 3. Code Example (working, annotated code)
 4. Key Takeaways (bullet points)
 
-Be thorough, friendly, and practical.`;
+Be thorough, friendly, and practical.
 
-    let contentText = await callAI(prompt, { apiKey: userKey })
+CRITICAL REQUIREMENT: You MUST write your study guide using standard Markdown formatting only. Do NOT output a JSON object or wrap your response in JSON under any circumstances, even if the lesson title contains words like 'Project' or 'Hands-on'. Write a beautiful, clean Markdown article.`;
+
+    let contentText = await callAI(prompt, { apiKey: activeKey })
       ?? getLocalFallbackLesson(lessonTitle, concepts);
 
     const judgeSchema = z.object({
@@ -556,7 +596,7 @@ Concepts: ${JSON.stringify(concepts || [])}
 Generated Content:
 ${contentToEvaluate}
 `;
-      return await callAI(judgePrompt, { schema: judgeSchema, apiKey: userKey });
+      return await callAI(judgePrompt, { schema: judgeSchema, apiKey: activeKey });
     };
 
     let evaluation = await evaluateLesson(contentText);
@@ -565,7 +605,7 @@ ${contentToEvaluate}
       console.log(`[Judge Agent] Lesson "${lessonTitle}" failed evaluation. Retrying...`);
       const revisionPrompt = prompt + `\n\nNOTE: A reviewer evaluated your previous attempt and found the following issues:\n${evaluation.feedback}\n\nPlease revise the lesson to address these issues. Ensure all previous constraints are met.`;
       
-      contentText = await callAI(revisionPrompt, { apiKey: userKey }) ?? contentText; // Fallback to old if it fails completely
+      contentText = await callAI(revisionPrompt, { apiKey: activeKey }) ?? contentText; // Fallback to old if it fails completely
       evaluation = await evaluateLesson(contentText); // Re-evaluate
     }
 
@@ -579,6 +619,7 @@ ${contentToEvaluate}
           lessonId: lessonId || lessonTitle,
           lessonTitle: lessonTitle,
           content: contentText,
+          apiKey: activeKey,
         }).catch(err => 
           console.error("[memory] lesson store failed:", err)
         );
@@ -608,13 +649,144 @@ ${contentToEvaluate}
 // • Design Details: Dictates a balanced cognitive load distribution (1 easy,
 //   1 medium, 1 hard question) to test conceptual understanding rather than rote recall.
 // ============================================================================
+
+// ============================================================================
+// TRANSLATE LESSON FLOW
+// ============================================================================
+app.post("/api/translate-lesson", requireAuth, async (req, res) => {
+  try {
+    const { content, language } = req.body;
+    const activeKey = resolveApiKey(req);
+    if (!activeKey) {
+      res.status(403).json({ error: "MISSING_API_KEY" });
+      return;
+    }
+    
+    if (!content || !language) {
+      res.status(400).json({ error: "Missing content or language" });
+      return;
+    }
+
+    let translatedContent;
+
+    if (req.body.type === "quiz") {
+       const prompt = `Translate the following JSON quiz data into ${language}. Keep the exact JSON keys and structure, translate ONLY the values for "question", "options", and "explanation".
+JSON:
+${typeof content === "string" ? content : JSON.stringify(content)}`;
+       translatedContent = await callAI(prompt, { schema: quizSchema, apiKey: activeKey });
+
+       // Completeness check for Quiz
+       let original;
+       try { original = typeof content === "string" ? JSON.parse(content) : content; } catch(e) {}
+       if (original && original.questions && translatedContent && translatedContent.questions) {
+         if (original.questions.length !== translatedContent.questions.length) {
+           console.warn(`[Translation Warning] Quiz question count mismatch. Original: ${original.questions.length}, Translated: ${translatedContent.questions.length}`);
+           res.status(500).json({ error: "Translation failed completeness check: quiz question count mismatch" });
+           return;
+         }
+       }
+    } else if (req.body.type === "roadmap") {
+       const prompt = `You are a professional educational curriculum translator.
+Translate the following JSON roadmap data into ${language}.
+Keep the exact JSON keys, structure, IDs, and array lengths intact.
+Translate all student-facing text values (such as "title", "description", "difficulty", "totalDuration", "concepts") into ${language}.
+CRITICAL SPECIFICATION FOR PROJECT TITLES:
+- For any lesson/node that represents a module project (e.g., "Module 2 Project: Word Guessing Game"), you MUST translate the complete, specific title (e.g. "शब्द अनुमान लगाने वाला खेल" or "मॉड्यूल 2 परियोजना: शब्द अनुमान लगाने वाला खेल") rather than just translating it to a generic placeholder like "मॉड्यूल परियोजना".
+- Do NOT truncate or simplify specific project names. Retain all specific context.
+Do NOT translate or modify any "id" fields or technical identifiers.
+JSON content to translate:
+${typeof content === "string" ? content : JSON.stringify(content)}`;
+       translatedContent = await callAI(prompt, { schema: roadmapSchema, apiKey: activeKey });
+       
+       // Completeness check for Roadmap
+       let original;
+       try { original = typeof content === "string" ? JSON.parse(content) : content; } catch(e) {}
+       if (original && original.modules && translatedContent && translatedContent.modules) {
+         if (original.modules.length !== translatedContent.modules.length) {
+           console.warn(`[Translation Warning] Roadmap module count mismatch. Original: ${original.modules.length}, Translated: ${translatedContent.modules.length}`);
+           res.status(500).json({ error: "Translation failed completeness check: module count mismatch" });
+           return;
+         }
+         
+         // To guarantee that translated content strictly preserves the exact original IDs (avoiding model translation of IDs)
+         // we copy the original IDs over to corresponding indices.
+         for (let mIdx = 0; mIdx < original.modules.length; mIdx++) {
+           const origMod = original.modules[mIdx];
+           const transMod = translatedContent.modules[mIdx];
+           
+           const origLessonsCount = origMod.lessons ? origMod.lessons.length : 0;
+           const transLessonsCount = transMod.lessons ? transMod.lessons.length : 0;
+           
+           if (origLessonsCount !== transLessonsCount) {
+             console.warn(`[Translation Warning] Roadmap lesson count mismatch in module ${mIdx}. Original: ${origLessonsCount}, Translated: ${transLessonsCount}`);
+             res.status(500).json({ error: `Translation failed completeness check: lesson count mismatch in module ${mIdx}` });
+             return;
+           }
+           
+           // Preserve module ID
+           transMod.id = origMod.id;
+           
+           if (origMod.lessons && transMod.lessons) {
+             for (let lIdx = 0; lIdx < origMod.lessons.length; lIdx++) {
+               // Preserve lesson ID
+               transMod.lessons[lIdx].id = origMod.lessons[lIdx].id;
+             }
+           }
+         }
+
+         const originalLessonIds: string[] = [];
+         const translatedLessonIds: string[] = [];
+         
+         for (const m of original.modules) {
+           if (m.lessons) {
+             for (const l of m.lessons) {
+               originalLessonIds.push(l.id);
+             }
+           }
+         }
+         
+         for (const m of translatedContent.modules) {
+           if (m.lessons) {
+             for (const l of m.lessons) {
+               translatedLessonIds.push(l.id);
+             }
+           }
+         }
+         
+         if (originalLessonIds.length !== translatedLessonIds.length) {
+           console.warn(`[Translation Warning] Roadmap lesson count mismatch. Original: ${originalLessonIds.length}, Translated: ${translatedLessonIds.length}`);
+           res.status(500).json({ error: "Translation failed completeness check: lesson count mismatch" });
+           return;
+         }
+         
+         for (let i = 0; i < originalLessonIds.length; i++) {
+           if (originalLessonIds[i] !== translatedLessonIds[i]) {
+             console.warn(`[Translation Warning] Roadmap lesson ID mismatch at index ${i}. Original: ${originalLessonIds[i]}, Translated: ${translatedLessonIds[i]}`);
+             res.status(500).json({ error: `Translation failed completeness check: lesson ID mismatch at index ${i}` });
+             return;
+           }
+         }
+       }
+    } else {
+       const prompt = `Translate the following educational content into ${language} exactly. Preserve all markdown formatting, structure, emojis, and code blocks.
+Content to translate:
+${content}`;
+       translatedContent = await callAI(prompt, { apiKey: activeKey });
+    }
+    
+    res.json({ content: translatedContent });
+  } catch (error: any) {
+    console.error("Error translating lesson content:", error);
+    res.status(500).json({ error: error.message || "Failed to translate lesson content" });
+  }
+});
+
 // 3. API: Generate Quiz
 app.post("/api/generate-quiz", requireAuth, async (req, res) => {
   const { lessonTitle, lessonContent, tone, language } = req.body;
-  let userKey = req.headers["x-user-key"] as string | undefined;
-  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
-  if (!userKey) {
-    res.status(403).json({ error: "Missing API key" });
+  const activeKey = resolveApiKey(req);
+  if (!activeKey) {
+    res.status(403).json({ error: "MISSING_API_KEY" });
     return;
   }
   try {
@@ -622,16 +794,6 @@ app.post("/api/generate-quiz", requireAuth, async (req, res) => {
       res.status(400).json({ error: "Missing lessonTitle" });
       return;
     }
-
-    const schema = z.object({
-      questions: z.array(z.object({
-        id: z.string(),
-        question: z.string(),
-        options: z.array(z.string()).length(4),
-        correctIndex: z.number().min(0).max(3),
-        explanation: z.string(),
-      })).length(3)
-    });
 
     const toneInstruction = TONE_INSTRUCTIONS[tone || "friendly"] ?? TONE_INSTRUCTIONS.friendly;
     const languageInstruction = LANGUAGE_INSTRUCTIONS[language || "en"] ?? LANGUAGE_INSTRUCTIONS.en;
@@ -647,7 +809,7 @@ Requirements:
 - Include clear explanation for correct answer
 - Vary difficulty: 1 easy, 1 medium, 1 hard`;
 
-    const quizData = await callAI(prompt, { schema, apiKey: userKey })
+    const quizData = await callAI(prompt, { schema: quizSchema, apiKey: activeKey })
       ?? getLocalFallbackQuiz(lessonTitle, req.body.concepts || []);
 
     res.json(quizData);
@@ -708,6 +870,12 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
       return;
     }
 
+    const activeKey = resolveApiKey(req);
+    if (!activeKey) {
+      res.status(403).json({ error: "MISSING_API_KEY" });
+      return;
+    }
+
     let backgroundContext = "";
     let experienceLevel = "beginner";
     let tone = "friendly";
@@ -731,6 +899,7 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
       courseId: courseId || "general",
       query: message,
       limit: 4,
+      apiKey: activeKey,
     });
 
     const memoryContext = relevantMemories.length > 0
@@ -741,73 +910,62 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
         }\n`
       : "";
 
-    let userKey = req.headers["x-user-key"] as string | undefined;
-  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
-    if (!userKey) {
-      res.status(403).json({ error: "Missing API key" });
-      return;
-    }
-    const googleClient = createGoogleGenerativeAI({ apiKey: userKey });
+    const googleClient = createGoogleGenerativeAI({ apiKey: activeKey });
     const model = googleClient("gemini-2.5-flash");
 
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
-    res.setHeader("X-Accel-Buffering", "no");
-    res.flushHeaders();
 
+    const previousMessages = (history || []).map((m: any) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content
+    }));
+
+    const languageInstruction = language ? (LANGUAGE_INSTRUCTIONS[language] || "") : "";
     const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.friendly;
 
-    const languageInstruction = LANGUAGE_INSTRUCTIONS[language || "en"] ?? LANGUAGE_INSTRUCTIONS.en;
-    const systemPrompt = `You are ZachCourse Assistant — a brilliant, warm, highly knowledgeable AI mentor.
-
-PRIMARY FOCUS: Help the student with "${currentCourseTitle || 'General Learning'}"
-${currentLessonTitle ? `Current lesson: "${currentLessonTitle}"` : ""}
-Target Level: ${experienceLevel}
-Language Requirement: ${languageInstruction}
-Content tone: ${toneInstruction}
-${backgroundContext ? `Learner Background: ${backgroundContext}` : ""}
-${memoryContext}
-
-CRITICAL INSTRUCTIONS FOR TOOLS:
-1. Only use tools (fetchUrl, searchWeb) if the student's question explicitly asks for external information, a specific URL, or current events.
-2. If you use a tool, you MUST provide a final text response answering the user based on the tool's results.
-3. If a tool fails, or if you don't need tools, answer using your own knowledge. ALWAYS output a final text response.
-`;
-
-    const formattedMessages = [
-      ...(history || []).slice(-8).map((m: any) => ({
-        role: m.role === "assistant" ? "assistant" : "user" as const,
-        content: m.content || m.text || "",
-      })),
-      { role: "user" as const, content: message }
-    ];
-
-    const result = streamText({
-      model,
-      system: systemPrompt,
-      messages: formattedMessages,
-      tools: { fetchUrl: fetchUrlTool, searchWeb: searchWebTool },
-      stopWhen: isStepCount(5),
-    });
-
     let fullText = "";
-    for await (const chunk of result.textStream) {
-      fullText += chunk;
-      res.write(`data: ${JSON.stringify({ token: chunk })}\n\n`);
+
+    try {
+      const result = await streamText({
+        model,
+        system: `You are ZachCourse's expert learning mentor.
+Current Course: "${currentCourseTitle || "None"}"
+Current Lesson: "${currentLessonTitle || "None"}"
+Experience Level: ${experienceLevel}
+Learner Background: ${backgroundContext}
+${toneInstruction}
+${languageInstruction}
+${memoryContext}
+Always answer based on the current context. Be friendly, concise, and helpful. Use tools to look up external info if needed.`,
+        messages: [
+          ...previousMessages,
+          { role: "user", content: message }
+        ],
+        stopWhen: isStepCount(5),
+        tools: {
+          fetchUrl: fetchUrlTool,
+          searchWeb: searchWebTool
+        }
+      });
+
+      for await (const chunk of result.textStream) {
+        fullText += chunk;
+        res.write(`data: ${JSON.stringify({ text: chunk })}\n\n`);
+      }
+
+      if (!fullText) {
+        try {
+          console.warn("[MentorChat] Empty fullText. Steps:", await result.steps);
+        } catch (e) {
+          console.error("Failed to log steps", e);
+        }
+      }
+    } catch (streamErr: any) {
+      throw streamErr;
     }
 
-    if (fullText.trim() === "") {
-      fullText = "I'm sorry, I couldn't generate a proper response to that.";
-      res.write(`data: ${JSON.stringify({ token: fullText })}\n\n`);
-      
-      // Temporary logging for empty responses
-      try {
-        console.warn("[MentorChat] Empty fullText. Steps:", await result.steps);
-      } catch (e) {
-        console.error("Failed to log steps", e);
-      }
-    }
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
 
@@ -819,6 +977,7 @@ CRITICAL INSTRUCTIONS FOR TOOLS:
         lessonTitle: currentLessonTitle || "General",
         question: message,
         answer: fullText,
+        apiKey: activeKey,
       }).catch(console.error);
     }
 
@@ -835,33 +994,6 @@ CRITICAL INSTRUCTIONS FOR TOOLS:
   }
 });
 
-app.post("/api/ai", aiRateLimit, async (req, res) => {
-  try {
-    const cookies = req.headers.cookie || "";
-    
-    const starMatch = cookies.match(/(?:^|; )zc_star_bonus=([^;]*)/);
-    const starBonus = starMatch ? parseInt(starMatch[1], 10) || 0 : 0;
-
-    const { prompt, systemPrompt } = req.body;
-    if (!prompt) {
-      res.status(400).json({ error: "Missing prompt" });
-      return;
-    }
-
-    let userKey = req.headers["x-user-key"] as string | undefined;
-  if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined;
-    if (!userKey) {
-      res.status(403).json({ error: "Missing API key" });
-      return;
-    }
-
-    const text = await callAI(prompt, { systemPrompt, apiKey: userKey });
-    res.json({ reply: text || "" });
-  } catch (error: any) {
-    console.error("Error in Express /api/ai proxy:", error);
-    res.status(500).json({ error: error.message || "Failed to call AI API" });
-  }
-});
 
 // Start dev server / static server
 async function startServer() {

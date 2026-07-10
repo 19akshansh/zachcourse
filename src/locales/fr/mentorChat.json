@@ -15,5 +15,6 @@
   "toastMemoryClearFailed": "Échec de l'effacement de la mémoire",
   "clearHistory": "Effacer la mémoire",
   "tutorWriting": "Le tuteur écrit...",
-  "inputPlaceholder": "Demandez n'importe quoi — collez une URL et je la lirai 🔗"
+  "inputPlaceholder": "Demandez n'importe quoi — collez une URL et je la lirai 🔗",
+  "selectedTopic": "🎯 Sujet sélectionné : {{title}}"
 }

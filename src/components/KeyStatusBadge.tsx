@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
-import { getStarBonusRemaining } from "../lib/usage";
-import { Key, Star, Sparkles, X } from "lucide-react";
+import { Key, Sparkles, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 export default function KeyStatusBadge() {
   const { t } = useTranslation("common");
   const [hasKey, setHasKey] = useState(false);
-  const [starBonus, setStarBonus] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const updateStatus = () => {
-    const userKey = typeof window !== "undefined" ? localStorage.getItem("zc_user_key") : null;
-    setHasKey(!!userKey);
-    setStarBonus(getStarBonusRemaining());
+    if (typeof window === "undefined") return;
+    const userKey = localStorage.getItem("zc_user_key");
+    setHasKey(!!userKey && userKey !== "null" && userKey !== "undefined" && userKey.trim() !== "");
   };
 
   useEffect(() => {
@@ -28,8 +26,8 @@ export default function KeyStatusBadge() {
         setIsOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
 
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
       window.removeEventListener("zc-key-status-changed", updateStatus);
       document.removeEventListener("mousedown", handleClickOutside);
@@ -43,12 +41,7 @@ export default function KeyStatusBadge() {
     setIsOpen(false);
   };
 
-  const handleTriggerUnlock = () => {
-    window.dispatchEvent(new CustomEvent("zc-quota-exceeded"));
-    setIsOpen(false);
-  };
-
-  if (!hasKey && starBonus <= 0) {
+  if (!hasKey) {
     return null;
   }
 
@@ -63,11 +56,6 @@ export default function KeyStatusBadge() {
     icon = <Key className="w-3.5 h-3.5 shrink-0" />;
     label = t("yourKeyActive", { defaultValue: "🔑 Your Key Active" });
     shortLabel = t("keyActiveShort", { defaultValue: "Active" });
-  } else if (starBonus > 0) {
-    badgeStyle = "text-amber-400 bg-amber-500/10 border-amber-500/20";
-    icon = <Star className="w-3.5 h-3.5 shrink-0 fill-amber-500/10" />;
-    label = t("queriesLeft", { defaultValue: `⭐ ${starBonus} queries left`, count: starBonus });
-    shortLabel = t("queriesLeftShort", { defaultValue: `${starBonus} left`, count: starBonus });
   }
 
   return (
@@ -93,9 +81,8 @@ export default function KeyStatusBadge() {
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
-
           <div className="space-y-3 text-xs">
-            {hasKey ? (
+            {hasKey && (
               <div>
                 <p className="text-[#8E88AB] leading-relaxed">
                   {t("keyExplanation", { defaultValue: "You are currently using your own Gemini API key. You have unlimited access directly from your browser." })}
@@ -107,19 +94,7 @@ export default function KeyStatusBadge() {
                   {t("removeCustomKey", { defaultValue: "Remove My Custom Key" })}
                 </button>
               </div>
-            ) : starBonus > 0 ? (
-              <div>
-                <p className="text-[#8E88AB] leading-relaxed">
-                  {t("starExplanation", { defaultValue: "Thank you for supporting us on GitHub! You have premium queries left on our server.", count: starBonus })}
-                </p>
-                <button
-                  onClick={handleTriggerUnlock}
-                  className="mt-3 w-full bg-[#1F1C38] hover:bg-[#2A264D] border border-[#2B2446] text-[#FAF9FD] font-bold py-2 rounded-xl transition cursor-pointer text-center"
-                >
-                  {t("manageKeys", { defaultValue: "Manage My Keys / Star" })}
-                </button>
-              </div>
-            ) : null}
+            )}
           </div>
         </div>
       )}

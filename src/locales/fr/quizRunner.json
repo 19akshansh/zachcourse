@@ -27,5 +27,7 @@
   "generateQuizButton": "Générer le quiz",
   "startLessonToPracticeTitle": "Commencez une leçon pour vous entraîner !",
   "startLessonToPracticeDesc": "Sélectionnez n'importe quelle leçon de votre feuille de route active, cliquez sur Passer le quiz rapide dans la vue du guide d'étude de la leçon, et testez vos connaissances ici !",
-  "goToRoadmapButton": "Aller à la feuille de route"
+  "goToRoadmapButton": "Aller à la feuille de route",
+  "topicWithTitle": "Sujet : {{title}}",
+  "configureQuizDesc": "Personnalisez la difficulté et la durée de votre quiz pour : {{title}}"
 }

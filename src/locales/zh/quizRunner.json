@@ -27,5 +27,7 @@
   "generateQuizButton": "生成测验",
   "startLessonToPracticeTitle": "开始一节课来练习！",
   "startLessonToPracticeDesc": "从您活跃的路线图中选择任何一节课，在课程学习指南视图中点击参加快速测验，并在这里测试您的知识！",
-  "goToRoadmapButton": "前往路线图"
+  "goToRoadmapButton": "前往路线图",
+  "topicWithTitle": "主题：{{title}}",
+  "configureQuizDesc": "为 {{title}} 定制测验的难度和长度"
 }

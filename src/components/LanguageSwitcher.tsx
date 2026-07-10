@@ -13,9 +13,9 @@ const languagesList = [
   { code: "zh", nativeName: "中文" }
 ];
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ buttonClassName }: { buttonClassName?: string }) {
   const [isOpen, setIsOpen] = useState(false);
-  const { i18n, t } = useTranslation("header");
+  const { i18n, t } = useTranslation(["header", "common"]);
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -39,7 +39,7 @@ export function LanguageSwitcher() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="p-2 text-[#CECADF] hover:text-[#FAF9FD] hover:bg-[#2A2443] rounded-xl transition-colors flex items-center justify-center relative"
+        className={buttonClassName || "p-2 text-[#CECADF] hover:text-[#FAF9FD] hover:bg-[#2A2443] rounded-xl transition-colors flex items-center justify-center relative"}
         aria-label={t("changeLanguage", { defaultValue: "Change Language" })}
       >
         <Languages className="w-5 h-5" />
@@ -62,7 +62,7 @@ export function LanguageSwitcher() {
               <div>
                 <h3 className="text-xl font-bold text-[#FAF9FD]">{t("changeLanguage")}</h3>
                 <p className="text-sm text-[#CECADF] mt-2 leading-relaxed">
-                  {t("changeLanguageDesc", { defaultValue: "Select your preferred language. Language changes will apply to the entire platform." })}
+                  {t("common:changeLanguageDesc", { defaultValue: "Select your preferred language. Language changes will apply to the entire platform." })}
                 </p>
               </div>
             </div>
@@ -97,7 +97,7 @@ export function LanguageSwitcher() {
                 onClick={() => setIsOpen(false)}
                 className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer w-full sm:w-auto text-center"
               >
-                {t("close", { defaultValue: "Close" })}
+                {t("common:close", { defaultValue: "Close" })}
               </button>
             </div>
           </div>

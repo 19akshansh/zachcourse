@@ -7,6 +7,28 @@ import { TONE_INSTRUCTIONS, LANGUAGE_INSTRUCTIONS } from "../../lib/tone-options
 
 
 
+export const roadmapSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  difficulty: z.string(),
+  totalDuration: z.string().optional(),
+  prerequisites: z.array(z.string()).default([]),
+  modules: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    description: z.string(),
+    lessons: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      duration: z.string(),
+      concepts: z.array(z.string()),
+      difficulty: z.string().optional(),
+      type: z.string().optional(),
+      description: z.string().optional(),
+    }))
+  }))
+});
+
 // Helper for sleep/delay during backoff
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -23,8 +45,18 @@ async function callAI(
     "gemini-2.5-pro"
   ];
   
-  if (!options.apiKey) throw new Error("MISSING_API_KEY");
-    const googleClient = createGoogleGenerativeAI({ apiKey: options.apiKey });
+  const key = options.apiKey;
+  if (typeof key !== "string") {
+    throw new Error("INVALID_API_KEY");
+  }
+  const trimmed = key.trim();
+  if (trimmed === "" || trimmed === "null" || trimmed === "undefined") {
+    throw new Error("MISSING_API_KEY");
+  }
+  if (trimmed.length < 20) {
+    throw new Error("INVALID_API_KEY");
+  }
+  const googleClient = createGoogleGenerativeAI({ apiKey: trimmed });
 
   for (const modelId of models) {
     try {
@@ -77,28 +109,6 @@ export async function generateRoadmapContent(input: GenerateRoadmapInput) {
     language = "en"
   } = input;
 
-  const schema = z.object({
-    title: z.string(),
-    description: z.string(),
-    difficulty: z.string(),
-    totalDuration: z.string().optional(),
-    prerequisites: z.array(z.string()).default([]),
-    modules: z.array(z.object({
-      id: z.string(),
-      title: z.string(),
-      description: z.string(),
-      lessons: z.array(z.object({
-        id: z.string(),
-        title: z.string(),
-        duration: z.string(),
-        concepts: z.array(z.string()),
-        difficulty: z.string().optional(),
-        type: z.string().optional(),
-        description: z.string().optional(),
-      }))
-    }))
-  });
-
   const safeDocContext = documentContext ? documentContext.slice(0, 40_000) : "";
   const toneInstruction = TONE_INSTRUCTIONS[tone] ?? TONE_INSTRUCTIONS.friendly;
   const languageInstruction = LANGUAGE_INSTRUCTIONS[language] ?? LANGUAGE_INSTRUCTIONS.en;
@@ -134,7 +144,7 @@ topics, and structure from it where possible.
 - First lesson completable in under 30 min
 - Adapt depth to experience level`;
 
-  let roadmapData = await callAI(prompt, { schema, apiKey: userKey })
+  let roadmapData = await callAI(prompt, { schema: roadmapSchema, apiKey: userKey })
     ?? getLocalFallbackRoadmap(topic || "Technology Mastery", sourceUrl, textContent);
 
   // --- CRITIC AGENT ---
@@ -166,7 +176,7 @@ ${JSON.stringify(roadmapData)}
       console.log(`[Critic Agent] Roadmap rejected. Issues: ${critique.issues.length}. Retrying...`);
       const revisionPrompt = prompt + `\n\nNOTE: A reviewer evaluated your previous attempt and found the following issues:\n${critique.revisionNotes}\n\nPlease revise the roadmap to address these issues.`;
       
-      roadmapData = await callAI(revisionPrompt, { schema, apiKey: userKey }) ?? roadmapData;
+      roadmapData = await callAI(revisionPrompt, { schema: roadmapSchema, apiKey: userKey }) ?? roadmapData;
       reviewMeta = { revised: true, issuesFound: critique.issues.length };
     } else if (critique) {
       reviewMeta = { revised: false, issuesFound: critique.issues.length };

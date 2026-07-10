@@ -15,5 +15,6 @@
   "toastMemoryClearFailed": "清除记忆失败",
   "clearHistory": "清除记忆",
   "tutorWriting": "导师正在输入...",
-  "inputPlaceholder": "问任何问题 — 粘贴一个URL，我会阅读它 🔗"
+  "inputPlaceholder": "问任何问题 — 粘贴一个URL，我会阅读它 🔗",
+  "selectedTopic": "🎯 选定主题：{{title}}"
 }

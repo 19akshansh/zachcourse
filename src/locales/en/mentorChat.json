@@ -15,5 +15,6 @@
   "toastMemoryClearFailed": "Failed to clear memory",
   "clearHistory": "Clear memory",
   "tutorWriting": "Tutor is writing...",
-  "inputPlaceholder": "Ask anything — paste a URL and I'll read it 🔗"
+  "inputPlaceholder": "Ask anything — paste a URL and I'll read it 🔗",
+  "selectedTopic": "🎯 Selected Topic: {{title}}"
 }

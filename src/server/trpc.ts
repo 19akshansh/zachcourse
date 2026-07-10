@@ -5,6 +5,29 @@ import { auth } from "../lib/auth.js";
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
 import { z } from "zod";
 
+const NON_LATIN_LANGUAGES = [
+  "hi", "ar", "zh", "ja", "ko", "ru", "he", "el", "th", "fa", 
+  "bn", "ta", "te", "mr", "gu", "kn", "ml", "pa", "or", "as"
+];
+
+function isBadLatinTranslation(text: string, lang: string): boolean {
+  if (!text) return false;
+  if (!NON_LATIN_LANGUAGES.includes(lang)) return false;
+
+  const latinMatch = text.match(/[a-zA-Z]/g);
+  const latinCount = latinMatch ? latinMatch.length : 0;
+
+  const alphabeticOnly = text.replace(/[^a-zA-Z\u0900-\u097F\u0600-\u06FF\u4e00-\u9fff\u3040-\u30ff\u3130-\u318f\u0400-\u04FF]/g, "");
+
+  if (alphabeticOnly.length > 5) {
+    const latinPct = (latinCount / alphabeticOnly.length) * 100;
+    if (latinPct > 70) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export const createContext = async (opts: CreateExpressContextOptions) => {
   const headers = new Headers();
   for (const [key, value] of Object.entries(opts.req.headers)) {
@@ -227,7 +250,7 @@ export const appRouter = router({
     }),
 
   getCourse: protectedProcedure
-    .input(z.object({ courseId: z.string() }))
+    .input(z.object({ courseId: z.string(), language: z.string().optional().default("en") }))
     .query(async ({ ctx, input }) => {
       const course = await ctx.prisma.course.findFirst({
         where: { id: input.courseId, userId: ctx.user.id },
@@ -235,12 +258,236 @@ export const appRouter = router({
           messages: {
             take: 50,
             orderBy: { sequence: "desc" },
+          },
+          // Read from CourseTranslation table
+          courseTranslations: {
+            where: { language: input.language }
           }
         }
       });
       if (!course) throw new TRPCError({ code: "NOT_FOUND" });
       course.messages = course.messages.reverse();
-      return course;
+      
+      let isTranslated = true;
+      if (input.language !== "en") {
+        if (course.courseTranslations && course.courseTranslations.length > 0) {
+          const trans = course.courseTranslations[0];
+          let isValid = true;
+          if (course.roadmapData && typeof course.roadmapData === 'object' && !Array.isArray(course.roadmapData)) {
+            const originalModules = (course.roadmapData as any).modules || [];
+            const transModules = trans.modules as any[] || [];
+            
+            if (originalModules.length !== transModules.length) {
+              isValid = false;
+            } else {
+              const originalLessonIds: string[] = [];
+              const transLessonIds: string[] = [];
+
+              originalModules.forEach((m: any) => {
+                if (m.lessons) {
+                  m.lessons.forEach((l: any) => originalLessonIds.push(l.id));
+                }
+              });
+
+              transModules.forEach((m: any) => {
+                if (m.lessons) {
+                  m.lessons.forEach((l: any) => transLessonIds.push(l.id));
+                }
+              });
+
+              if (originalLessonIds.length !== transLessonIds.length) {
+                isValid = false;
+              } else {
+                for (let i = 0; i < originalLessonIds.length; i++) {
+                  if (originalLessonIds[i] !== transLessonIds[i]) {
+                    isValid = false;
+                    break;
+                  }
+                }
+              }
+            }
+
+            // Script validation check for non-Latin target languages
+            if (isValid && NON_LATIN_LANGUAGES.includes(input.language)) {
+              if (isBadLatinTranslation(trans.title, input.language) || isBadLatinTranslation(trans.description, input.language)) {
+                isValid = false;
+              } else {
+                for (const m of transModules) {
+                  if (isBadLatinTranslation(m.title, input.language) || isBadLatinTranslation(m.description, input.language)) {
+                    isValid = false;
+                    break;
+                  }
+                  if (m.lessons) {
+                    for (const l of m.lessons) {
+                      if (isBadLatinTranslation(l.title, input.language) || isBadLatinTranslation(l.description, input.language)) {
+                        isValid = false;
+                        break;
+                      }
+                    }
+                  }
+                  if (!isValid) break;
+                }
+              }
+            }
+            
+            if (isValid) {
+              course.title = trans.title;
+              course.description = trans.description;
+              (course.roadmapData as any).modules = trans.modules;
+            } else {
+              isTranslated = false;
+            }
+          } else {
+             course.title = trans.title;
+             course.description = trans.description;
+          }
+        } else {
+          isTranslated = false;
+        }
+      }
+      
+      const { courseTranslations, ...rest } = course;
+      return { ...rest, _isTranslated: isTranslated };
+    }),
+
+  saveCourseTranslation: protectedProcedure
+    .input(z.object({
+      courseId: z.string(),
+      language: z.string(),
+      title: z.string(),
+      description: z.string(),
+      modules: z.any()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify course ownership
+      const course = await ctx.prisma.course.findFirst({
+        where: { id: input.courseId, userId: ctx.user.id }
+      });
+      if (!course) throw new TRPCError({ code: "NOT_FOUND" });
+      
+      // Completeness check
+      if (course.roadmapData && typeof course.roadmapData === 'object' && !Array.isArray(course.roadmapData)) {
+        const originalModules = (course.roadmapData as any).modules || [];
+        const transModules = input.modules as any[] || [];
+
+        if (originalModules.length !== transModules.length) {
+          console.warn(`[Translation Warning] trpc.saveCourseTranslation module count mismatch. Original: ${originalModules.length}, Translated: ${transModules.length}`);
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Translation failed completeness check: module count mismatch"
+          });
+        }
+
+        const originalLessonIds: string[] = [];
+        const transLessonIds: string[] = [];
+
+        originalModules.forEach((m: any) => {
+          if (m.lessons) {
+            m.lessons.forEach((l: any) => originalLessonIds.push(l.id));
+          }
+        });
+
+        transModules.forEach((m: any) => {
+          if (m.lessons) {
+            m.lessons.forEach((l: any) => transLessonIds.push(l.id));
+          }
+        });
+
+        if (originalLessonIds.length !== transLessonIds.length) {
+          console.warn(`[Translation Warning] trpc.saveCourseTranslation lesson count mismatch. Original: ${originalLessonIds.length}, Translated: ${transLessonIds.length}`);
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Translation failed completeness check: lesson count mismatch"
+          });
+        }
+
+        for (let i = 0; i < originalLessonIds.length; i++) {
+          if (originalLessonIds[i] !== transLessonIds[i]) {
+            console.warn(`[Translation Warning] trpc.saveCourseTranslation lesson ID mismatch at index ${i}. Original: ${originalLessonIds[i]}, Translated: ${transLessonIds[i]}`);
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Translation failed completeness check: lesson ID mismatch at index ${i}`
+            });
+          }
+        }
+      }
+
+      // Script validation check for non-Latin target languages
+      if (NON_LATIN_LANGUAGES.includes(input.language)) {
+        if (isBadLatinTranslation(input.title, input.language) || isBadLatinTranslation(input.description, input.language)) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Translation failed Latin script check: course title or description contains too much Latin script"
+          });
+        }
+        const transModules = input.modules as any[] || [];
+        for (const m of transModules) {
+          if (isBadLatinTranslation(m.title, input.language) || isBadLatinTranslation(m.description, input.language)) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Translation failed Latin script check: module "${m.title}" contains too much Latin script`
+            });
+          }
+          if (m.lessons) {
+            for (const l of m.lessons) {
+              if (isBadLatinTranslation(l.title, input.language) || isBadLatinTranslation(l.description, input.language)) {
+                throw new TRPCError({
+                  code: "BAD_REQUEST",
+                  message: `Translation failed Latin script check: lesson "${l.title}" contains too much Latin script`
+                });
+              }
+            }
+          }
+        }
+      }
+
+      return ctx.prisma.courseTranslation.upsert({
+        where: {
+          courseId_language: {
+            courseId: input.courseId,
+            language: input.language
+          }
+        },
+        create: {
+          courseId: input.courseId,
+          language: input.language,
+          title: input.title,
+          description: input.description,
+          modules: input.modules
+        },
+        update: {
+          title: input.title,
+          description: input.description,
+          modules: input.modules
+        }
+      });
+    }),
+
+  deleteCourseTranslation: protectedProcedure
+    .input(z.object({
+      courseId: z.string(),
+      language: z.string()
+    }))
+    .mutation(async ({ ctx, input }) => {
+      // Verify course ownership
+      const course = await ctx.prisma.course.findFirst({
+        where: { id: input.courseId, userId: ctx.user.id }
+      });
+      if (!course) throw new TRPCError({ code: "NOT_FOUND" });
+
+      try {
+        await ctx.prisma.courseTranslation.delete({
+          where: {
+            courseId_language: {
+              courseId: input.courseId,
+              language: input.language
+            }
+          }
+        });
+        return { success: true };
+      } catch (e) {
+        return { success: false, error: "No translation record to delete" };
+      }
     }),
 
   createCourse: protectedProcedure
@@ -540,9 +787,8 @@ ${input.content}
       const { callGemini } = await import("../lib/gemini-client.js");
       let result;
       try {
-        let userKey = ctx.req.headers["x-user-key"] as string;
-      if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined as any;
-        if (!userKey) throw new TRPCError({ code: "FORBIDDEN", message: "Missing API key" });
+        let userKey = ctx.req.headers["x-user-key"] as string | undefined;
+        if (userKey === "null" || userKey === "undefined" || userKey === "" || !userKey) userKey = undefined;
         result = await callGemini(prompt, systemPrompt, { schema, apiKey: userKey });
       } catch (err) {
         console.error("Lesson validation failed:", err);
@@ -596,9 +842,8 @@ Language instruction: ${languageInstruction}`;
       const { callGemini } = await import("../lib/gemini-client.js");
       let analysis;
       try {
-        let userKey = ctx.req.headers["x-user-key"] as string;
-      if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined as any;
-        if (!userKey) throw new TRPCError({ code: "FORBIDDEN", message: "Missing API key" });
+        let userKey = ctx.req.headers["x-user-key"] as string | undefined;
+        if (userKey === "null" || userKey === "undefined" || userKey === "" || !userKey) userKey = undefined;
         analysis = await callGemini(prompt, systemPrompt, { schema, apiKey: userKey });
       } catch (err) {
         console.error("Analysis failed", err);
@@ -853,9 +1098,8 @@ Return ONLY JSON matching this schema:
       });
 
       const { callGemini } = await import("../lib/gemini-client.js");
-      let userKey = ctx.req.headers["x-user-key"] as string;
-      if (userKey === "null" || userKey === "undefined" || userKey === "") userKey = undefined as any;
-      if (!userKey) throw new TRPCError({ code: "FORBIDDEN", message: "Missing API key" });
+      let userKey = ctx.req.headers["x-user-key"] as string | undefined;
+      if (userKey === "null" || userKey === "undefined" || userKey === "" || !userKey) userKey = undefined;
       const result: any = await callGemini("Generate module project", systemPrompt, { schema, apiKey: userKey });
 
       const project = await ctx.prisma.project.create({

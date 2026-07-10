@@ -27,5 +27,7 @@
   "generateQuizButton": "Quiz generieren",
   "startLessonToPracticeTitle": "Starten Sie eine Lektion, um zu üben!",
   "startLessonToPracticeDesc": "Wählen Sie eine beliebige Lektion aus Ihrer aktiven Roadmap aus, klicken Sie in der Lektionsstudienführungsansicht auf Schnelles Quiz machen, und testen Sie hier Ihr Wissen!",
-  "goToRoadmapButton": "Zur Roadmap gehen"
+  "goToRoadmapButton": "Zur Roadmap gehen",
+  "topicWithTitle": "Topic: {{title}}",
+  "configureQuizDesc": "Customize the difficulty and length of your quiz for: {{title}}"
 }

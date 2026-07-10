@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { navigate } from "../lib/router";
 import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "../components/LanguageSwitcher";
 
 export default function LandingPage() {
   const { t } = useTranslation(["landing"]);
@@ -161,10 +162,9 @@ export default function LandingPage() {
             {/* Top window dots */}
             <div className="flex items-center justify-between border-b border-[#1E1E2E] pb-4 mb-6">
               <div className="flex items-center gap-2">
-                <span className="w-3 h-3 bg-rose-500 rounded-full opacity-60"></span>
-                <span className="w-3 h-3 bg-amber-500 rounded-full opacity-60"></span>
-                <span className="w-3 h-3 bg-emerald-500 rounded-full opacity-60"></span>
-                <span className="text-xs text-[#94A3B8]/40 font-mono ml-3">{t("simulatedConfig")}</span>
+                <div className="w-3 h-3 rounded-full bg-[#FF5F56]" />
+                <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
+                <div className="w-3 h-3 rounded-full bg-[#27C93F]" />
               </div>
               <div className="flex items-center gap-2 text-xs text-[#10B981] bg-emerald-950/20 border border-emerald-500/20 px-2.5 py-1 rounded-full font-semibold">
                 <span className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-ping" />
@@ -432,6 +432,10 @@ export default function LandingPage() {
             <span className="text-sm font-bold text-[#FAF9FD] tracking-tight">
               © 2026 {t("logo")}
             </span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher buttonClassName="hover:text-[#FAF9FD] transition flex items-center gap-1 text-xs text-[#94A3B8] font-semibold" />
           </div>
 
           <div className="flex flex-wrap items-center gap-6 text-xs text-[#94A3B8] font-semibold">

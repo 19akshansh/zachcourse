@@ -27,5 +27,7 @@
   "generateQuizButton": "Generate Quiz",
   "startLessonToPracticeTitle": "Start a lesson to practice!",
   "startLessonToPracticeDesc": "Select any lesson from your active Roadmap, click Take Quick Quiz in the lesson study guide view, and test your knowledge here!",
-  "goToRoadmapButton": "Go to Roadmap"
+  "goToRoadmapButton": "Go to Roadmap",
+  "topicWithTitle": "Topic: {{title}}",
+  "configureQuizDesc": "Customize the difficulty and length of your quiz for: {{title}}"
 }

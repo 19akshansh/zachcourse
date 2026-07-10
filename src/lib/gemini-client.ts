@@ -1,10 +1,5 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google"
 import { generateText, generateObject } from "ai"
-import { 
-  getStarBonusRemaining, 
-  decrementStarBonus 
-} from "./usage"
-import { apiFetch } from "./api"
 import { z } from "zod"
 
 export function hasUserKey(): boolean {
@@ -19,13 +14,20 @@ export async function callGemini<T = any>(
   options?: { schema?: z.ZodType<T>, apiKey?: string }
 ): Promise<string | T> {
   const isServer = typeof window === "undefined"
-
   if (isServer) {
-    const key = options?.apiKey
-    if (!key) throw new Error("MISSING_API_KEY")
-    const google = createGoogleGenerativeAI({ apiKey: key })
+    let key = options?.apiKey
+    if (!key || key === "null" || key === "undefined" || key.trim() === "" || key.trim().length < 20) {
+      throw new Error("MISSING_API_KEY")
+    }
+    let trimmed = key.trim()
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+      trimmed = trimmed.slice(1, -1).trim();
+    }
+    if (trimmed.length < 20) {
+      throw new Error("INVALID_API_KEY")
+    }
+    const google = createGoogleGenerativeAI({ apiKey: trimmed })
     const model = google("gemini-2.5-flash")
-
     if (options?.schema) {
       const { object } = await generateObject({
         model,
@@ -46,12 +48,18 @@ export async function callGemini<T = any>(
   }
 
   let userKey = localStorage.getItem("zc_user_key");
-  if (userKey === "null" || userKey === "undefined") userKey = null;
+  if (userKey === "null" || userKey === "undefined" || !userKey || userKey.trim() === "") {
+    userKey = null;
+  }
 
   if (userKey) {
+    const trimmed = userKey.trim();
+    if (trimmed.length < 20) {
+      throw new Error("INVALID_API_KEY");
+    }
     try {
       const google = createGoogleGenerativeAI({ 
-        apiKey: userKey 
+        apiKey: trimmed 
       })
       const model = google("gemini-2.5-flash")
       
@@ -88,28 +96,5 @@ export async function callGemini<T = any>(
     }
   }
 
-  if (options?.schema) {
-    throw new Error("Structured output with proxy not supported on client without user key")
-  }
-
-  // No user key — use server proxy with quota check
-  const starBonus = getStarBonusRemaining()
-
-  const response = await apiFetch("/api/ai", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, systemPrompt }),
-  })
-
-  if (!response.ok) {
-    const msg = await response.text()
-    throw new Error(msg || "Server AI call failed")
-  }
-
-  const data = await response.json()
-
-  // Update quota counters
-  if (starBonus > 0) decrementStarBonus()
-
-  return data.reply
+  throw new Error("Missing API Key. Please provide a valid Gemini API key.");
 }

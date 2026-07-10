@@ -15,5 +15,6 @@
   "toastMemoryClearFailed": "Error al borrar la memoria",
   "clearHistory": "Borrar memoria",
   "tutorWriting": "El tutor está escribiendo...",
-  "inputPlaceholder": "Pregunta cualquier cosa — pega una URL y la leeré 🔗"
+  "inputPlaceholder": "Pregunta cualquier cosa — pega una URL y la leeré 🔗",
+  "selectedTopic": "🎯 Selected Topic: {{title}}"
 }

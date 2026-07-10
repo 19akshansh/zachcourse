@@ -4,7 +4,7 @@
   "topicPlaceholder": "مثال: تطوير بايثون الخلفي، React و Tailwind، أساسيات تعلم الآلة",
   "generate": "إنشاء",
   "generating": "جاري رسم رحلتك... 🗺️",
-  "weeklyCommitment": "الالتزام الأسبوعي (بالساعات)",
+  "weeklyCommitment": "الالتزام الأسبوعي {{hours}}",
   "difficultyLevel": "مستوى الصعوبة المستهدف",
   "startLearning": "ابدأ التعلم!",
   "module": "وحدة",

@@ -143,7 +143,7 @@ export function TourLauncher() {
                 onClick={() => setIsOpen(false)}
                 className="px-4 py-2.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer w-full sm:w-auto text-center"
               >
-                {t("close", { defaultValue: "Close" })}
+                {t("common:close", { defaultValue: "Close" })}
               </button>
             </div>
           </div>

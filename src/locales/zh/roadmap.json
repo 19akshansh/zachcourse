@@ -4,7 +4,7 @@
   "topicPlaceholder": "例如：Python 后端，React 和 Tailwind",
   "generate": "生成",
   "generating": "正在绘制您的旅程... 🗺️",
-  "weeklyCommitment": "每周学习时间（小时）",
+  "weeklyCommitment": "每周学习时间{{hours}}",
   "difficultyLevel": "目标难度",
   "startLearning": "开始学习！",
   "module": "模块",

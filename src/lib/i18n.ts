@@ -262,6 +262,12 @@ i18n
       escapeValue: false, // react already safes from xss
     },
     defaultNS: "common",
+    parseMissingKeyHandler: (key, defaultValue) => {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`[i18n] Missing translation: key='${key}'`);
+      }
+      return defaultValue || key;
+    },
   });
 
 export default i18n;

@@ -27,5 +27,7 @@
   "generateQuizButton": "إنشاء اختبار",
   "startLessonToPracticeTitle": "ابدأ درسًا للتدرب!",
   "startLessonToPracticeDesc": "اختر أي درس من خارطة طريقك النشطة، انقر على 'خذ اختبارًا سريعًا' في عرض دليل دراسة الدرس، واختبر معرفتك هنا!",
-  "goToRoadmapButton": "اذهب إلى خارطة الطريق"
+  "goToRoadmapButton": "اذهب إلى خارطة الطريق",
+  "topicWithTitle": "Topic: {{title}}",
+  "configureQuizDesc": "Customize the difficulty and length of your quiz for: {{title}}"
 }

@@ -37,7 +37,7 @@ export function TourTooltip(props: TooltipRenderProps) {
         <button
           {...closeProps}
           className="p-1 text-[#8E88AB] hover:text-[#FAF9FD] transition-colors rounded-lg hover:bg-[#2A2443]"
-          aria-label={t("close", { defaultValue: "Close" })}
+          aria-label={t("common:close", { defaultValue: "Close" })}
         >
           <X className="w-4 h-4" />
         </button>
@@ -64,7 +64,7 @@ export function TourTooltip(props: TooltipRenderProps) {
               {...closeProps}
               className="px-2.5 py-1.5 bg-[#1E1A33] hover:bg-[#2A2443] text-[#CECADF] rounded-xl text-xs sm:text-sm font-bold transition-colors w-full sm:w-auto text-center"
             >
-              {t("close", { defaultValue: "Close" })}
+              {t("common:close", { defaultValue: "Close" })}
             </button>
           ) : (
             <button

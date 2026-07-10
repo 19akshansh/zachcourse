@@ -4,7 +4,7 @@
   "topicPlaceholder": "उदा., पायथन बैकएंड, रिएक्ट और टेलविंड, मशीन लर्निंग की नींव",
   "generate": "तैयार करें",
   "generating": "आपकी यात्रा का नक्शा बनाया जा रहा है... 🗺️",
-  "weeklyCommitment": "साप्ताहिक प्रतिबद्धता (घंटे)",
+  "weeklyCommitment": "साप्ताहिक प्रतिबद्धता {{hours}}",
   "difficultyLevel": "लक्षित कठिनाई",
   "startLearning": "सीखना शुरू करें!",
   "module": "मॉड्यूल",
@@ -16,9 +16,6 @@
   "emptyState": "कोई रोडमैप नहीं मिला। नीचे अपना पहला नोड-आधारित रोडमैप बनाएं!",
   "generateRoadmap": "रोडमैप जनरेट करें",
   "generateRoadmapDesc": "शुरुआती से महारत तक किसी भी सीखने की यात्रा की रूपरेखा तैयार करें।",
-  "livePreview": "लाइव पूर्वावलोकन",
-  "graphWillAppearHere": "आपका जनरेट किया गया नोड ग्राफ़ यहाँ दिखाई देगा।",
-  "roadmapUrlPlaceholder": "https://... (दस्तावेज़, पाठ्यक्रम, या कोर्स लिंक)",
   "whatToMaster": "आप किसमें महारत हासिल करना चाहते हैं?",
   "weeklyCommitmentLabel": "साप्ताहिक प्रतिबद्धता:",
   "hoursCount": "{{count}} घंटे",
@@ -26,6 +23,7 @@
   "partTimeCommitment": "पार्ट-टाइम (15 घंटे)",
   "intensiveCommitment": "गहन (30 घंटे)",
   "sourceMaterialLabel": "स्रोत सामग्री (वैकल्पिक)",
+  "roadmapUrlPlaceholder": "https://... (दस्तावेज़, पाठ्यक्रम, या कोर्स लिंक)",
   "generateButton": "विज़ुअल रोडमैप जनरेट करें ✨",
   "generatingHint": "आमतौर पर 10-20 सेकंड लगते हैं"
 }

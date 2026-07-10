@@ -37,12 +37,12 @@ const StartNode = ({ data }: any) => {
 };
 
 const ModuleNode = ({ data }: any) => {
-  const { t } = useTranslation(["roadmap"]);
+  const { t } = useTranslation(["roadmap", "common"]);
   return (
   <div className="w-[220px] bg-[#1A172E] border border-[#2A2443] rounded-xl overflow-hidden shadow-lg">
     <Handle type="target" position={Position.Top} className="opacity-0" />
     <div className="bg-[#4F46E5] px-4 py-2 flex items-center justify-between">
-      <span className="text-xs font-bold text-white uppercase tracking-wider">{t("graph.modulePrefix", { defaultValue: "Module" })} {data.order}</span>
+      <span className="text-xs font-bold text-white uppercase tracking-wider">{t("common:graph.modulePrefix", { defaultValue: "Module" })} {data.order}</span>
       <span className="bg-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{data.lessonCount || 0} {t("graph.lessonsCountLabel", { defaultValue: "Lessons" })}</span>
     </div>
     <div className="p-4">
@@ -89,13 +89,13 @@ const MilestoneNode = ({ data }: any) => {
 };
 
 const ProjectNode = ({ data }: any) => {
-  const { t } = useTranslation(["roadmap"]);
+  const { t } = useTranslation(["roadmap", "common"]);
   return (
   <div className="w-[200px] bg-[#111118] border-2 border-[#F97316] rounded-xl overflow-hidden shadow-[0_0_20px_rgba(249,115,22,0.15)]">
     <Handle type="target" position={Position.Top} className="opacity-0" />
     <div className="bg-[#F97316]/10 px-4 py-2 border-b border-[#F97316]/20 flex items-center gap-2">
       <Hammer className="w-4 h-4 text-[#F97316]" />
-      <span className="text-xs font-bold text-[#F97316] uppercase tracking-wider">{t("graph.projectNode", { defaultValue: "Project" })}</span>
+      <span className="text-xs font-bold text-[#F97316] uppercase tracking-wider">{t("common:graph.projectNode", { defaultValue: "Project" })}</span>
     </div>
     <div className="p-4">
       <h4 className="font-bold text-white text-sm mb-1">{data.label}</h4>

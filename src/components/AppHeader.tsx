@@ -475,7 +475,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                     onClick={() => setProfileOpen(false)}
                     className="px-5 py-2.5 bg-[#1A172E] hover:bg-[#2A2443] text-[#CECADF] hover:text-white rounded-xl transition font-semibold text-xs cursor-pointer w-full text-center"
                   >
-                    {t("close", { defaultValue: "Close" })}
+                    {t("common:close", { defaultValue: "Close" })}
                   </button>
                 </div>
               </div>

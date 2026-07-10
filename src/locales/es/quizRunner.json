@@ -27,5 +27,7 @@
   "generateQuizButton": "Generar prueba",
   "startLessonToPracticeTitle": "¡Empieza una lección para practicar!",
   "startLessonToPracticeDesc": "Selecciona cualquier lección de tu hoja de ruta activa, haz clic en Tomar prueba rápida en la vista de la guía de estudio de la lección y pon a prueba tus conocimientos aquí.",
-  "goToRoadmapButton": "Ir a la hoja de ruta"
+  "goToRoadmapButton": "Ir a la hoja de ruta",
+  "topicWithTitle": "Tema: {{title}}",
+  "configureQuizDesc": "Personaliza la dificultad y la duración de tu cuestionario para: {{title}}"
 }

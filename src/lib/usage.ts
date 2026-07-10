@@ -2,39 +2,15 @@
  * ZachCourse Try-Then-Commit Usage tracking helpers
  */
 
-// Reads a cookie value by name
-function getCookie(name: string): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(new RegExp("(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, "\\$1") + "=([^;]*)"));
-  return match ? decodeURIComponent(match[1]) : null;
-}
-
-// Sets a cookie value
-function setCookie(name: string, value: string, days: number = 365) {
-  if (typeof document === "undefined") return;
-  const expires = new Date();
-  expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; expires=${expires.toUTCString()}; SameSite=Lax`;
-}
-
 export function getStarBonusRemaining(): number {
-  const val = getCookie("zc_star_bonus");
-  return val ? parseInt(val, 10) || 0 : 0;
+  return 0;
 }
 
 export function setStarBonusRemaining(count: number) {
-  setCookie("zc_star_bonus", count.toString());
-  // Dispatch an event to update any listening UI
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("zc-key-status-changed"));
-  }
 }
 
 export function decrementStarBonus(): number {
-  const current = getStarBonusRemaining();
-  const nextVal = Math.max(0, current - 1);
-  setStarBonusRemaining(nextVal);
-  return nextVal;
+  return 0;
 }
 
 /**

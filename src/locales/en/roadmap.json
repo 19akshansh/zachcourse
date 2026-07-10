@@ -4,7 +4,7 @@
   "topicPlaceholder": "e.g., Python Backend, React & Tailwind, Machine Learning Foundations",
   "generate": "Generate",
   "generating": "Mapping your journey... 🗺️",
-  "weeklyCommitment": "Weekly Commitment (Hours)",
+  "weeklyCommitment": "Weekly Commitment {{hours}}",
   "difficultyLevel": "Target Difficulty",
   "startLearning": "Start learning!",
   "module": "Module",

@@ -1,8 +1,8 @@
 import { embed } from "ai"
-import { google } from "@ai-sdk/google"
+import { google, createGoogleGenerativeAI } from "@ai-sdk/google"
 import { prisma as db } from "./db";
 
-// Use Gemini's text embedding model (768 dimensions)
+// Fallback global embedding model
 const embeddingModel = google.textEmbeddingModel(
   "text-embedding-004"
 )
@@ -36,12 +36,23 @@ export function chunkText(
   return chunks.filter(c => c.length > 50)
 }
 
-// Generate embedding for a piece of text
+// Generate embedding for a piece of text, using the provided user API key if available
 export async function generateEmbedding(
-  text: string
+  text: string,
+  apiKey?: string
 ): Promise<number[]> {
+  let modelToUse = embeddingModel;
+  if (apiKey && apiKey.trim() !== "" && apiKey !== "null" && apiKey !== "undefined") {
+    try {
+      const customGoogle = createGoogleGenerativeAI({ apiKey: apiKey.trim() });
+      modelToUse = customGoogle.textEmbeddingModel("text-embedding-004");
+    } catch (err) {
+      console.error("Failed to initialize custom embedding model, falling back to default:", err);
+    }
+  }
+
   const { embedding } = await embed({
-    model: embeddingModel,
+    model: modelToUse,
     value: text,
   })
   return embedding
@@ -54,17 +65,18 @@ export async function storeLessonMemory(params: {
   lessonId: string
   lessonTitle: string
   content: string
+  apiKey?: string
 }): Promise<void> {
   try {
     const { userId, courseId, lessonId, 
-            lessonTitle, content } = params
+            lessonTitle, content, apiKey } = params
     
     // Skip if already stored
     const existing = await db.lessonMemory.findFirst({
       where: { userId, courseId, lessonId }
     })
     if (existing) return
-
+ 
     const chunks = chunkText(content)
     
     // Generate embeddings in parallel (max 5 at a time)
@@ -72,7 +84,7 @@ export async function storeLessonMemory(params: {
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize)
       const embeddings = await Promise.all(
-        batch.map(chunk => generateEmbedding(chunk))
+        batch.map(chunk => generateEmbedding(chunk, apiKey))
       )
       
       // Store via raw SQL (pgvector not supported in Prisma ORM yet)
@@ -111,11 +123,12 @@ export async function retrieveRelevantMemories(params: {
   courseId: string
   query: string
   limit?: number
+  apiKey?: string
 }): Promise<string[]> {
-  const { userId, courseId, query, limit = 5 } = params
+  const { userId, courseId, query, limit = 5, apiKey } = params
   
   try {
-    const queryEmbedding = await generateEmbedding(query)
+    const queryEmbedding = await generateEmbedding(query, apiKey)
     const vectorStr = `[${queryEmbedding.join(",")}]`
     
     const results = await db.$queryRaw<
@@ -147,10 +160,12 @@ export async function storeMentorExchange(params: {
   lessonTitle: string
   question: string
   answer: string
+  apiKey?: string
 }): Promise<void> {
   const combined = `Q: ${params.question}\nA: ${params.answer}`
   await storeLessonMemory({
     ...params,
     content: combined,
+    apiKey: params.apiKey,
   })
 }

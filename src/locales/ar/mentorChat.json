@@ -15,5 +15,6 @@
   "toastMemoryClearFailed": "فشل مسح الذاكرة",
   "clearHistory": "مسح الذاكرة",
   "tutorWriting": "المعلم يكتب...",
-  "inputPlaceholder": "اسأل أي شيء — الصق رابطًا وسأقرأه 🔗"
+  "inputPlaceholder": "اسأل أي شيء — الصق رابطًا وسأقرأه 🔗",
+  "selectedTopic": "🎯 Selected Topic: {{title}}"
 }

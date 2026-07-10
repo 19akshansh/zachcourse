@@ -7,5 +7,6 @@
   "coursesAssigned": "Zugewiesene Kurse",
   "avgQuizScore": "Mittelwert Quiz",
   "activeStudents": "Aktive Schüler",
-  "emptyState": "Keine aktiven Klassen. Erstellen Sie eine, um den Fortschritt zu überwachen!"
+  "emptyState": "Keine aktiven Klassen. Erstellen Sie eine, um den Fortschritt zu überwachen!",
+  "createClassroom": "createClassroom"
 }

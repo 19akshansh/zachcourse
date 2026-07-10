@@ -10,7 +10,6 @@ import ResetPasswordPage from "./app/(auth)/reset-password/page";
 import VerifyEmailPage from "./app/(auth)/verify-email/page";
 import LandingPage from "./app/page";
 import { callGemini } from "./lib/gemini-client";
-import { getStarBonusRemaining, decrementStarBonus } from "./lib/usage";
 import AppSidebar, { CourseListItem } from "./components/AppSidebar";
 import AppHeader from "./components/AppHeader";
 import { apiFetch } from "./lib/api";
@@ -18,7 +17,7 @@ import { ApiKeyOnboarding } from "./components/ApiKeyOnboarding";
 import RoadmapGraph from "./components/RoadmapGraph";
 import VisualRoadmapsTab from "./components/VisualRoadmapsTab";
 import { PersonalizationFields } from "./components/PersonalizationFields";
-import { TONE_INSTRUCTIONS } from "./lib/tone-options";
+import { TONE_INSTRUCTIONS, LANGUAGE_INSTRUCTIONS } from "./lib/tone-options";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import CohortsDashboard from "./components/CohortsDashboard";
 import TeacherDashboard from "./components/TeacherDashboard";
@@ -180,8 +179,139 @@ const MOTIVATIONAL_QUOTES = [
 
 import { TourController } from "./components/tour/TourController";
 
+function formatJsonLessonToMarkdown(content: string): string {
+  if (!content) return "";
+  const trimmed = content.trim();
+  
+  // Check if it looks like JSON
+  if (
+    (trimmed.startsWith("{") && trimmed.endsWith("}")) || 
+    trimmed.includes('"core_concepts_breakdown"') || 
+    trimmed.includes('"introduction"') ||
+    trimmed.includes('"lesson_title"')
+  ) {
+    try {
+      let jsonStr = trimmed;
+      // Extract from markdown code blocks if the AI wrapped the JSON in them
+      if (jsonStr.startsWith("```")) {
+        jsonStr = jsonStr.replace(/^```json\s*/i, "").replace(/```$/, "").trim();
+      }
+      const data = JSON.parse(jsonStr);
+      
+      let markdown = "";
+      if (data.lesson_title || data.study_guide_title) {
+        markdown += `# ${data.study_guide_title || data.lesson_title}\n\n`;
+      }
+      
+      if (data.introduction) {
+        markdown += `### 💡 Introduction\n${data.introduction}\n\n`;
+      }
+      
+      if (data.analogy) {
+        if (typeof data.analogy === "string") {
+          markdown += `### 🎭 Analogy\n${data.analogy}\n\n`;
+        } else if (typeof data.analogy === "object" && data.analogy) {
+          markdown += `### 🎭 Analogy: ${data.analogy.title || ""}\n${data.analogy.description || ""}\n\n`;
+        }
+      }
+      
+      if (Array.isArray(data.core_concepts_breakdown)) {
+        markdown += `### 🚀 Core Concepts Breakdown\n\n`;
+        data.core_concepts_breakdown.forEach((concept: any, idx: number) => {
+          if (typeof concept === "string") {
+            markdown += `#### ${idx + 1}. ${concept}\n\n`;
+          } else if (typeof concept === "object" && concept) {
+            markdown += `#### ${concept.title || `Concept ${idx + 1}`}\n${concept.description || ""}\n\n`;
+          }
+        });
+      } else if (data.core_concepts_breakdown && typeof data.core_concepts_breakdown === "object") {
+        markdown += `### 🚀 Core Concepts Breakdown\n\n`;
+        Object.entries(data.core_concepts_breakdown).forEach(([key, val]: [string, any]) => {
+          markdown += `#### ${key}\n${typeof val === "string" ? val : JSON.stringify(val)}\n\n`;
+        });
+      }
+      
+      if (data.code_example) {
+        markdown += `### 🛠️ Practice Example\n\n`;
+        if (typeof data.code_example === "string") {
+          markdown += data.code_example.includes("```") ? data.code_example : `\`\`\`python\n${data.code_example}\n\`\`\``;
+        } else if (typeof data.code_example === "object" && data.code_example) {
+          if (data.code_example.title) markdown += `#### ${data.code_example.title}\n`;
+          if (data.code_example.explanation) markdown += `${data.code_example.explanation}\n\n`;
+          if (data.code_example.code) {
+            const codeContent = data.code_example.code;
+            markdown += codeContent.includes("```") ? codeContent : `\`\`\`python\n${codeContent}\n\`\`\`\n\n`;
+          }
+        }
+        markdown += "\n";
+      }
+      
+      if (Array.isArray(data.key_takeaways)) {
+        markdown += `### 📈 Key Takeaways\n`;
+        data.key_takeaways.forEach((takeaway: any) => {
+          markdown += `- ${takeaway}\n`;
+        });
+        markdown += "\n";
+      } else if (typeof data.key_takeaways === "string") {
+        markdown += `### 📈 Key Takeaways\n${data.key_takeaways}\n\n`;
+      }
+      
+      if (markdown.trim()) {
+        return markdown;
+      }
+    } catch (e) {
+      console.error("Failed to parse lesson content JSON:", e);
+    }
+  }
+  return content;
+}
+
+async function translateWithRetry(
+  params: { type?: "roadmap" | "quiz"; content: any; language: string },
+  userKey: string,
+  retries = 2,
+  delayMs = 1500
+): Promise<any> {
+  let lastError: any;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch("/api/translate-lesson", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-user-key": userKey,
+        },
+        body: JSON.stringify(params),
+      });
+
+      if (response.status === 403) {
+        window.dispatchEvent(new CustomEvent("zc-quota-exceeded"));
+        throw new Error("API_KEY_INVALID");
+      }
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.content;
+    } catch (err: any) {
+      lastError = err;
+      if (err.message === "API_KEY_INVALID") {
+        throw err;
+      }
+      console.warn(`Translation attempt ${attempt} failed:`, err);
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+      }
+    }
+  }
+  throw lastError || new Error("Translation failed after retries");
+}
+
 export default function App() {
-  const { t, i18n } = useTranslation();
+  const { t, i18n } = useTranslation(["common", "roadmap", "progressDashboard"]);
   const { data: sessionData, isPending: isSessionPending, refetch: refetchSession } = useSession();
   const path = usePath();
 
@@ -256,6 +386,8 @@ export default function App() {
   // Course management states
   const [activeCourseId, setActiveCourseId] = useState<string | null>(null);
   const [activeCourse, setActiveCourse] = useState<any | null>(null);
+  const [reloadCourseTrigger, setReloadCourseTrigger] = useState<number>(0);
+  const [isForceRetranslating, setIsForceRetranslating] = useState<boolean>(false);
   const [courses, setCourses] = useState<CourseListItem[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [isLoadingCourse, setIsLoadingCourse] = useState(false);
@@ -317,8 +449,36 @@ export default function App() {
     const loadCourse = async () => {
       try {
         if (!navigator.onLine) throw new Error("Offline");
-        const course = await trpc.getCourse.query({ courseId: activeCourseId });
-        setActiveCourse(course);
+        const course = await trpc.getCourse.query({ courseId: activeCourseId, language: i18n.language });
+        
+        let loadedCourse = course;
+        if (i18n.language !== 'en' && !(course as any)._isTranslated) {
+          const userKey = localStorage.getItem("zc_user_key");
+          if (userKey) {
+            try {
+              const translatedRoadmap = await translateWithRetry({ type: "roadmap", content: course.roadmapData, language: i18n.language }, userKey);
+              loadedCourse = { 
+                ...course, 
+                roadmapData: translatedRoadmap, 
+                title: translatedRoadmap.title || course.title, 
+                description: translatedRoadmap.description || course.description 
+              } as any;
+              
+              trpc.saveCourseTranslation.mutate({
+                 courseId: course.id,
+                 language: i18n.language,
+                 title: translatedRoadmap.title || course.title,
+                 description: translatedRoadmap.description || course.description,
+                 modules: translatedRoadmap.modules
+              }).catch(console.error);
+            } catch (e: any) {
+              console.error("Roadmap translation failed", e);
+              toast.error(t("toast.failedToTranslateRoadmap", { defaultValue: "Roadmap translation failed. Displaying the original English version." }));
+            }
+          }
+        }
+        
+        setActiveCourse(loadedCourse as any);
         setIsLoadingCourse(false);
         setActiveTab("roadmap");
         setSelectedLesson(null);
@@ -343,7 +503,7 @@ export default function App() {
     };
     
     loadCourse();
-  }, [activeCourseId]);
+  }, [activeCourseId, reloadCourseTrigger]);
 
   // Load user progress
   useEffect(() => {
@@ -446,6 +606,96 @@ export default function App() {
     window.addEventListener("zc-key-status-changed", handleKeyChange);
     return () => window.removeEventListener("zc-key-status-changed", handleKeyChange);
   }, []);
+
+  // Handle dynamic language switching for loaded content
+  useEffect(() => {
+    const handleLangChange = async (lng: string) => {
+      const userKey = localStorage.getItem("zc_user_key");
+      if (!userKey || !activeCourseId) return;
+
+      if (selectedLesson && lessonContent && !generatingLesson) {
+        setGeneratingLesson(true);
+        try {
+          // Check DB cache via TRPC
+          const existing = await trpc.getLessonContent.query({ courseId: activeCourseId, lessonId: selectedLesson.id, language: lng });
+          if (existing && existing.content) {
+            setLessonContent(existing.content);
+            setLessonQualityScore(existing.qualityScore ?? null);
+            setLessonEvaluationData(existing.evaluationData ?? null);
+          } else {
+            try {
+              const contentTranslated = await translateWithRetry({ content: lessonContent, language: lng }, userKey);
+              setLessonContent(contentTranslated);
+              await trpc.saveLessonContent.mutate({
+                courseId: activeCourseId,
+                lessonId: selectedLesson.id,
+                language: lng,
+                content: contentTranslated,
+                qualityScore: lessonQualityScore ?? undefined,
+                evaluationData: lessonEvaluationData ?? undefined
+              });
+            } catch (e) {
+              console.error("Lesson translation failed", e);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to translate lesson:", e);
+        }
+        setGeneratingLesson(false);
+      }
+
+      // Translate Roadmap (Course) if active
+      if (activeCourse) {
+         try {
+            const course = await trpc.getCourse.query({ courseId: activeCourse.id, language: lng });
+            if ((course as any)._isTranslated) {
+               setActiveCourse(course as any);
+            } else {
+               try {
+                 const translatedRoadmap = await translateWithRetry({ type: "roadmap", content: activeCourse.roadmapData, language: lng }, userKey);
+                 setActiveCourse(prev => {
+                    if (!prev) return prev;
+                    return { 
+                      ...prev, 
+                      roadmapData: translatedRoadmap,
+                      title: translatedRoadmap.title || prev.title,
+                      description: translatedRoadmap.description || prev.description
+                    };
+                 });
+                 trpc.saveCourseTranslation.mutate({
+                    courseId: activeCourse.id,
+                    language: lng,
+                    title: translatedRoadmap.title || activeCourse.title,
+                    description: translatedRoadmap.description || activeCourse.description,
+                    modules: translatedRoadmap.modules
+                 }).catch(console.error);
+               } catch (e) {
+                 console.error("Roadmap translation failed", e);
+               }
+            }
+         } catch(e) { console.error("Roadmap translation failed", e); }
+      }
+
+      // Translate Quiz if active
+      if (quizData && !generatingQuiz && !quizSubmitted) {
+        setGeneratingQuiz(true);
+        try {
+          try {
+            const translatedQuiz = await translateWithRetry({ type: "quiz", content: quizData, language: lng }, userKey);
+            setQuizData(translatedQuiz);
+          } catch (e) {
+            console.error("Quiz translation failed", e);
+          }
+        } catch(e) { console.error("Quiz translation failed", e); }
+        setGeneratingQuiz(false);
+      }
+    };
+
+    i18n.on('languageChanged', handleLangChange);
+    return () => {
+      i18n.off('languageChanged', handleLangChange);
+    };
+  }, [i18n, activeCourseId, selectedLesson, lessonContent, generatingLesson, lessonQualityScore, lessonEvaluationData, quizData, generatingQuiz, quizSubmitted, trpc]);
 
   // Process offline sync queue
   useEffect(() => {
@@ -575,7 +825,8 @@ Rules:
 - Last lesson MUST be a hands-on project
 - First lesson must be completable in under 30 min`;
 
-        const reply = await callGemini(prompt, systemPrompt);
+        const finalSystemPrompt = systemPrompt + "\n" + (i18n.language !== "en" ? (LANGUAGE_INSTRUCTIONS[i18n.language] || "") : "");
+        const reply = await callGemini(prompt, finalSystemPrompt);
         const cleanReply = reply.replace(/```json\s?|```/g, "").trim();
         roadmapDataResult = JSON.parse(cleanReply);
       } else {
@@ -602,7 +853,7 @@ Rules:
           return;
         }
 
-        if (!response.ok) throw new Error("Oops! We couldn't build your learning path right now.");
+        if (!response.ok) throw new Error(t("error.failedToBuildRoadmap", { defaultValue: "Oops! We couldn't build your learning path right now." }));
         const data = await response.json();
         roadmapDataResult = data.roadmap;
 
@@ -708,6 +959,42 @@ Rules:
     }
   };
 
+
+  const handleForceRetranslate = async () => {
+    if (!activeCourseId) return;
+    const currentLanguage = i18n.language;
+    if (currentLanguage === "en") {
+      toast.error("Retranslation is only supported for non-English languages.");
+      return;
+    }
+
+    const confirmReset = window.confirm(
+      `Are you sure you want to force a re-translation of this course into ${currentLanguage}? This will clear the cached translation and request a fresh translation from the AI model.`
+    );
+    if (!confirmReset) return;
+
+    setIsForceRetranslating(true);
+    const toastId = toast.loading("Clearing translation cache and requesting fresh translation...");
+
+    try {
+      // 1. Delete course translation row
+      await trpc.deleteCourseTranslation.mutate({
+        courseId: activeCourseId,
+        language: currentLanguage
+      });
+
+      // 2. Trigger active course load/retranslation by updating the trigger
+      setReloadCourseTrigger(prev => prev + 1);
+
+      toast.success("Retranslation triggered successfully!", { id: toastId });
+    } catch (err: any) {
+      console.error("Force retranslate failed:", err);
+      toast.error(`Force retranslate failed: ${err.message || "Unknown error"}`, { id: toastId });
+    } finally {
+      setIsForceRetranslating(false);
+    }
+  };
+
   const handleSelectLesson = async (moduleTitle: string, lesson: Lesson) => {
     setSelectedProject(null);
     setSelectedModuleId(null);
@@ -735,8 +1022,12 @@ Rules:
           if (savedContent) {
             toast.success(t("toast.loadedCachedLesson", { defaultValue: "Loaded cached lesson 📶" }));
           } else if (!navigator.onLine) {
-            throw new Error("You are offline and this lesson is not cached.");
-          }
+        throw new Error(t("error.offlineLesson", { defaultValue: "You are offline and this lesson is not cached." }));
+      }
+
+      
+      
+            
         }
 
         if (savedContent && savedContent.content) {
@@ -752,18 +1043,25 @@ Rules:
         throw new Error("You are offline and this lesson is not cached.");
       }
 
-      const userKey = localStorage.getItem("zc_user_key");
+      
+      
+            
+
+      
       let content: string;
       let qScore: number | null = null;
       let evalData: any = null;
 
+      const userKey = localStorage.getItem("zc_user_key");
       if (userKey) {
         const systemPrompt = `You are a supportive, warm, and elite educational companion. Your job is to write a highly engaging, structured, and deep study guide for the specified lesson using beautiful Markdown formatting.
 Include:
 1. 💡 An intuitive, real-world analogy to make the topic extremely memorable.
 2. 🚀 A deep dive breakdown of each core concept.
 3. 🛠️ A small mini-project code snippet or exercise.
-${TONE_INSTRUCTIONS[activeCourse?.tone || "friendly"] ?? TONE_INSTRUCTIONS.friendly}`;
+${TONE_INSTRUCTIONS[activeCourse?.tone || "friendly"] ?? TONE_INSTRUCTIONS.friendly}
+
+CRITICAL REQUIREMENT: You MUST write your study guide using beautiful raw Markdown formatting only. Do NOT output a JSON object or wrap your response in JSON under any circumstances, even if the lesson title contains words like 'Project' or 'Hands-on'. Output a clean, structured Markdown article.`;
 
         const prompt = `Please generate a comprehensive study guide for:
 Course Title: "${currentRoadmap?.title}"
@@ -772,7 +1070,8 @@ ${activeCourse?.experienceLevel ? `Target Level: ${activeCourse.experienceLevel}
 ${activeCourse?.backgroundContext ? `Learner Background: ${activeCourse.backgroundContext}` : ""}
 Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
 
-        content = await callGemini(prompt, systemPrompt);
+        const finalSystemPrompt = systemPrompt + "\n" + (i18n.language !== "en" ? (LANGUAGE_INSTRUCTIONS[i18n.language] || "") : "");
+        content = await callGemini(prompt, finalSystemPrompt);
       } else {
         const response = await apiFetch("/api/generate-lesson", {
           method: "POST",
@@ -797,7 +1096,7 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
           return;
         }
 
-        if (!response.ok) throw new Error("Oops, we couldn't load your study guide. Let's try again! 🙈");
+        if (!response.ok) throw new Error(t("error.failedToLoadStudyGuide", { defaultValue: "Oops, we couldn't load your study guide. Let's try again! 🙈" }));
         const data = await response.json();
         content = data.content;
         qScore = data.qualityScore ?? null;
@@ -813,6 +1112,7 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
         await trpc.saveLessonContent.mutate({
           courseId: activeCourseId,
           lessonId: lesson.id,
+          language: i18n.language,
           content: content,
           qualityScore: qScore ?? undefined,
           evaluationData: evalData ?? undefined
@@ -953,9 +1253,10 @@ Core Concepts to cover: ${JSON.stringify(lesson.concepts)}`;
     setQuizAnalysis(null);
 
     try {
-      const userKey = localStorage.getItem("zc_user_key");
+      
       let data: any;
 
+      const userKey = localStorage.getItem("zc_user_key");
       if (userKey) {
         const systemPrompt = `You are a professional assessor and educator. Your job is to generate exactly ${quizQuestionCount} interactive multiple choice questions based on the lesson provided. The difficulty level should be ${quizDifficulty}. Return ONLY a valid JSON object matching this schema. Do not write any markdown blocks or explanations before or after the JSON.
 Schema:
@@ -976,7 +1277,8 @@ Lesson Title: "${selectedLesson.title}"
 Study Guide Content:
 ${lessonContent}`;
 
-        const reply = await callGemini(prompt, systemPrompt);
+        const finalSystemPrompt = systemPrompt + "\n" + (i18n.language !== "en" ? (LANGUAGE_INSTRUCTIONS[i18n.language] || "") : "");
+        const reply = await callGemini(prompt, finalSystemPrompt);
         const cleanReply = reply.replace(/```json\s?|```/g, "").trim();
         data = JSON.parse(cleanReply);
       } else {
@@ -997,7 +1299,7 @@ ${lessonContent}`;
           return;
         }
 
-        if (!response.ok) throw new Error("Quizmaster could not compile questions.");
+        if (!response.ok) throw new Error(t("error.quizmasterFailed", { defaultValue: "Quizmaster could not compile questions." }));
         data = await response.json();
 
       }
@@ -1171,8 +1473,9 @@ ${lessonContent}`;
     });
 
     try {
-      const userKey = localStorage.getItem("zc_user_key");
+      
       const headers: any = { "Content-Type": "application/json" };
+      const userKey = localStorage.getItem("zc_user_key");
       if (userKey) headers["x-user-key"] = userKey;
       
       const response = await fetch("/api/mentor-chat", {
@@ -1227,8 +1530,8 @@ ${lessonContent}`;
             if (json.done) break;
             if (json.error) throw new Error(json.error);
             
-            if (json.token) {
-              fullText += json.token;
+            if (json.text) {
+              fullText += json.text;
               setActiveCourse(prev => {
                 if (!prev) return prev;
                 return {
@@ -1762,7 +2065,7 @@ ${lessonContent}`;
 
                     <div>
                       <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
-                        {t("weeklyCommitment", { hours: weeklyHours, defaultValue: "Weekly Commitment: {{hours}} hours", interpolation: { escapeValue: false } })}
+                        {t("roadmap:weeklyCommitment", { hours: weeklyHours, defaultValue: "Weekly Commitment: {{hours}} hours", interpolation: { escapeValue: false } })}
                       </label>
                       <input
                         type="range"
@@ -1825,13 +2128,22 @@ ${lessonContent}`;
               <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 md:p-8 shadow-xl">
                 <div className="border-b border-[#2A2443] pb-5 mb-5 flex flex-col md:flex-row md:justify-between items-start gap-4 md:gap-0">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className="text-xs bg-indigo-950/40 text-[#818CF8] font-bold px-3 py-1 rounded-full border border-[#4F46E5]/30">
                         {currentRoadmap.difficulty}
                       </span>
                       <span className="text-sm text-[#818CF8] font-bold">
                         {currentRoadmap.modules?.length || 0} modules setup
                       </span>
+                      {i18n.language !== "en" && (
+                        <button
+                          onClick={handleForceRetranslate}
+                          disabled={isForceRetranslating}
+                          className="text-xs bg-amber-950/40 hover:bg-amber-900/60 text-amber-400 font-semibold px-3 py-1 rounded-full border border-amber-500/30 transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                        >
+                          <span>⚡ {t("forceRetranslate", { defaultValue: "Force Retranslate" })}</span>
+                        </button>
+                      )}
                     </div>
                     <h3 className="font-sans font-bold text-[#FAF9FD] text-xl tracking-tight">{currentRoadmap?.title}</h3>
                     <p className="text-base text-[#8E88AB] leading-relaxed mt-2">{currentRoadmap.description}</p>
@@ -2150,7 +2462,7 @@ ${lessonContent}`;
                               li: ({children}) => <li className="text-[#CECADF]">{children}</li>,
                             }}
                           >
-                            {lessonContent}
+                            {formatJsonLessonToMarkdown(lessonContent)}
                           </Markdown>
                         </div>
 

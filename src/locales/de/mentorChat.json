@@ -15,5 +15,6 @@
   "toastMemoryClearFailed": "Fehler beim Löschen des Speichers",
   "clearHistory": "Speicher löschen",
   "tutorWriting": "Tutor schreibt...",
-  "inputPlaceholder": "Fragen Sie alles — fügen Sie eine URL ein und ich werde sie lesen 🔗"
+  "inputPlaceholder": "Fragen Sie alles — fügen Sie eine URL ein und ich werde sie lesen 🔗",
+  "selectedTopic": "🎯 Selected Topic: {{title}}"
 }
