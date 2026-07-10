@@ -208,9 +208,6 @@ export default function AppSidebar({
                 <span className="text-xs font-semibold truncate transition-opacity duration-200">
                   {t("visualRoadmaps", { defaultValue: "Visual Roadmaps" })}
                 </span>
-                <span className="bg-[#10B981]/20 text-[#10B981] text-[9px] font-bold px-1.5 py-0.5 rounded-sm ml-2">
-                  {t("badgeNew", { defaultValue: "NEW" })}
-                </span>
               </div>
             )}
           </button>
