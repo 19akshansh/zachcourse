@@ -416,10 +416,6 @@ export default function LandingPage() {
               {t("getStartedFree")}
             </button>
           </div>
-
-          <p className="text-[10px] font-bold text-[#94A3B8]/50 mt-4 uppercase tracking-wider relative">
-            {t("freePlanIncludes")}
-          </p>
         </div>
       </section>
       </main>
