@@ -100,6 +100,7 @@
     }
   ],
   "startLearningFree": "ابدأ التعلم مجانًا",
+  "tryWithoutLogin": "جرب بدون تسجيل الدخول ←",
   "noCreditCard": "لا حاجة لبطاقة ائتمان • خطة مجانية مدى الحياة • إعداد في دقيقتين",
   "simulatedConfig": "roadmap_core_v1.config",
   "activeStudyBlock": "كتلة دراسية نشطة",

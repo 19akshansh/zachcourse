@@ -100,6 +100,7 @@
     }
   ],
   "startLearningFree": "免费开始学习",
+  "tryWithoutLogin": "免登录试用 →",
   "noCreditCard": "无需信用卡 • 永久免费计划 • 2分钟快速设置",
   "simulatedConfig": "roadmap_core_v1.config",
   "activeStudyBlock": "活跃学习板块",

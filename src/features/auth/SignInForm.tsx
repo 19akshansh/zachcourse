@@ -149,7 +149,7 @@ export default function SignInForm() {
             {t("emailLabel", { defaultValue: "Email Address" })}
           </label>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]">
               <Mail className="w-4 h-4" />
             </div>
             <input
@@ -158,7 +158,7 @@ export default function SignInForm() {
               placeholder={t("emailPlaceholder", { defaultValue: "you@example.com" })}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
+              className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/65 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
             />
           </div>
         </div>
@@ -177,7 +177,7 @@ export default function SignInForm() {
             </a>
           </div>
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]">
               <Lock className="w-4 h-4" />
             </div>
             <input
@@ -186,12 +186,12 @@ export default function SignInForm() {
               placeholder={t("passwordPlaceholder", { defaultValue: "••••••••" })}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-10 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
+              className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-10 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/65 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#8E88AB]/50 hover:text-[#FAF9FD] transition"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-[#8E88AB] hover:text-[#FAF9FD] transition"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -221,7 +221,7 @@ export default function SignInForm() {
           <div className="w-full border-t border-[#1E1E2E]"></div>
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-[#111118] px-3.5 text-[#8E88AB]/60 font-semibold tracking-wider">
+          <span className="bg-[#111118] px-3.5 text-[#8E88AB] font-semibold tracking-wider">
             {t("orContinueWith", { defaultValue: "or continue with" })}
           </span>
         </div>

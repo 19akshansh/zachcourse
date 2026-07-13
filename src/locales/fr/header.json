@@ -41,5 +41,7 @@
   "disconnectConfirm": "Êtes-vous sûr de vouloir déconnecter votre compte ${providerName} ?",
   "bioUpdatedSuccess": "Bio mise à jour avec succès ! ✓",
   "disconnectSuccess": "Votre compte ${providerName} a bien été déconnecté.",
-  "disconnectFailed": "Échec de la déconnexion de ${providerName}"
+  "disconnectFailed": "Échec de la déconnexion de ${providerName}",
+  "signUpSaveProgress": "Créez un compte gratuit pour changer de rôle et accéder au tableau de bord des enseignants !",
+  "bioLockedTrial": "Créez un compte gratuit pour ajouter et enregistrer une biographie personnelle."
 }

@@ -16,6 +16,7 @@ export interface TourControllerProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   isMobile: boolean;
+  mode?: "trial";
 }
 
 export const tourEventEmitter = new EventTarget();
@@ -27,17 +28,63 @@ export function TourController({
   setActiveCourseId,
   sidebarOpen,
   setSidebarOpen,
-  isMobile
+  isMobile,
+  mode
 }: TourControllerProps) {
   const { t } = useTranslation(["tour"]);
   const { data: sessionData, isPending: sessionPending } = useSession();
   const userRole = (sessionData?.user as any)?.role || "student";
+  const isTrial = mode === "trial";
   
   const [tourProgress, setTourProgress] = useState<{ chaptersSeen: string[]; completedAt: string | Date | null; contentVersion: number } | null>(null);
   const [tourLoading, setTourLoading] = useState(true);
 
+  const getLocalCourses = (): any[] => {
+    try {
+      const stored = localStorage.getItem("zc_trial_courses");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const fetchCourses = (): Promise<any[]> => {
+    if (isTrial) {
+      return Promise.resolve(getLocalCourses());
+    }
+    return trpc.getCourses.query();
+  };
+
   useEffect(() => {
-    if (sessionData?.user) {
+    if (isTrial) {
+      setTourLoading(true);
+      try {
+        const stored = localStorage.getItem("zc_trial_tour_progress");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setTourProgress({
+            chaptersSeen: parsed.chaptersSeen || [],
+            completedAt: parsed.completedAt ? new Date(parsed.completedAt) : null,
+            contentVersion: parsed.contentVersion || 0
+          });
+        } else {
+          setTourProgress({
+            chaptersSeen: [],
+            completedAt: null,
+            contentVersion: 0
+          });
+        }
+      } catch (e) {
+        console.error("Error reading trial tour progress", e);
+        setTourProgress({
+          chaptersSeen: [],
+          completedAt: null,
+          contentVersion: 0
+        });
+      } finally {
+        setTourLoading(false);
+      }
+    } else if (sessionData?.user) {
       setTourLoading(true);
       trpc.getTourProgress.query()
         .then(data => {
@@ -50,7 +97,7 @@ export function TourController({
         .catch(console.error)
         .finally(() => setTourLoading(false));
     }
-  }, [sessionData?.user]);
+  }, [sessionData?.user, isTrial]);
   
   const [run, setRun] = useState(false);
   const [steps, setSteps] = useState<ExtendedStep[]>([]);
@@ -82,14 +129,15 @@ export function TourController({
 
   useEffect(() => {
     // Auto-start contextual tours
-    if (!sessionPending && sessionData?.user && !tourLoading && tourProgress && !run) {
-      if (tourProgress.completedAt === null || tourProgress.contentVersion < CURRENT_TOUR_VERSION) {
+    const ready = isTrial ? (!tourLoading && tourProgress) : (!sessionPending && sessionData?.user && !tourLoading && tourProgress);
+    if (ready && !run) {
+      if (tourProgress!.completedAt === null || tourProgress!.contentVersion < CURRENT_TOUR_VERSION) {
         const timer = setTimeout(() => {
           startChapter("full"); // "full" now acts as the intro
         }, 1000);
         return () => clearTimeout(timer);
       } else {
-        const seen = tourProgress.chaptersSeen || [];
+        const seen = tourProgress!.chaptersSeen || [];
         const timer = setTimeout(() => {
           const currentTab = activeTabRef.current;
           const currentActiveCourseId = activeCourseIdRef.current;
@@ -111,7 +159,7 @@ export function TourController({
         return () => clearTimeout(timer);
       }
     }
-  }, [sessionPending, sessionData, tourLoading, tourProgress, run]);
+  }, [sessionPending, sessionData, tourLoading, tourProgress, run, isTrial]);
 
   const processStepPlacements = (sequence: ExtendedStep[], isMobileArg: boolean): ExtendedStep[] => {
     return sequence.map(s => {
@@ -193,7 +241,7 @@ export function TourController({
 
     if (requiresCourse && !currentActiveCourseId) {
       // Try to fetch courses and auto-select one if available
-      trpc.getCourses.query()
+      fetchCourses()
         .then(courses => {
           if (courses && courses.length > 0) {
             const firstCourseId = courses[0].id;
@@ -282,14 +330,46 @@ export function TourController({
     if (type === EVENTS.TOUR_END || finishedStatuses.includes(status) || data.action === "close") {
       setRun(false);
       if (activeChapter === "full") {
-        trpc.markTourCompleted.mutate({ version: CURRENT_TOUR_VERSION }).catch(console.error);
-        if (tourProgress) {
-          setTourProgress({ ...tourProgress, completedAt: new Date() });
+        if (isTrial) {
+          const newProgress = {
+            chaptersSeen: tourProgress ? [...tourProgress.chaptersSeen] : [],
+            completedAt: new Date().toISOString(),
+            contentVersion: CURRENT_TOUR_VERSION
+          };
+          localStorage.setItem("zc_trial_tour_progress", JSON.stringify(newProgress));
+          setTourProgress({
+            chaptersSeen: newProgress.chaptersSeen,
+            completedAt: new Date(newProgress.completedAt),
+            contentVersion: newProgress.contentVersion
+          });
+        } else {
+          trpc.markTourCompleted.mutate({ version: CURRENT_TOUR_VERSION }).catch(console.error);
+          if (tourProgress) {
+            setTourProgress({ ...tourProgress, completedAt: new Date() });
+          }
         }
       } else if (activeChapter) {
-        trpc.markTourChapterSeen.mutate({ chapterId: activeChapter }).catch(console.error);
-        if (tourProgress) {
-          setTourProgress({ ...tourProgress, chaptersSeen: [...tourProgress.chaptersSeen, activeChapter] });
+        if (isTrial) {
+          const chapters = tourProgress ? [...tourProgress.chaptersSeen] : [];
+          if (!chapters.includes(activeChapter)) {
+            chapters.push(activeChapter);
+          }
+          const newProgress = {
+            chaptersSeen: chapters,
+            completedAt: tourProgress?.completedAt ? new Date(tourProgress.completedAt).toISOString() : null,
+            contentVersion: CURRENT_TOUR_VERSION
+          };
+          localStorage.setItem("zc_trial_tour_progress", JSON.stringify(newProgress));
+          setTourProgress({
+            chaptersSeen: newProgress.chaptersSeen,
+            completedAt: newProgress.completedAt ? new Date(newProgress.completedAt) : null,
+            contentVersion: newProgress.contentVersion
+          });
+        } else {
+          trpc.markTourChapterSeen.mutate({ chapterId: activeChapter }).catch(console.error);
+          if (tourProgress) {
+            setTourProgress({ ...tourProgress, chaptersSeen: [...tourProgress.chaptersSeen, activeChapter] });
+          }
         }
       }
       setActiveChapter(null);
@@ -330,7 +410,7 @@ export function TourController({
 
           if (requiresCourse === true && currentActiveCourseId === null) {
             setRun(false);
-            trpc.getCourses.query()
+            fetchCourses()
               .then(courses => {
                 if (courses && courses.length > 0) {
                   const firstCourseId = courses[0].id;
@@ -417,7 +497,7 @@ export function TourController({
 
             if (requiresCourse === true && currentActiveCourseId === null) {
               setRun(false);
-              trpc.getCourses.query()
+              fetchCourses()
                 .then(courses => {
                   if (courses && courses.length > 0) {
                     const firstCourseId = courses[0].id;

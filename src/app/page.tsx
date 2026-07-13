@@ -124,14 +124,22 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.3 }}
-          className="flex flex-col sm:flex-row items-center gap-4 mt-10 w-full justify-center"
+          className="flex flex-col items-center gap-4 mt-10 w-full justify-center"
         >
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
+            <button
+              onClick={handleGetStarted}
+              className="w-full sm:w-auto text-base font-extrabold bg-gradient-to-r from-[#4F46E5] to-[#4338CA] hover:from-[#4338CA] hover:to-[#4338CA] text-white px-8 py-4 rounded-2xl cursor-pointer transition-all shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:-translate-y-0.5 active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <span>{t("startLearningFree")}</span>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
           <button
-            onClick={handleGetStarted}
-            className="w-full sm:w-auto text-base font-extrabold bg-gradient-to-r from-[#4F46E5] to-[#4338CA] hover:from-[#4338CA] hover:to-[#4338CA] text-white px-8 py-4 rounded-2xl cursor-pointer transition-all shadow-xl shadow-indigo-600/30 hover:shadow-indigo-600/50 hover:-translate-y-0.5 active:scale-[0.98] flex items-center justify-center gap-2"
+            onClick={() => navigate("/trial")}
+            className="text-sm font-medium text-slate-400 hover:text-white transition-colors cursor-pointer hover:underline py-1 flex items-center gap-1 bg-transparent border-none outline-none"
           >
-            <span>{t("startLearningFree")}</span>
-            <ArrowRight className="w-5 h-5" />
+            {t("tryWithoutLogin")}
           </button>
         </motion.div>
 

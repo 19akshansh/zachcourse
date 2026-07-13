@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ChevronLeft, ChevronRight, LogOut, HelpCircle, GraduationCap, Loader2, User, ShieldCheck, Github, Save, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, LogOut, LogIn, HelpCircle, GraduationCap, Loader2, User, ShieldCheck, Github, Save, Trash2 } from "lucide-react";
 import { DiscordIcon } from "./DiscordIcon";
 import KeyStatusBadge from "./KeyStatusBadge";
 import { trpc } from "../lib/trpc-client";
@@ -16,10 +16,13 @@ interface AppHeaderProps {
   isOpen: boolean;
   session: any;
   onSignOut: () => void;
+  mode?: "trial";
+  onUpgradeClick?: () => void;
 }
 
-export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, onSignOut }: AppHeaderProps) {
+export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, onSignOut, mode, onUpgradeClick }: AppHeaderProps) {
   const { t } = useTranslation(["header", "common"]);
+  const isTrialMode = mode === "trial";
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -48,6 +51,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
   }, []);
 
   const fetchMyProfile = async () => {
+    if (isTrialMode) return;
     setIsProfileLoading(true);
     try {
       const data = await trpc.getMySocialLinks.query();
@@ -61,12 +65,13 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
   };
 
   useEffect(() => {
-    if (profileOpen) {
+    if (profileOpen && !isTrialMode) {
       fetchMyProfile();
     }
-  }, [profileOpen]);
+  }, [profileOpen, isTrialMode]);
 
   const handleSaveBio = async () => {
+    if (isTrialMode) return;
     setIsSavingBio(true);
     try {
       await trpc.updateMyBio.mutate({ bio });
@@ -79,6 +84,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
   };
 
   const handleDisconnect = async (provider: "github" | "discord") => {
+    if (isTrialMode) return;
     const providerName = provider === "github" ? "GitHub" : "Discord";
     if (!confirm(t("disconnectConfirm", { defaultValue: `Are you sure you want to disconnect your ${providerName} account?`, provider: providerName }))) {
       return;
@@ -109,11 +115,19 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
     };
   }, []);
 
-  const user = session?.user;
+  const user = isTrialMode ? { name: "Trial Account", email: "Temporary Trial" } : session?.user;
   const [isUpdating, setIsUpdating] = useState(false);
   const currentRole = (user as any)?.role || "student";
 
   const handleToggleRole = async () => {
+    if (isTrialMode) {
+      if (onUpgradeClick) {
+        onUpgradeClick();
+      } else {
+        toast.error(t("signUpSaveProgress", { defaultValue: "Create a free account to switch roles and access the teacher dashboard!" }));
+      }
+      return;
+    }
     const nextRole = currentRole === "teacher" ? "student" : "teacher";
     setIsUpdating(true);
     try {
@@ -129,16 +143,16 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
     }
   };
 
-  const displayName = user?.name || "Guest Account";
-  const displayEmail = user?.email || "Temporary Trial";
-  const initials = user?.name
+  const displayName = isTrialMode ? "Trial Account" : (user?.name || "Guest Account");
+  const displayEmail = isTrialMode ? "Temporary Trial" : (user?.email || "Temporary Trial");
+  const initials = isTrialMode ? "TA" : (user?.name
     ? user.name
         .split(" ")
         .map((n: string) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2)
-    : "G";
+    : "G");
 
   return (
     <>
@@ -170,6 +184,15 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
 
       {/* RIGHT SIDE */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {isTrialMode && (
+          <button
+            onClick={onUpgradeClick}
+            className="flex items-center gap-1 sm:gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] font-bold text-indigo-200 bg-indigo-950/40 border border-indigo-500/30 rounded-full hover:bg-indigo-900/40 hover:text-indigo-100 transition animate-pulse cursor-pointer shrink-0"
+          >
+            <span>Trial Mode</span>
+            <span className="text-[9px] bg-indigo-500/20 text-indigo-300 px-1 py-0.1 rounded-full uppercase tracking-wider hidden sm:inline">Upgrade</span>
+          </button>
+        )}
         <LanguageSwitcher />
         <TourLauncher />
         <div data-tour="header-key-badge">
@@ -210,12 +233,19 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                 data-tour="header-profile-item"
                 onClick={() => {
                   setDropdownOpen(false);
-                  setProfileOpen(true);
+                  if (isTrialMode) {
+                    if (onUpgradeClick) onUpgradeClick();
+                  } else {
+                    setProfileOpen(true);
+                  }
                 }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#8E88AB] hover:text-[#FAF9FD] hover:bg-[#1E1E2E]/50 rounded-lg transition cursor-pointer text-left mb-1.5"
               >
                 <User className="w-4 h-4 text-indigo-400 shrink-0" />
-                <span>{t("myProfile")}</span>
+                <span className="flex items-center gap-1.5 justify-between w-full">
+                  <span>{t("myProfile")}</span>
+                  {isTrialMode && <span className="text-[10px] text-slate-400">🔒</span>}
+                </span>
               </button>
 
               <button
@@ -236,17 +266,30 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
 
               <div className="h-px bg-[#1E1E2E] my-1.5" />
 
-              <button
-                onClick={() => {
-                  setDropdownOpen(false);
-                  localStorage.removeItem("session_token");
-                  onSignOut();
-                }}
-                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#8E88AB] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer text-left"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>{t("signOut")}</span>
-              </button>
+              {mode === "trial" ? (
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    window.location.href = "/sign-up?from=trial";
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#8E88AB] hover:text-indigo-400 hover:bg-indigo-500/10 rounded-lg transition cursor-pointer text-left"
+                >
+                  <LogIn className="w-4 h-4 text-indigo-400" />
+                  <span>{t("common:login", { defaultValue: "Login" })}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setDropdownOpen(false);
+                    localStorage.removeItem("session_token");
+                    onSignOut();
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#8E88AB] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition cursor-pointer text-left"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>{t("signOut")}</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -283,41 +326,52 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
             ) : (
               <div className="space-y-6">
                 {/* Bio section */}
-                <div className="space-y-2">
-                  <label htmlFor="modal-bio" className="block text-sm font-bold text-[#CECADF]">
-                    {t("bioLabel", { defaultValue: "My Bio (Optional)" })}
-                  </label>
-                  <textarea
-                    id="modal-bio"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value.slice(0, 160))}
-                    placeholder={t("bioPlaceholder", { defaultValue: "Share a bit about your engineering interests, goals, or coding experience..." })}
-                    className="w-full bg-[#1A172E] border border-[#2A2443] hover:border-[#4F46E5]/50 focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] rounded-2xl p-4 text-sm text-[#FAF9FD] placeholder-[#5C5578] outline-none min-h-[100px] resize-none transition"
-                  />
-                  <div className="flex justify-between items-center text-xs">
-                    <span className={bio.length >= 160 ? "text-amber-500 font-bold" : "text-[#8E88AB] font-medium"}>
-                      {t("bioCount", { defaultValue: "{{length}}/160 characters", length: bio.length })}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleSaveBio}
-                      disabled={isSavingBio}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#4F46E5] to-[#8B5CF6] hover:from-[#4F46E5] hover:to-[#7C3AED] text-white rounded-xl transition font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
-                    >
-                      {isSavingBio ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          {t("saving", { defaultValue: "Saving..." })}
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-3.5 h-3.5" />
-                          {t("saveBio", { defaultValue: "Save Bio" })}
-                        </>
-                      )}
-                    </button>
+                {isTrialMode ? (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-bold text-[#CECADF]">
+                      {t("bioLabel", { defaultValue: "My Bio (Optional)" })}
+                    </label>
+                    <div className="w-full bg-[#1A172E]/60 border border-[#2A2443] rounded-2xl p-4 text-sm text-[#8E88AB] italic">
+                      {t("bioLockedTrial", { defaultValue: "Create a free account to add and save a personal bio." })}
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-2">
+                    <label htmlFor="modal-bio" className="block text-sm font-bold text-[#CECADF]">
+                      {t("bioLabel", { defaultValue: "My Bio (Optional)" })}
+                    </label>
+                    <textarea
+                      id="modal-bio"
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value.slice(0, 160))}
+                      placeholder={t("bioPlaceholder", { defaultValue: "Share a bit about your engineering interests, goals, or coding experience..." })}
+                      className="w-full bg-[#1A172E] border border-[#2A2443] hover:border-[#4F46E5]/50 focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5] rounded-2xl p-4 text-sm text-[#FAF9FD] placeholder-[#5C5578] outline-none min-h-[100px] resize-none transition"
+                    />
+                    <div className="flex justify-between items-center text-xs">
+                      <span className={bio.length >= 160 ? "text-amber-500 font-bold" : "text-[#8E88AB] font-medium"}>
+                        {t("bioCount", { defaultValue: "{{length}}/160 characters", length: bio.length })}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleSaveBio}
+                        disabled={isSavingBio}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#4F46E5] to-[#8B5CF6] hover:from-[#4F46E5] hover:to-[#7C3AED] text-white rounded-xl transition font-bold text-xs shadow-md disabled:opacity-50 cursor-pointer"
+                      >
+                        {isSavingBio ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            {t("saving", { defaultValue: "Saving..." })}
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-3.5 h-3.5" />
+                            {t("saveBio", { defaultValue: "Save Bio" })}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Socials connections */}
                 <div className="space-y-3">
@@ -348,8 +402,8 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                             <button
                               type="button"
                               onClick={() => handleDisconnect("github")}
-                              disabled={unlinking}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl transition cursor-pointer border border-rose-500/20 text-xs font-bold"
+                              disabled={unlinking || isTrialMode}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl transition cursor-pointer border border-rose-500/20 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                               title={t("disconnectGitHub", { defaultValue: "Disconnect GitHub" })}
                             >
                               {unlinking ? (
@@ -375,6 +429,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                           </div>
                           <button
                             type="button"
+                            disabled={isTrialMode}
                             onClick={async () => {
                               try {
                                 toast.info(t("redirectingGithub", { defaultValue: "Redirecting to GitHub auth..." }));
@@ -390,7 +445,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                                 toast.error(err.message || t("linkGithubError", { defaultValue: "Failed to link GitHub" }));
                               }
                             }}
-                            className="px-4 py-2 bg-neutral-800 hover:bg-neutral-900 border border-neutral-700 text-neutral-100 text-xs font-bold transition rounded-xl cursor-pointer"
+                            className="px-4 py-2 bg-neutral-800 hover:bg-neutral-900 border border-neutral-700 text-neutral-100 text-xs font-bold transition rounded-xl cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             {t("connect", { defaultValue: "Connect" })}
                           </button>
@@ -417,8 +472,8 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                             <button
                               type="button"
                               onClick={() => handleDisconnect("discord")}
-                              disabled={unlinking}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl transition cursor-pointer border border-rose-500/20 text-xs font-bold"
+                              disabled={unlinking || isTrialMode}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 rounded-xl transition cursor-pointer border border-rose-500/20 text-xs font-bold disabled:opacity-40 disabled:cursor-not-allowed"
                               title={t("disconnectDiscord", { defaultValue: "Disconnect Discord" })}
                             >
                               {unlinking ? (
@@ -444,6 +499,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                           </div>
                           <button
                             type="button"
+                            disabled={isTrialMode}
                             onClick={async () => {
                               try {
                                 toast.info(t("redirectingDiscord", { defaultValue: "Redirecting to Discord auth..." }));
@@ -459,7 +515,7 @@ export default function AppHeader({ onMenuClick, isCollapsed, isOpen, session, o
                                 toast.error(err.message || t("linkDiscordError", { defaultValue: "Failed to link Discord" }));
                               }
                             }}
-                            className="px-4 py-2 bg-neutral-800 hover:bg-neutral-900 border border-neutral-700 text-neutral-100 text-xs font-bold transition rounded-xl cursor-pointer"
+                            className="px-4 py-2 bg-neutral-800 hover:bg-neutral-900 border border-neutral-700 text-neutral-100 text-xs font-bold transition rounded-xl cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             {t("connect", { defaultValue: "Connect" })}
                           </button>

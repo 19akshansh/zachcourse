@@ -100,6 +100,7 @@
     }
   ],
   "startLearningFree": "Start Learning Free",
+  "tryWithoutLogin": "Try without login →",
   "noCreditCard": "No credit card needed • Free forever plan • 2 min setup",
   "simulatedConfig": "roadmap_core_v1.config",
   "activeStudyBlock": "Active study block",
@@ -136,5 +137,6 @@
   "freePlanIncludes": "Free plan includes 1 active course and 3 quizzes/week",
   "github": "GitHub",
   "kaggleSubmission": "Kaggle Submission",
-  "builtForGoogle": "Built for Google x Kaggle AI Agents Vibecoding 2026"
+  "builtForGoogle": "Built for Google x Kaggle AI Agents Vibecoding 2026",
+  "advancedMachineLearning": "Advanced Machine Learning"
 }

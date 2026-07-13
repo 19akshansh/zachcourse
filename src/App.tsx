@@ -9,6 +9,7 @@ import ForgotPasswordPage from "./app/(auth)/forgot-password/page";
 import ResetPasswordPage from "./app/(auth)/reset-password/page";
 import VerifyEmailPage from "./app/(auth)/verify-email/page";
 import LandingPage from "./app/page";
+import TrialPage from "./app/trial/TrialPage";
 import { callGemini } from "./lib/gemini-client";
 import AppSidebar, { CourseListItem } from "./components/AppSidebar";
 import AppHeader from "./components/AppHeader";
@@ -323,21 +324,136 @@ export default function App() {
     
     if (path.startsWith("/api")) return null;
     
+    const isTrialPath = path === "/trial" || path.startsWith("/trial/");
+    const isCertificatePath = path === "/certificate" || path.startsWith("/certificate/");
+    
     if (!sessionData?.user) {
-      // Not logged in — redirect to sign-in if on protected route
-      const isCertificatePath = path === "/certificate" || path.startsWith("/certificate/");
-      if (!isAuthPath && path !== "/" && !isCertificatePath) {
+      // Not logged in — redirect to sign-in if on protected route (exclude landing, certificate, and trial)
+      if (!isAuthPath && path !== "/" && !isCertificatePath && !isTrialPath) {
         window.location.href = "/sign-in";
       }
     } else {
-      // Logged in — redirect away from auth pages
+      // Logged in — redirect away from auth pages, landing, and trial page to dashboard
       const preventLoggedPaths = ["/sign-in", "/sign-up", "/forgot-password"];
       const isPreventLoggedPath = preventLoggedPaths.some(p => path.startsWith(p));
-      if (isPreventLoggedPath || path === "/") {
+      if (isPreventLoggedPath || path === "/" || isTrialPath) {
         window.location.href = "/dashboard";
       }
     }
   }, [sessionData, isSessionPending, path]);
+
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [migrating, setMigrating] = useState(false);
+  const [trialCourseCount, setTrialCourseCount] = useState(0);
+  const [trialVRCount, setTrialVRCount] = useState(0);
+
+  useEffect(() => {
+    if (sessionData?.user) {
+      try {
+        const trialCourses = JSON.parse(localStorage.getItem("zc_trial_courses") || "[]");
+        const trialVRs = JSON.parse(localStorage.getItem("zc_trial_visual_roadmaps") || "[]");
+        if (trialCourses.length > 0 || trialVRs.length > 0) {
+          setTrialCourseCount(trialCourses.length);
+          setTrialVRCount(trialVRs.length);
+          setShowMigrationModal(true);
+        }
+      } catch (e) {
+        // Ignored
+      }
+    }
+  }, [sessionData]);
+
+  const handleMigrateTrialData = async () => {
+    setMigrating(true);
+    const toastId = toast.loading("Migrating your trial courses and roadmaps to your account... 🚀");
+    try {
+      const trialCourses = JSON.parse(localStorage.getItem("zc_trial_courses") || "[]");
+      const trialVRs = JSON.parse(localStorage.getItem("zc_trial_visual_roadmaps") || "[]");
+
+      // 1. Migrate courses
+      for (const course of trialCourses) {
+        const createdCourse = await trpc.createCourse.mutate({
+          title: course.title,
+          topic: course.topic,
+          description: course.description || "",
+          difficulty: course.difficulty || "Beginner",
+          experienceLevel: course.experienceLevel || "beginner",
+          backgroundContext: course.backgroundContext || "",
+          tone: course.tone || "friendly",
+          weeklyHours: course.weeklyHours || 5,
+          roadmapData: course.roadmapData,
+        });
+
+        // Migrate progress
+        const completedLessons = course.completedLessons || [];
+        const completedQuizzes = course.completedQuizzes || {};
+        if (completedLessons.length > 0 || Object.keys(completedQuizzes).length > 0) {
+          await trpc.updateCourseProgress.mutate({
+            courseId: createdCourse.id,
+            completedLessons,
+            completedQuizzes,
+          });
+        }
+
+        // Migrate lessons content
+        const courseId = course.id;
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith(`zc_trial_lesson_${courseId}_`)) {
+            const lessonId = key.replace(`zc_trial_lesson_${courseId}_`, "");
+            const content = localStorage.getItem(key);
+            if (content) {
+              await trpc.saveLessonContent.mutate({
+                courseId: createdCourse.id,
+                lessonId,
+                content,
+              });
+            }
+          }
+        }
+      }
+
+      // 2. Migrate visual roadmaps
+      for (const vr of trialVRs) {
+        await trpc.saveVisualRoadmap.mutate({
+          title: vr.title,
+          topic: vr.topic,
+          description: vr.description || "",
+          difficulty: vr.difficulty || "Intermediate",
+          experienceLevel: vr.experienceLevel || "beginner",
+          backgroundContext: vr.backgroundContext || "",
+          weeklyHours: vr.weeklyHours || 5,
+          roadmapData: vr.roadmapData,
+        });
+      }
+
+      toast.success("Successfully imported all trial data! 🎉", { id: toastId });
+      
+      // Clean up trial localStorage keys
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith("zc_trial_")) {
+          localStorage.removeItem(key);
+        }
+      });
+      setShowMigrationModal(false);
+      window.location.reload();
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to import trial data.", { id: toastId });
+    } finally {
+      setMigrating(false);
+    }
+  };
+
+  const handleDismissMigration = () => {
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith("zc_trial_")) {
+        localStorage.removeItem(key);
+      }
+    });
+    setShowMigrationModal(false);
+    toast.info("Trial session data discarded.");
+  };
 
   const [authMode, setAuthMode] = useState<"signin" | "signup" | "forgot">("signin");
 
@@ -877,6 +993,9 @@ export default function App() {
 
   if (!sessionData?.user) {
     if (path.startsWith("/api")) return null;
+    if (path === "/trial" || path.startsWith("/trial/") || path === "trial") {
+      return <TrialPage />;
+    }
     if (path === "/certificate" || path.startsWith("/certificate/")) {
       const parts = path.split("/");
       const certId = parts[2] || "";
@@ -1861,6 +1980,9 @@ ${lessonContent}`;
   // Render public-facing auth pages
   const getPublicPage = () => {
     if (path.startsWith("/api")) return null;
+    if (path === "/trial" || path.startsWith("/trial/")) {
+      return <TrialPage />;
+    }
     if (path === "/certificate" || path.startsWith("/certificate/")) {
       const parts = path.split("/");
       const certId = parts[2] || "";
@@ -1885,6 +2007,56 @@ ${lessonContent}`;
   return (
     <div className="flex h-screen bg-[#0F0D19] overflow-hidden text-[#CECADF] font-sans antialiased selection:bg-indigo-900 selection:text-indigo-200">
       
+      {showMigrationModal && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121021] border border-indigo-500/30 rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden text-left">
+            <div className="absolute -top-16 -right-16 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
+            
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-indigo-500/10 text-indigo-400 rounded-full flex items-center justify-center">
+                <Award className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-white tracking-tight">Import Trial Data</h3>
+                <p className="text-sm text-[#CECADF] leading-relaxed mt-2.5">
+                  Welcome to ZachCourse! We found <strong>{trialCourseCount} course(s)</strong> and <strong>{trialVRCount} visual roadmap(s)</strong> from your guest trial session. Would you like to import them into your new account now?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-3">
+              <button
+                type="button"
+                disabled={migrating}
+                onClick={handleDismissMigration}
+                className="px-5 py-3 bg-[#1A172E] hover:bg-rose-950/20 text-[#CECADF] hover:text-rose-400 border border-transparent hover:border-[#2A2443] rounded-xl transition font-bold text-xs cursor-pointer text-center disabled:opacity-50"
+              >
+                Discard Data
+              </button>
+              
+              <button
+                type="button"
+                disabled={migrating}
+                onClick={handleMigrateTrialData}
+                className="flex-1 py-3 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition font-black text-xs text-center cursor-pointer shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {migrating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Importing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 animate-pulse" />
+                    <span>Import to Account</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile backdrop */}
       {sidebarOpen && (
         <div 
@@ -2204,7 +2376,7 @@ ${lessonContent}`;
                             placeholder={t("syllabusLinkPlaceholder", { defaultValue: "https://your-syllabus-link.com" })}
                             value={sourceUrlInput}
                             onChange={(e) => setSourceUrlInput(e.target.value)}
-                            className="w-full bg-[#1A172E] border border-[#2A2443] rounded-xl py-2.5 px-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/50 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
+                            className="w-full bg-[#1A1A2E] border border-[#2A2443] rounded-xl py-2.5 px-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/70 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
                           />
                         </div>
                         <div>
@@ -2216,7 +2388,7 @@ ${lessonContent}`;
                             placeholder={t("pasteSyllabusKeyPoints", { defaultValue: "Paste syllabus key points..." })}
                             value={textContentInput}
                             onChange={(e) => setTextContentInput(e.target.value)}
-                            className="w-full bg-[#1A172E] border border-[#2A2443] rounded-xl py-2.5 px-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/50 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
+                            className="w-full bg-[#1A1A2E] border border-[#2A2443] rounded-xl py-2.5 px-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/70 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/10 transition-all font-medium"
                           />
                         </div>
                       </div>

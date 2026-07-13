@@ -41,5 +41,7 @@
   "disconnectFailed": "${providerName} konnte nicht getrennt werden",
   "connectedAs": "Verbunden als {{username}}",
   "bioUpdateFailed": "Bio konnte nicht aktualisiert werden",
-  "disconnectSuccess": "Ihr ${providerName}-Konto wurde erfolgreich getrennt."
+  "disconnectSuccess": "Ihr ${providerName}-Konto wurde erfolgreich getrennt.",
+  "signUpSaveProgress": "Erstellen Sie ein kostenloses Konto, um die Rollen zu wechseln und auf das Lehrer-Dashboard zuzugreifen!",
+  "bioLockedTrial": "Erstellen Sie ein kostenloses Konto, um eine persönliche Biografie hinzuzufügen und zu speichern."
 }

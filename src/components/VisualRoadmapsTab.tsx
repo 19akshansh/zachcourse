@@ -167,7 +167,7 @@ export default function VisualRoadmapsTab({
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 placeholder={t("topicPlaceholder", { defaultValue: "e.g., Python Backend, React & Tailwind, Machine Learning Foundations" })}
-                className="w-full bg-[#0F0D19] border-2 border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-5 py-4 text-white text-lg transition-colors placeholder:text-[#3F395B] outline-none"
+                className="w-full bg-[#0F0D19] border-2 border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-5 py-4 text-white text-lg transition-colors placeholder:text-[#8E88AB]/60 outline-none"
               />
             </div>
 
@@ -192,7 +192,7 @@ export default function VisualRoadmapsTab({
                 onChange={(e) => setWeeklyHours(parseInt(e.target.value))}
                 className="w-full accent-[#4F46E5]"
               />
-              <div className="flex justify-between text-xs font-medium text-[#4B5563] mt-2">
+              <div className="flex justify-between text-xs font-medium text-[#8E88AB] mt-2">
                 <span>{t("casualCommitment", { defaultValue: "Casual (1h)" })}</span>
                 <span>{t("partTimeCommitment", { defaultValue: "Part-time (15h)" })}</span>
                 <span>{t("intensiveCommitment", { defaultValue: "Intensive (30h)" })}</span>
@@ -208,7 +208,7 @@ export default function VisualRoadmapsTab({
                 value={sourceUrl}
                 onChange={(e) => setSourceUrl(e.target.value)}
                 placeholder={t("roadmapUrlPlaceholder", { defaultValue: "https://... (Docs, syllabus, or course link)" })}
-                className="w-full bg-[#0F0D19] border border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-4 py-3 text-white transition-colors placeholder:text-[#3F395B] outline-none"
+                className="w-full bg-[#0F0D19] border border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-4 py-3 text-white transition-colors placeholder:text-[#8E88AB]/60 outline-none"
               />
 
               <DocumentUpload

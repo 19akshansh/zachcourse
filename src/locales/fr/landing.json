@@ -100,6 +100,7 @@
     }
   ],
   "startLearningFree": "Commencer à apprendre gratuitement",
+  "tryWithoutLogin": "Essayer sans connexion →",
   "noCreditCard": "Aucune carte de crédit requise • Plan gratuit à vie • Configuration en 2 minutes",
   "simulatedConfig": "roadmap_core_v1.config",
   "activeStudyBlock": "Bloc d'étude actif",

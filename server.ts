@@ -151,7 +151,29 @@ const aiRateLimit = rateLimit({
     || "unknown",
 });
 
+const trialRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // Lighter, 5 requests per minute per IP for trial mode
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "TOO_MANY_REQUESTS", message: "Trial rate limit exceeded. Please wait a moment." },
+  keyGenerator: (req) => 
+    (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() 
+    || req.socket.remoteAddress 
+    || "unknown",
+});
+
+const selectRateLimiter = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (req.headers["x-trial-mode"] === "1") {
+    return trialRateLimit(req, res, next);
+  }
+  return aiRateLimit(req, res, next);
+};
+
 async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+  if (req.headers["x-trial-mode"] === "1") {
+    return next();
+  }
   try {
     const headers = new Headers();
     for (const [key, value] of Object.entries(req.headers)) {
@@ -169,10 +191,10 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
   }
 }
 
-app.use("/api/generate-roadmap", aiRateLimit);
-app.use("/api/generate-lesson", aiRateLimit);
-app.use("/api/generate-quiz", aiRateLimit);
-app.use("/api/mentor-chat", aiRateLimit);
+app.use("/api/generate-roadmap", selectRateLimiter);
+app.use("/api/generate-lesson", selectRateLimiter);
+app.use("/api/generate-quiz", selectRateLimiter);
+app.use("/api/mentor-chat", selectRateLimiter);
 
 // Check for duplicate email before registering to prevent silent redirects on duplicate signup
 app.post("/api/auth/sign-up/email", async (req, res, next) => {
@@ -950,8 +972,9 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
       return;
     }
 
+    const isTrial = req.headers["x-trial-mode"] === "1";
     const session = (req as any).user;
-    if (!session) {
+    if (!session && !isTrial) {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
@@ -962,39 +985,42 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
       return;
     }
 
-    let backgroundContext = "";
-    let experienceLevel = "beginner";
-    let tone = "friendly";
+    let backgroundContext = req.body.backgroundContext || "";
+    let experienceLevel = req.body.experienceLevel || "beginner";
+    let tone = req.body.tone || "friendly";
 
-    if (courseId) {
+    if (courseId && !isTrial) {
       const course = await db.course.findUnique({
         where: { id: courseId },
         select: { backgroundContext: true, experienceLevel: true, tone: true },
       });
       if (course) {
-        backgroundContext = course.backgroundContext || "";
-        experienceLevel = course.experienceLevel || "beginner";
-        tone = course.tone || "friendly";
+        backgroundContext = course.backgroundContext || backgroundContext;
+        experienceLevel = course.experienceLevel || experienceLevel;
+        tone = course.tone || tone;
       }
       await db.courseMessage.create({ data: { courseId, role: "user", content: message } });
     }
 
-    // Retrieve semantically relevant past context
-    const relevantMemories = await retrieveRelevantMemories({
-      userId: session.id,
-      courseId: courseId || "general",
-      query: message,
-      limit: 4,
-      apiKey: activeKey,
-    });
+    let memoryContext = "";
+    if (!isTrial && session) {
+      // Retrieve semantically relevant past context
+      const relevantMemories = await retrieveRelevantMemories({
+        userId: session.id,
+        courseId: courseId || "general",
+        query: message,
+        limit: 4,
+        apiKey: activeKey,
+      });
 
-    const memoryContext = relevantMemories.length > 0
-      ? `\nRelevant past learning context (from earlier sessions):\n${
-          relevantMemories
-            .map((m, i) => `[Memory ${i+1}]: ${m}`)
-            .join("\n")
-        }\n`
-      : "";
+      memoryContext = relevantMemories.length > 0
+        ? `\nRelevant past learning context (from earlier sessions):\n${
+            relevantMemories
+              .map((m, i) => `[Memory ${i+1}]: ${m}`)
+              .join("\n")
+          }\n`
+        : "";
+    }
 
     const googleClient = createGoogleGenerativeAI({ apiKey: activeKey });
     const model = googleClient("gemini-2.5-flash");
@@ -1055,20 +1081,22 @@ Always answer based on the current context. Be friendly, concise, and helpful. U
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
 
-    if (fullText.length > 50) {
-      storeMentorExchange({
-        userId: session.id,
-        courseId: courseId || "general",
-        lessonId: currentLessonId || "general",
-        lessonTitle: currentLessonTitle || "General",
-        question: message,
-        answer: fullText,
-        apiKey: activeKey,
-      }).catch(console.error);
-    }
+    if (!isTrial) {
+      if (fullText.length > 50 && session) {
+        storeMentorExchange({
+          userId: session.id,
+          courseId: courseId || "general",
+          lessonId: currentLessonId || "general",
+          lessonTitle: currentLessonTitle || "General",
+          question: message,
+          answer: fullText,
+          apiKey: activeKey,
+        }).catch(console.error);
+      }
 
-    if (courseId) {
-      db.courseMessage.create({ data: { courseId, role: "assistant", content: fullText } }).catch(console.error);
+      if (courseId) {
+        db.courseMessage.create({ data: { courseId, role: "assistant", content: fullText } }).catch(console.error);
+      }
     }
   } catch (err: any) {
     if (res.headersSent) {

@@ -41,5 +41,7 @@
   "bioUpdatedSuccess": "¡Biografía actualizada con éxito! ✓",
   "disconnectSuccess": "Desconectó exitosamente su cuenta ${providerName}.",
   "disconnectConfirm": "¿Está seguro de que desea desconectar su cuenta ${providerName}?",
-  "bioUpdateFailed": "No se pudo actualizar la biografía"
+  "bioUpdateFailed": "No se pudo actualizar la biografía",
+  "signUpSaveProgress": "¡Cree una cuenta gratuita para cambiar roles y acceder al panel del profesor!",
+  "bioLockedTrial": "Crea una cuenta gratuita para añadir y guardar una biografía personal."
 }

@@ -93,13 +93,13 @@ export default function ForgotPasswordPage() {
                   {t("emailAddress")}
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]/50">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#8E88AB]">
                     <Mail className="w-4 h-4" />
                   </div>
                   <input
                     type="email"
                     placeholder={t("emailPlaceholder", { defaultValue: "you@example.com" })}
-                    className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/30 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
+                    className="w-full bg-[#1A1A2E] border border-[#1E1E2E] rounded-xl py-3 pl-10 pr-4 text-sm text-[#FAF9FD] placeholder:text-[#8E88AB]/65 focus:outline-none focus:border-[#4F46E5] focus:ring-2 focus:ring-[#4F46E5]/20 transition-all font-medium"
                     {...register("email")}
                   />
                 </div>
@@ -152,7 +152,7 @@ export default function ForgotPasswordPage() {
             <p className="text-sm text-[#8E88AB] leading-relaxed max-w-xs mx-auto mb-6 font-medium">
               {t("checkInboxDesc")}
             </p>
-            <p className="text-xs text-[#8E88AB]/70 max-w-xs mx-auto mb-8 font-medium">
+            <p className="text-xs text-[#8E88AB] max-w-xs mx-auto mb-8 font-medium">
               {t("checkInboxSpamDesc")}
             </p>
             <button

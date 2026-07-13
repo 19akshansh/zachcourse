@@ -24,6 +24,8 @@ interface MentorChatProps {
   activeCourseId: string | null;
   setActiveCourse: React.Dispatch<React.SetStateAction<any>>;
   handleSendMentorMessage: (e: React.FormEvent) => void;
+  isTrial?: boolean;
+  onClearTrialMessages?: () => void;
 }
 
 export const MentorChat: React.FC<MentorChatProps> = ({
@@ -36,6 +38,8 @@ export const MentorChat: React.FC<MentorChatProps> = ({
   activeCourseId,
   setActiveCourse,
   handleSendMentorMessage,
+  isTrial,
+  onClearTrialMessages,
 }) => {
   const { t } = useTranslation("mentorChat");
   return (
@@ -107,6 +111,11 @@ export const MentorChat: React.FC<MentorChatProps> = ({
             type="button"
             onClick={async () => {
               try {
+                if (isTrial) {
+                  if (onClearTrialMessages) onClearTrialMessages();
+                  toast.success(t("toastMemoryCleared", { defaultValue: "Memory cleared for this course" }));
+                  return;
+                }
                 if (!activeCourseId) return;
                 await trpc.clearChatMemory.mutate({ courseId: activeCourseId });
                 toast.success(t("toastMemoryCleared", { defaultValue: "Memory cleared for this course" }));

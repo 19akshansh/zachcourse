@@ -41,5 +41,7 @@
   "bioUpdatedSuccess": "تم تحديث السيرة الذاتية بنجاح! ✓",
   "disconnectFailed": "فشل في قطع اتصال ${providerName}",
   "disconnectConfirm": "هل أنت متأكد أنك تريد قطع اتصال حسابك ${providerName}؟",
-  "connectedAs": "متصل كـ {{username}}"
+  "connectedAs": "متصل كـ {{username}}",
+  "signUpSaveProgress": "قم بإنشاء حساب مجاني لتبديل الأدوار والوصول إلى لوحة تحكم المعلم!",
+  "bioLockedTrial": "أنشئ حسابًا مجانيًا لإضافة وحفظ السيرة الذاتية الشخصية."
 }

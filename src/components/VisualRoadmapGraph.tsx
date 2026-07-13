@@ -190,8 +190,6 @@ export interface VisualRoadmapGraphProps {
   onClose?: () => void;
   onForceRetranslate?: () => void;
   isForceRetranslating?: boolean;
-  onForceRetranslate?: () => void;
-  isForceRetranslating?: boolean;
 }
 
 function VisualRoadmapGraphInner({

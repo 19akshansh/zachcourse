@@ -36,8 +36,13 @@ export function DocumentUpload({ onExtracted, onClear, hasDocument }: DocumentUp
 
     setIsUploading(true);
     try {
+      const headers: Record<string, string> = {};
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/trial")) {
+        headers["x-trial-mode"] = "1";
+      }
       const res = await fetch("/api/process-documents", {
         method: "POST",
+        headers,
         body: formData,
         credentials: "include",
       });

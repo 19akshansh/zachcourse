@@ -17,6 +17,8 @@ interface ProgressDashboardProps {
   currentRoadmap: any;
   streakDays?: number;
   activeCourseId: string | null;
+  isTrial?: boolean;
+  onCertificateLockedClick?: () => void;
 }
 
 export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
@@ -28,15 +30,21 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
   currentRoadmap,
   streakDays = 1,
   activeCourseId,
+  isTrial,
+  onCertificateLockedClick,
 }) => {
   const { t, i18n } = useTranslation(["progressDashboard"]);
   const { data: sessionData } = useSession();
-  const userName = sessionData?.user?.name || t("common:student", "Student");
+  const userName = isTrial ? "Trial Learner" : (sessionData?.user?.name || t("common:student", "Student"));
   const [showCertificate, setShowCertificate] = useState(false);
   const [certId, setCertId] = useState<string | null>(null);
   const [issuingCert, setIssuingCert] = useState(false);
 
   const handleViewCertificate = async () => {
+    if (isTrial) {
+      if (onCertificateLockedClick) onCertificateLockedClick();
+      return;
+    }
     if (!activeCourseId) {
       toast.error(t("toastSelectCourse"));
       return;

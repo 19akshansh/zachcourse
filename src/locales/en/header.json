@@ -35,5 +35,13 @@
   "profileSubtitle": "Verify your developer presence and customize your learning identity.",
   "loadingSettings": "Loading settings...",
   "userMenu": "User account menu",
-  "toggleMenu": "Toggle navigation menu"
+  "toggleMenu": "Toggle navigation menu",
+  "bioUpdatedSuccess": "Bio updated successfully! ✓",
+  "bioUpdateFailed": "Failed to update bio",
+  "disconnectConfirm": "Are you sure you want to disconnect your ${providerName} account?",
+  "disconnectSuccess": "Successfully disconnected your ${providerName} account.",
+  "disconnectFailed": "Failed to disconnect ${providerName}",
+  "signUpSaveProgress": "Create a free account to switch roles and access the teacher dashboard!",
+  "connectedAs": "Connected as {{username}}",
+  "bioLockedTrial": "Create a free account to add and save a personal bio."
 }

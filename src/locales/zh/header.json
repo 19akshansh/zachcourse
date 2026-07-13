@@ -41,5 +41,7 @@
   "bioUpdateFailed": "更新个人简介失败",
   "connectedAs": "连接为 {{username}}",
   "disconnectSuccess": "已成功断开您的 ${providerName} 帐户的连接。",
-  "disconnectFailed": "无法断开 ${providerName} 的连接"
+  "disconnectFailed": "无法断开 ${providerName} 的连接",
+  "signUpSaveProgress": "创建一个免费帐户来切换角色并访问教师仪表板！",
+  "bioLockedTrial": "创建免费账户以添加并保存个人简介。"
 }

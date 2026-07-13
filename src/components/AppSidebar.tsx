@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Map, MessageSquare, FileText, TrendingUp, LogOut, Plus, MoreVertical, Trash2, Edit2, GitBranch, BarChart2, Users, GraduationCap, Loader2 } from "lucide-react";
+import { Map, MessageSquare, FileText, TrendingUp, LogOut, LogIn, Plus, MoreVertical, Trash2, Edit2, GitBranch, BarChart2, Users, GraduationCap, Loader2 } from "lucide-react";
 import type { Course } from "@prisma/client";
 import { trpc } from "../lib/trpc-client";
 import { toast } from "sonner";
@@ -34,6 +34,8 @@ interface AppSidebarProps {
   onRenameCourse: (id: string, newTitle: string) => void;
   isLoadingCourses?: boolean;
   isRetranslatingCourse?: boolean;
+  mode?: "trial";
+  onCohortsLockedClick?: () => void;
 }
 
 export default function AppSidebar({
@@ -52,6 +54,8 @@ export default function AppSidebar({
   onRenameCourse,
   isLoadingCourses,
   isRetranslatingCourse = false,
+  mode,
+  onCohortsLockedClick,
 }: AppSidebarProps) {
   const { t } = useTranslation("common");
   const [contextMenuCourseId, setContextMenuCourseId] = useState<string | null>(null);
@@ -65,6 +69,14 @@ export default function AppSidebar({
   const currentRole = (session?.user as any)?.role || "student";
 
   const handleToggleRole = async () => {
+    if (isTrialMode) {
+      if (onCohortsLockedClick) {
+        onCohortsLockedClick();
+      } else {
+        toast.error(t("signUpSaveProgress", { defaultValue: "Create a free account to switch roles and access the teacher dashboard!" }));
+      }
+      return;
+    }
     const nextRole = currentRole === "teacher" ? "student" : "teacher";
     setIsUpdating(true);
     try {
@@ -107,18 +119,19 @@ export default function AppSidebar({
     { id: "progress", label: t("myProgress", { defaultValue: "My Progress" }), icon: TrendingUp },
   ];
 
-  const user = session?.user;
-  const initials = user?.name
+  const isTrialMode = mode === "trial";
+  const user = isTrialMode ? { name: "Trial Account", email: "Temporary Trial" } : session?.user;
+  const initials = isTrialMode ? "TA" : (user?.name
     ? user.name
         .split(" ")
         .map((n: string) => n[0])
         .join("")
         .toUpperCase()
         .slice(0, 2)
-    : "G";
+    : "G");
 
-  const displayName = user?.name || t("guestAccount", { defaultValue: "Guest Account" });
-  const displayEmail = user?.email || t("temporaryTrial", { defaultValue: "Temporary Trial" });
+  const displayName = isTrialMode ? "Trial Account" : (user?.name || t("guestAccount", { defaultValue: "Guest Account" }));
+  const displayEmail = isTrialMode ? "Temporary Trial" : (user?.email || t("temporaryTrial", { defaultValue: "Temporary Trial" }));
 
   // Calculate course progress
   const getCourseProgress = (course: CourseListItem) => {
@@ -217,6 +230,10 @@ export default function AppSidebar({
           <button
             data-tour="nav-cohorts"
             onClick={() => {
+              if (isTrialMode) {
+                if (onCohortsLockedClick) onCohortsLockedClick();
+                return;
+              }
               setActiveCourseId(null);
               setActiveTab("cohorts");
               if (window.innerWidth < 768) onClose();
@@ -232,8 +249,9 @@ export default function AppSidebar({
             <Users className="w-4 h-4 shrink-0" />
             {!effectivelyCollapsed && (
               <div className="flex items-center justify-between w-full ml-3">
-                <span className="text-xs font-semibold truncate transition-opacity duration-200">
+                <span className="text-xs font-semibold truncate transition-opacity duration-200 flex items-center gap-1.5">
                   {t("learningCohorts", { defaultValue: "Learning Cohorts" })}
+                  {isTrialMode && <span className="text-[10px] text-slate-400">🔒</span>}
                 </span>
               </div>
             )}
@@ -511,26 +529,41 @@ export default function AppSidebar({
                   onClick={handleToggleRole}
                   disabled={isUpdating}
                   className="px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/25 rounded text-[9px] text-amber-400 font-extrabold hover:bg-amber-500/20 transition cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
-                  title={t("clickToSwitchRole", { defaultValue: `Role: ${t(currentRole)}. Click to Switch!`, role: t(currentRole) })}
+                  title={isTrialMode ? t("switchRoleTrialLocked", { defaultValue: "Switch Role (Requires Account)" }) : t("clickToSwitchRole", { defaultValue: `Role: ${t(currentRole)}. Click to Switch!`, role: t(currentRole) })}
                 >
                   {isUpdating ? (
                     <Loader2 className="w-2.5 h-2.5 animate-spin" />
                   ) : (
-                    <span>{t(currentRole, { defaultValue: currentRole })}</span>
+                    <span className="flex items-center gap-0.5">
+                      <span>{t(currentRole, { defaultValue: currentRole })}</span>
+                      {isTrialMode && <span className="text-[8px]">🔒</span>}
+                    </span>
                   )}
                 </button>
               </div>
               <p className="text-[10px] text-[#8E88AB] truncate leading-none mt-1">{displayEmail}</p>
             </div>
           </div>
-          <button
-            data-tour="sidebar-sign-out"
-            onClick={onSignOut}
-            className="text-[#8E88AB] hover:text-rose-400 p-1 rounded-lg hover:bg-rose-500/10 transition cursor-pointer shrink-0"
-            title={t("signOut", { defaultValue: "Sign Out" })}
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+          {isTrialMode ? (
+            <button
+              onClick={() => {
+                window.location.href = "/sign-up?from=trial";
+              }}
+              className="text-[#8E88AB] hover:text-indigo-400 p-1 rounded-lg hover:bg-indigo-500/10 transition cursor-pointer shrink-0"
+              title={t("login", { defaultValue: "Login" })}
+            >
+              <LogIn className="w-4 h-4 text-indigo-400" />
+            </button>
+          ) : (
+            <button
+              data-tour="sidebar-sign-out"
+              onClick={onSignOut}
+              className="text-[#8E88AB] hover:text-rose-400 p-1 rounded-lg hover:bg-rose-500/10 transition cursor-pointer shrink-0"
+              title={t("signOut", { defaultValue: "Sign Out" })}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         <div className={`flex flex-col items-center gap-3 py-1 ${effectivelyCollapsed ? 'hidden md:flex' : 'hidden'}`}>
@@ -549,28 +582,43 @@ export default function AppSidebar({
             )}
             {/* Tooltip */}
             <div className="absolute left-12 top-1/2 -translate-y-1/2 bg-[#111118] border border-[#1E1E2E] text-white text-xs font-semibold rounded-lg px-2 py-1 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
-              {displayName} ({t(currentRole, { defaultValue: currentRole })})
+              {displayName} {!isTrialMode ? `(${t(currentRole, { defaultValue: currentRole })})` : ""}
             </div>
           </div>
-          <button
-            onClick={handleToggleRole}
-            disabled={isUpdating}
-            className="w-8 h-8 rounded-lg hover:bg-amber-500/15 hover:text-amber-400 text-[#8E88AB] flex items-center justify-center transition cursor-pointer"
-            title={t("clickToSwitchRole", { defaultValue: `Role: ${t(currentRole)}. Click to Switch!`, role: t(currentRole) })}
-          >
-            {isUpdating ? (
-              <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
-            ) : (
-              <GraduationCap className="w-4 h-4 text-amber-500 hover:text-amber-400" />
-            )}
-          </button>
-          <button
-            onClick={onSignOut}
-            className="w-8 h-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-400 text-[#8E88AB] flex items-center justify-center transition cursor-pointer"
-            title={t("signOut", { defaultValue: "Sign Out" })}
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+            <button
+              onClick={handleToggleRole}
+              disabled={isUpdating}
+              className="w-8 h-8 rounded-lg hover:bg-amber-500/15 hover:text-amber-400 text-[#8E88AB] flex items-center justify-center transition cursor-pointer relative"
+              title={isTrialMode ? t("switchRoleTrialLocked", { defaultValue: "Switch Role (Requires Account)" }) : t("clickToSwitchRole", { defaultValue: `Role: ${t(currentRole)}. Click to Switch!`, role: t(currentRole) })}
+            >
+              {isUpdating ? (
+                <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+              ) : (
+                <>
+                  <GraduationCap className="w-4 h-4 text-amber-500 hover:text-amber-400" />
+                  {isTrialMode && <span className="absolute top-0.5 right-0.5 text-[7px]">🔒</span>}
+                </>
+              )}
+            </button>
+          {isTrialMode ? (
+            <button
+              onClick={() => {
+                window.location.href = "/sign-up?from=trial";
+              }}
+              className="w-8 h-8 rounded-lg hover:bg-indigo-500/10 hover:text-indigo-400 text-[#8E88AB] flex items-center justify-center transition cursor-pointer"
+              title={t("login", { defaultValue: "Login" })}
+            >
+              <LogIn className="w-4 h-4 text-indigo-400" />
+            </button>
+          ) : (
+            <button
+              onClick={onSignOut}
+              className="w-8 h-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-400 text-[#8E88AB] flex items-center justify-center transition cursor-pointer"
+              title={t("signOut", { defaultValue: "Sign Out" })}
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
       

@@ -55,7 +55,7 @@ export function PersonalizationFields({
       <div>
         <label className="block text-sm font-bold text-[#8E88AB] uppercase tracking-wider mb-3">
           {t("yourBackground", { defaultValue: "Your Background" })}{" "}
-          <span className="text-[#3F395B] normal-case font-normal">
+          <span className="text-[#8E88AB] normal-case font-normal">
             {t("optionalNote", { defaultValue: "(optional, but helps a lot)" })}
           </span>
         </label>
@@ -65,7 +65,7 @@ export function PersonalizationFields({
           placeholder={t("bgPlaceholder", { defaultValue: "e.g. I know basic HTML/CSS but no JavaScript. I learn best by building small projects rather than reading theory." })}
           rows={3}
           maxLength={500}
-          className="w-full bg-[#0F0D19] border-2 border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-5 py-4 text-white text-sm transition-colors placeholder:text-[#3F395B] outline-none resize-none"
+          className="w-full bg-[#0F0D19] border-2 border-[#2A2443] focus:border-[#4F46E5] rounded-xl px-5 py-4 text-white text-sm transition-colors placeholder:text-[#8E88AB]/60 outline-none resize-none"
         />
       </div>
 

@@ -100,6 +100,7 @@
     }
   ],
   "startLearningFree": "Kostenlos starten",
+  "tryWithoutLogin": "Ohne Anmeldung ausprobieren →",
   "noCreditCard": "Keine Kreditkarte erforderlich • Dauerhaft kostenloser Tarif • Einrichtung in 2 Min.",
   "simulatedConfig": "roadmap_core_v1.config",
   "activeStudyBlock": "Aktiver Lernblock",

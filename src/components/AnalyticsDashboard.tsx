@@ -5,22 +5,102 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, L
 import { Loader2, Flame, BookOpen, Clock, Target, Award, ArrowUpRight, BarChart2, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-export default function AnalyticsDashboard() {
+interface AnalyticsDashboardProps {
+  isTrial?: boolean;
+}
+
+export default function AnalyticsDashboard({ isTrial }: AnalyticsDashboardProps = {}) {
   const { t } = useTranslation("analytics");
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    trpc.getLearningMetrics.query()
-      .then((data) => {
-        setMetrics(data);
+    if (isTrial) {
+      try {
+        const stored = localStorage.getItem("zc_trial_learning_analytics");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setMetrics({
+            ...parsed,
+            activityDataAvailable: true // Force to show graphs
+          });
+        } else {
+          // Compute dynamic metrics if trial courses exist but no explicit analytics stored, or just default to 0s
+          const storedCourses = localStorage.getItem("zc_trial_courses");
+          const courses = storedCourses ? JSON.parse(storedCourses) : [];
+          
+          let totalLessonsCompleted = 0;
+          let totalQuizzesTaken = 0;
+          let sumQuizScores = 0;
+          
+          courses.forEach((c: any) => {
+            totalLessonsCompleted += (c.completedLessons || []).length;
+            const quizEntries = Object.entries(c.completedQuizzes || {});
+            totalQuizzesTaken += quizEntries.length;
+            quizEntries.forEach(([_, score]: any) => {
+              sumQuizScores += Number(score);
+            });
+          });
+          
+          const avgQuizScore = totalQuizzesTaken > 0 ? Math.round(sumQuizScores / totalQuizzesTaken) : 0;
+          const completedCoursesCount = courses.filter((c: any) => {
+            const total = c.roadmapData?.modules?.reduce((acc: number, mod: any) => acc + (mod.lessons?.length || 0), 0) || 0;
+            const completed = (c.completedLessons || []).length;
+            return total > 0 && completed === total;
+          }).length;
+          
+          setMetrics({
+            activityDataAvailable: true,
+            currentStreak: totalLessonsCompleted > 0 ? 1 : 0,
+            totalLessonsCompleted,
+            avgQuizScore,
+            totalHours: totalLessonsCompleted * 0.5, // 30 mins per lesson
+            completedCoursesCount,
+            activityData: [
+              { name: "Mon", lessons: 0, score: 0 },
+              { name: "Tue", lessons: 0, score: 0 },
+              { name: "Wed", lessons: 0, score: 0 },
+              { name: "Thu", lessons: 0, score: 0 },
+              { name: "Fri", lessons: 0, score: 0 },
+              { name: "Sat", lessons: 0, score: 0 },
+              { name: "Sun", lessons: totalLessonsCompleted, score: avgQuizScore },
+            ]
+          });
+        }
+      } catch (e) {
+        console.error("Error reading trial metrics", e);
+        setMetrics({
+          activityDataAvailable: true,
+          currentStreak: 0,
+          totalLessonsCompleted: 0,
+          avgQuizScore: 0,
+          totalHours: 0,
+          completedCoursesCount: 0,
+          activityData: [
+            { name: "Mon", lessons: 0, score: 0 },
+            { name: "Tue", lessons: 0, score: 0 },
+            { name: "Wed", lessons: 0, score: 0 },
+            { name: "Thu", lessons: 0, score: 0 },
+            { name: "Fri", lessons: 0, score: 0 },
+            { name: "Sat", lessons: 0, score: 0 },
+            { name: "Sun", lessons: 0, score: 0 },
+          ]
+        });
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load metrics", err);
-        setLoading(false);
-      });
-  }, []);
+      }
+    } else {
+      trpc.getLearningMetrics.query()
+        .then((data) => {
+          setMetrics(data);
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Failed to load metrics", err);
+          setLoading(false);
+        });
+    }
+  }, [isTrial]);
 
   if (loading) {
     return (
