@@ -2823,9 +2823,14 @@ ${lessonContent}`;
                                   <pre className="font-mono text-indigo-100 leading-relaxed">{children}</pre>
                                 </div>
                               ),
-                              code: ({children}) => (
-                                <code className="bg-indigo-950/80 text-indigo-300 font-mono px-2 py-0.5 rounded text-sm font-semibold">{children}</code>
-                              ),
+                              code: ({node, inline, className, children, ...props}: any) => {
+                                const isInline = inline || !className;
+                                return isInline ? (
+                                  <code className="bg-indigo-950/80 text-indigo-300 font-mono px-2 py-0.5 rounded text-sm font-semibold" {...props}>{children}</code>
+                                ) : (
+                                  <code className="font-mono text-indigo-100 leading-relaxed text-sm block" {...props}>{children}</code>
+                                );
+                              },
                               h1: ({children}) => <h1 className="text-2xl font-bold text-[#FAF9FD] mt-6 mb-3 tracking-tight border-b border-[#2A2443] pb-2">{children}</h1>,
                               h2: ({children}) => <h2 className="text-xl font-bold text-[#FAF9FD] mt-5 mb-2.5 tracking-tight">{children}</h2>,
                               h3: ({children}) => <h3 className="text-lg font-bold text-[#FAF9FD] mt-4 mb-2">{children}</h3>,

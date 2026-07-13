@@ -133,6 +133,50 @@ function formatJsonLessonToMarkdown(content: string): string {
   return content;
 }
 
+async function translateWithRetry(
+  params: { type?: "roadmap" | "quiz" | "vroadmap"; content: any; language: string },
+  userKey: string,
+  retries = 2,
+  delayMs = 1500
+): Promise<any> {
+  let lastError: any;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await apiFetch("/api/translate-lesson", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-trial-mode": "1",
+        },
+        body: JSON.stringify(params),
+      });
+
+      if (response.status === 403) {
+        window.dispatchEvent(new CustomEvent("zc-quota-exceeded"));
+        throw new Error("API_KEY_INVALID");
+      }
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.content;
+    } catch (err: any) {
+      lastError = err;
+      if (err.message === "API_KEY_INVALID") {
+        throw err;
+      }
+      console.warn(`Translation attempt ${attempt} failed:`, err);
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+      }
+    }
+  }
+  throw lastError || new Error("Translation failed after retries");
+}
+
 export default function TrialPage() {
   const { t, i18n } = useTranslation(["common", "landing", "header", "progressDashboard", "mentorChat"]);
   const {
@@ -208,16 +252,231 @@ export default function TrialPage() {
   const [quizDifficulty, setQuizDifficulty] = useState<string>("Medium");
   const [quizQuestionCount, setQuizQuestionCount] = useState<number>(3);
 
+  // Translation States & Triggers for Trial Mode
+  const [translatedCourse, setTranslatedCourse] = useState<any | null>(null);
+  const [translatedVRoadmap, setTranslatedVRoadmap] = useState<any | null>(null);
+  const [isTranslatingCourse, setIsTranslatingCourse] = useState(false);
+  const [isTranslatingVR, setIsTranslatingVR] = useState(false);
+  const [reloadCourseTrigger, setReloadCourseTrigger] = useState(0);
+  const [reloadVRoadmapTrigger, setReloadVRoadmapTrigger] = useState(0);
+
+  const displayCourse = translatedCourse || activeCourse;
+  const displayVRoadmap = translatedVRoadmap || activeVRoadmap;
+
+  // Standard Course Translation Effect for Trial Mode
+  useEffect(() => {
+    if (!activeCourse) {
+      setTranslatedCourse(null);
+      return;
+    }
+
+    if (i18n.language === "en") {
+      setTranslatedCourse(null);
+      return;
+    }
+
+    let cancelled = false;
+    const cacheKey = `zc_trial_course_translation_${activeCourse.id}_${i18n.language}`;
+    const cached = localStorage.getItem(cacheKey);
+
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setTranslatedCourse(parsed);
+        return;
+      } catch (e) {
+        console.error("Failed to parse cached course translation", e);
+      }
+    }
+
+    const userKey = localStorage.getItem("zc_user_key");
+    if (!userKey) {
+      setTranslatedCourse(null);
+      return;
+    }
+
+    const translate = async () => {
+      setIsTranslatingCourse(true);
+      try {
+        const translatedRoadmap = await translateWithRetry(
+          { type: "roadmap", content: activeCourse.roadmapData, language: i18n.language },
+          userKey
+        );
+        if (cancelled) return;
+
+        const translatedData = {
+          ...activeCourse,
+          roadmapData: {
+            ...translatedRoadmap,
+            title: translatedRoadmap.title || activeCourse.title,
+          },
+          title: translatedRoadmap.title || activeCourse.title,
+          description: translatedRoadmap.description || activeCourse.description
+        };
+
+        localStorage.setItem(cacheKey, JSON.stringify(translatedData));
+        setTranslatedCourse(translatedData);
+      } catch (err: any) {
+        if (!cancelled) {
+          console.error("Trial course translation failed", err);
+          toast.error(t("failedToTranslateRoadmap", { defaultValue: "Roadmap translation failed. Displaying original English version." }));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsTranslatingCourse(false);
+        }
+      }
+    };
+
+    translate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeCourse?.id, i18n.language, reloadCourseTrigger]);
+
+  // Visual Roadmap Translation Effect for Trial Mode
+  useEffect(() => {
+    if (!activeVRoadmap) {
+      setTranslatedVRoadmap(null);
+      return;
+    }
+
+    if (i18n.language === "en") {
+      setTranslatedVRoadmap(null);
+      return;
+    }
+
+    let cancelled = false;
+    const cacheKey = `zc_trial_vroadmap_translation_${activeVRoadmap.id}_${i18n.language}`;
+    const cached = localStorage.getItem(cacheKey);
+
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setTranslatedVRoadmap(parsed);
+        return;
+      } catch (e) {
+        console.error("Failed to parse cached vroadmap translation", e);
+      }
+    }
+
+    const userKey = localStorage.getItem("zc_user_key");
+    if (!userKey) {
+      setTranslatedVRoadmap(null);
+      return;
+    }
+
+    const translate = async () => {
+      setIsTranslatingVR(true);
+      try {
+        const translatedVRoadmapRes = await translateWithRetry(
+          { type: "vroadmap", content: activeVRoadmap.roadmapData, language: i18n.language },
+          userKey
+        );
+        if (cancelled) return;
+
+        const translatedData = {
+          ...activeVRoadmap,
+          roadmapData: translatedVRoadmapRes,
+          title: translatedVRoadmapRes.title || activeVRoadmap.title,
+          topic: translatedVRoadmapRes.topic || activeVRoadmap.topic,
+          description: translatedVRoadmapRes.description || activeVRoadmap.description,
+        };
+
+        localStorage.setItem(cacheKey, JSON.stringify(translatedData));
+        setTranslatedVRoadmap(translatedData);
+      } catch (err: any) {
+        if (!cancelled) {
+          console.error("Trial vroadmap translation failed", err);
+          toast.error(t("failedToTranslateRoadmap", { defaultValue: "Roadmap translation failed. Displaying original English version." }));
+        }
+      } finally {
+        if (!cancelled) {
+          setIsTranslatingVR(false);
+        }
+      }
+    };
+
+    translate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeVRoadmap?.id, i18n.language, reloadVRoadmapTrigger]);
+
+  // Force Retranslate Course Handler
+  const handleForceRetranslate = async () => {
+    if (!activeCourse) return;
+    const currentLanguage = i18n.language;
+    if (currentLanguage === "en") {
+      toast.error("Retranslation is only supported for non-English languages.");
+      return;
+    }
+
+    const confirmReset = window.confirm(
+      `Are you sure you want to force a re-translation of this course into ${currentLanguage}? This will clear the cached translation and request a fresh translation from the AI model.`
+    );
+    if (!confirmReset) return;
+
+    setIsTranslatingCourse(true);
+    const toastId = toast.loading("Clearing translation cache and requesting fresh translation...");
+
+    try {
+      const cacheKey = `zc_trial_course_translation_${activeCourse.id}_${currentLanguage}`;
+      localStorage.removeItem(cacheKey);
+
+      setReloadCourseTrigger(prev => prev + 1);
+      toast.success("Retranslation triggered successfully!", { id: toastId });
+    } catch (err: any) {
+      console.error("Force retranslate failed:", err);
+      toast.error(`Force retranslate failed: ${err.message || "Unknown error"}`, { id: toastId });
+    } finally {
+      setIsTranslatingCourse(false);
+    }
+  };
+
+  // Force Retranslate VRoadmap Handler
+  const handleForceRetranslateVR = async () => {
+    if (!activeVRoadmap) return;
+    const currentLanguage = i18n.language;
+    if (currentLanguage === "en") {
+      toast.error("Retranslation is only supported for non-English languages.");
+      return;
+    }
+
+    const confirmReset = window.confirm(
+      `Are you sure you want to force a re-translation of this roadmap into ${currentLanguage}? This will clear the cached translation and request a fresh translation from the AI model.`
+    );
+    if (!confirmReset) return;
+
+    setIsTranslatingVR(true);
+    const toastId = toast.loading("Clearing translation cache and requesting fresh translation...");
+
+    try {
+      const cacheKey = `zc_trial_vroadmap_translation_${activeVRoadmap.id}_${currentLanguage}`;
+      localStorage.removeItem(cacheKey);
+
+      setReloadVRoadmapTrigger(prev => prev + 1);
+      toast.success("Retranslation triggered successfully!", { id: toastId });
+    } catch (err: any) {
+      console.error("Force retranslate failed:", err);
+      toast.error(`Force retranslate failed: ${err.message || "Unknown error"}`, { id: toastId });
+    } finally {
+      setIsTranslatingVR(false);
+    }
+  };
+
   // Fetch / Sync details when active course changes
   useEffect(() => {
-    if (activeCourse) {
+    if (displayCourse) {
       // Sync active lesson
-      if (activeCourse.currentLessonId) {
+      if (displayCourse.currentLessonId) {
         // Find lesson in roadmap
         let foundLesson = null;
-        if (activeCourse.roadmapData?.modules) {
-          for (const mod of activeCourse.roadmapData.modules) {
-            const lesson = mod.lessons?.find((l: any) => l.id === activeCourse.currentLessonId);
+        if (displayCourse.roadmapData?.modules) {
+          for (const mod of displayCourse.roadmapData.modules) {
+            const lesson = mod.lessons?.find((l: any) => l.id === displayCourse.currentLessonId);
             if (lesson) {
               foundLesson = lesson;
               break;
@@ -227,17 +486,17 @@ export default function TrialPage() {
         setSelectedLesson(foundLesson);
       } else {
         // Set first lesson as default
-        const firstLesson = activeCourse.roadmapData?.modules?.[0]?.lessons?.[0];
+        const firstLesson = displayCourse.roadmapData?.modules?.[0]?.lessons?.[0];
         if (firstLesson) {
           setSelectedLesson(firstLesson);
-          updateCourseActiveLesson(activeCourse.id, firstLesson.id);
+          updateCourseActiveLesson(displayCourse.id, firstLesson.id);
         } else {
           setSelectedLesson(null);
         }
       }
 
       // Sync chat messages
-      const msgs = getCourseMessages(activeCourse.id);
+      const msgs = getCourseMessages(displayCourse.id);
       // Map to shape expected by MentorChat
       const mapped = msgs.map((m: any) => ({
         role: m.sender === "mentor" ? "assistant" : m.sender === "user" ? "user" : "assistant",
@@ -253,7 +512,7 @@ export default function TrialPage() {
     setQuizData(null);
     setQuizSubmitted(false);
     setSelectedAnswers({});
-  }, [activeCourseId, activeCourse?.id]);
+  }, [activeCourseId, displayCourse?.id, displayCourse?.roadmapData]);
 
   // Read lesson content cache
   useEffect(() => {
@@ -372,7 +631,8 @@ export default function TrialPage() {
           concepts: selectedLesson.concepts || [],
           experienceLevel: activeCourse.experienceLevel,
           backgroundContext: activeCourse.backgroundContext,
-          tone: activeCourse.tone
+          tone: activeCourse.tone,
+          language: i18n.language
         })
       });
 
@@ -444,7 +704,8 @@ export default function TrialPage() {
           currentLessonId: selectedLesson?.id,
           backgroundContext: activeCourse.backgroundContext,
           experienceLevel: activeCourse.experienceLevel,
-          tone: activeCourse.tone
+          tone: activeCourse.tone,
+          language: i18n.language
         })
       });
 
@@ -519,7 +780,9 @@ export default function TrialPage() {
         },
         body: JSON.stringify({
           lessonTitle: selectedLesson.title,
-          lessonContent: lessonContent.slice(0, 1000) // optimized length
+          lessonContent: lessonContent.slice(0, 1000), // optimized length
+          language: i18n.language,
+          tone: activeCourse.tone
         })
       });
 
@@ -600,10 +863,10 @@ export default function TrialPage() {
   };
 
   // Calculated course stats
-  const totalLessonsCount = activeCourse?.roadmapData?.modules?.reduce((acc: number, mod: any) => acc + (mod.lessons?.length || 0), 0) || 0;
-  const completedLessonsCount = activeCourse?.completedLessons?.length || 0;
+  const totalLessonsCount = displayCourse?.roadmapData?.modules?.reduce((acc: number, mod: any) => acc + (mod.lessons?.length || 0), 0) || 0;
+  const completedLessonsCount = displayCourse?.completedLessons?.length || 0;
   const completionPercentage = totalLessonsCount > 0 ? Math.round((completedLessonsCount / totalLessonsCount) * 100) : 0;
-  const completedQuizzes = activeCourse?.completedQuizzes || {};
+  const completedQuizzes = displayCourse?.completedQuizzes || {};
 
   return (
     <div className="flex h-screen bg-[#0F0D19] overflow-hidden text-[#CECADF] font-sans antialiased selection:bg-indigo-900 selection:text-indigo-200">
@@ -845,12 +1108,29 @@ export default function TrialPage() {
                   
                   {/* Left Column: Roadmap Syllabus navigation */}
                   <div className="lg:col-span-4 space-y-6">
-                    <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 shadow-xl space-y-5">
+                    <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 shadow-xl space-y-5 relative">
+                      {isTranslatingCourse && (
+                        <div className="absolute inset-0 bg-[#1A172E]/85 backdrop-blur-xs rounded-3xl z-30 flex flex-col items-center justify-center text-center p-4">
+                          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-2" />
+                          <p className="text-xs font-semibold text-white">{t("translatingRoadmap", { defaultValue: "Translating course content..." })}</p>
+                        </div>
+                      )}
                       <div className="flex items-center gap-3">
                         <BookOpenIcon className="w-6 h-6 text-indigo-400" />
                         <div>
-                          <h2 className="text-lg font-black text-white leading-tight">{activeCourse.title}</h2>
-                          <p className="text-xs text-[#8E88AB] mt-0.5">{activeCourse.difficulty} • {activeCourse.experienceLevel}</p>
+                          <h2 className="text-lg font-black text-white leading-tight">{displayCourse.title}</h2>
+                          <p className="text-xs text-[#8E88AB] mt-0.5">{displayCourse.difficulty} • {displayCourse.experienceLevel}</p>
+                          {i18n.language !== "en" && (
+                            <div className="mt-2.5">
+                              <button
+                                onClick={handleForceRetranslate}
+                                disabled={isTranslatingCourse}
+                                className="text-[10px] bg-amber-950/40 hover:bg-amber-900/60 text-amber-400 font-extrabold px-3 py-1 rounded-full border border-amber-500/30 transition-all cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                              >
+                                <span>⚡ {t("forceRetranslate", { defaultValue: "Force Retranslate" })}</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -873,7 +1153,7 @@ export default function TrialPage() {
 
                       {/* Syllabus Lessons list */}
                       <div className="space-y-4 pt-3 overflow-y-auto max-h-[450px]">
-                        {activeCourse.roadmapData?.modules?.map((mod: any, mIdx: number) => (
+                        {displayCourse.roadmapData?.modules?.map((mod: any, mIdx: number) => (
                           <div key={mod.id || mIdx} className="space-y-2">
                             <h4 className="text-xs font-black text-indigo-400 uppercase tracking-wider mb-2.5">
                               {mod.title}
@@ -881,13 +1161,13 @@ export default function TrialPage() {
                             <div className="space-y-1.5">
                               {mod.lessons?.map((lesson: any, lIdx: number) => {
                                 const isCurrent = selectedLesson?.id === lesson.id;
-                                const isCompleted = activeCourse.completedLessons?.includes(lesson.id);
+                                const isCompleted = displayCourse.completedLessons?.includes(lesson.id);
                                 return (
                                   <button
                                     key={lesson.id || lIdx}
                                     onClick={() => {
                                       setSelectedLesson(lesson);
-                                      updateCourseActiveLesson(activeCourse.id, lesson.id);
+                                      updateCourseActiveLesson(displayCourse.id, lesson.id);
                                     }}
                                     className={`w-full text-left p-3 rounded-xl transition duration-150 flex items-center justify-between cursor-pointer group text-xs font-semibold
                                       ${isCurrent 
@@ -932,7 +1212,7 @@ export default function TrialPage() {
                               onClick={handleToggleLessonComplete}
                               disabled={!lessonContent}
                               className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer border shrink-0 transition
-                                ${activeCourse.completedLessons?.includes(selectedLesson.id)
+                                ${displayCourse.completedLessons?.includes(selectedLesson.id)
                                   ? "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
                                   : "bg-indigo-600 hover:bg-indigo-700 border-indigo-500 text-white disabled:opacity-40 disabled:cursor-not-allowed"
                                 }
@@ -940,7 +1220,7 @@ export default function TrialPage() {
                             >
                               <Check className="w-4 h-4" />
                               <span>
-                                {activeCourse.completedLessons?.includes(selectedLesson.id)
+                                {displayCourse.completedLessons?.includes(selectedLesson.id)
                                   ? t("lessonCompleted", { defaultValue: "Completed ✓" })
                                   : t("completeLesson", { defaultValue: "Complete Lesson" })
                                 }
@@ -971,9 +1251,14 @@ export default function TrialPage() {
                                         <pre className="font-mono text-indigo-100 leading-relaxed">{children}</pre>
                                       </div>
                                     ),
-                                    code: ({children}) => (
-                                      <code className="bg-indigo-950/80 text-indigo-300 font-mono px-2 py-0.5 rounded text-sm font-semibold">{children}</code>
-                                    ),
+                                    code: ({node, inline, className, children, ...props}: any) => {
+                                      const isInline = inline || !className;
+                                      return isInline ? (
+                                        <code className="bg-indigo-950/80 text-indigo-300 font-mono px-2 py-0.5 rounded text-sm font-semibold" {...props}>{children}</code>
+                                      ) : (
+                                        <code className="font-mono text-indigo-100 leading-relaxed text-sm block" {...props}>{children}</code>
+                                      );
+                                    },
                                     h1: ({children}) => <h1 className="text-2xl font-bold text-[#FAF9FD] mt-6 mb-3 tracking-tight border-b border-[#2A2443] pb-2">{children}</h1>,
                                     h2: ({children}) => <h2 className="text-xl font-bold text-[#FAF9FD] mt-5 mb-2.5 tracking-tight">{children}</h2>,
                                     h3: ({children}) => <h3 className="text-lg font-bold text-[#FAF9FD] mt-4 mb-2">{children}</h3>,
@@ -1025,7 +1310,7 @@ export default function TrialPage() {
                             >
                               <Book className="w-4 h-4" />
                               <span>
-                                {activeCourse.completedQuizzes?.[selectedLesson.id] !== undefined
+                                {displayCourse.completedQuizzes?.[selectedLesson.id] !== undefined
                                   ? t("reviewQuizScore", { defaultValue: "Review Quiz Result" })
                                   : t("takePracticeQuiz", { defaultValue: "Take Practice Quiz" })
                                 }
@@ -1053,18 +1338,18 @@ export default function TrialPage() {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-150">
               {activeCourseId ? (
                 <MentorChat
-                  currentRoadmap={activeCourse.roadmapData}
+                  currentRoadmap={displayCourse.roadmapData}
                   selectedLesson={selectedLesson}
                   mentorInput={mentorInput}
                   setMentorInput={setMentorInput}
                   mentorMessages={mentorMessages}
                   mentorLoading={mentorLoading}
-                  activeCourseId={activeCourse.id}
+                  activeCourseId={displayCourse.id}
                   setActiveCourse={() => {}} // Local bypass
                   handleSendMentorMessage={handleSendMentorMessage}
                   isTrial={true}
                   onClearTrialMessages={() => {
-                    localStorage.removeItem(`zc_trial_chat_${activeCourse.id}`);
+                    localStorage.removeItem(`zc_trial_chat_${displayCourse.id}`);
                     setMentorMessages([]);
                   }}
                 />
@@ -1167,10 +1452,10 @@ export default function TrialPage() {
                   completedLessonsCount={completedLessonsCount}
                   totalLessons={totalLessonsCount}
                   completedQuizzes={completedQuizzes}
-                  completedLessons={activeCourse.completedLessons || []}
-                  currentRoadmap={activeCourse.roadmapData}
+                  completedLessons={displayCourse.completedLessons || []}
+                  currentRoadmap={displayCourse.roadmapData}
                   streakDays={1}
-                  activeCourseId={activeCourse.id}
+                  activeCourseId={displayCourse.id}
                   isTrial={true}
                   onCertificateLockedClick={() => triggerUpgrade(t("certLockedDesc", { defaultValue: "Certificates are locked in trial mode. Complete a full pathway and create an account to issue verifiable public credentials!" }))}
                 />
@@ -1196,7 +1481,12 @@ export default function TrialPage() {
           {activeTab === "visual-roadmaps" && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-150">
               <VisualRoadmapsTab
-                roadmaps={vroadmaps}
+                roadmaps={vroadmaps.map(vr => {
+                  if (vr.id === activeVRoadmapId) {
+                    return displayVRoadmap || vr;
+                  }
+                  return vr;
+                })}
                 currentPage={1}
                 totalPages={1}
                 onPageChange={() => {}}
@@ -1208,6 +1498,9 @@ export default function TrialPage() {
                   deleteVisualRoadmap(id);
                   toast.success(t("visualRoadmapDeleted", { defaultValue: "Visual roadmap deleted." }));
                 }}
+                onForceRetranslate={handleForceRetranslateVR}
+                isForceRetranslating={isTranslatingVR}
+                isRetranslating={isTranslatingVR}
                 onToggleFavorite={async (id, isFav) => {
                   // Local bypass
                   toast.info("Favorites synced in cloud! Create an account.");
