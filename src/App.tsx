@@ -2269,11 +2269,16 @@ ${lessonContent}`;
             {/* TAB 1: ROADMAP & LESSON VIEW */}
         {activeTab === "roadmap" && (
           <div className="relative">
-            {(isRetranslatingCourse || isLoadingCourse) && (
+            {isLoadingCourse && (
               <div className="absolute inset-0 bg-[#0F0D19]/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center text-center p-6 rounded-3xl animate-in fade-in duration-200" style={{ minHeight: '600px' }}>
                 <Loader2 className="w-12 h-12 text-[#4F46E5] animate-spin mb-4" />
-                <h3 className="text-lg font-bold text-[#FAF9FD] mb-2">{t("translatingCourse", { defaultValue: "Translating Course... 📚" })}</h3>
-                <p className="text-sm text-[#8E88AB] max-w-sm mx-auto">{t("pleaseWaitTranslatingCourse", { defaultValue: "Please wait while we convert your personalized learning course and modules to your chosen language." })}</p>
+                <h3 className="text-lg font-bold text-[#FAF9FD] mb-2">{t("loadingCourse", { defaultValue: "Loading Course... 📚" })}</h3>
+              </div>
+            )}
+            {isRetranslatingCourse && (
+              <div className="bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-4 mb-8 flex flex-col sm:flex-row items-center justify-center gap-3 animate-pulse shrink-0">
+                <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+                <p className="text-sm font-semibold text-indigo-200 text-center">{t("pleaseWaitTranslatingCourse", { defaultValue: "Please wait while we convert your personalized learning course and modules to your chosen language." })}</p>
               </div>
             )}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

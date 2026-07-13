@@ -365,29 +365,31 @@ export default function VisualRoadmapsTab({
 
       {/* Graph Area */}
       <div data-tour="vroadmap-graph" className="w-full relative" style={{ contain: 'layout' }}>
-        <div className="w-full h-[700px] border border-[#2A2443] rounded-2xl overflow-hidden bg-[#0F0D19] relative">
-          {isRetranslating ? (
-            <div className="absolute inset-0 bg-[#0F0D19]/80 backdrop-blur-sm z-30 flex flex-col items-center justify-center text-center p-6 animate-in fade-in duration-200">
-              <Loader2 className="w-12 h-12 text-[#4F46E5] animate-spin mb-4" />
-              <h3 className="text-lg font-bold text-[#FAF9FD] mb-2">{t("translatingRoadmap", { defaultValue: "Translating Roadmap... 🗺️" })}</h3>
-              <p className="text-[#8E88AB] max-w-xs mx-auto">{t("pleaseWaitTranslating", { defaultValue: "Please wait while we convert your learning graph to your chosen language." })}</p>
-            </div>
-          ) : activeRoadmap ? (
-            <VisualRoadmapGraph 
-              roadmapData={activeRoadmap.roadmapData}
-              completedNodeIds={completedNodeIds}
-              onToggleComplete={(nodeId) => onToggleNodeComplete(activeRoadmap.id, nodeId)}
-              onForceRetranslate={onForceRetranslate}
-              isForceRetranslating={isForceRetranslating}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-[#8E88AB]">
-              <div className="text-center">
-                <Map className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>{t("common:selectRoadmapToViewGraph", { defaultValue: "Select a roadmap above to view its graph" })}</p>
-              </div>
+        <div className="w-full h-[700px] border border-[#2A2443] rounded-2xl overflow-hidden bg-[#0F0D19] relative flex flex-col">
+          {isRetranslating && (
+            <div className="bg-indigo-950/40 border-b border-indigo-500/30 p-3 flex flex-col sm:flex-row items-center justify-center gap-3 animate-pulse shrink-0 z-40">
+              <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+              <p className="text-sm font-semibold text-indigo-200 text-center">{t("translatingRoadmap", { defaultValue: "Translating Roadmap... 🗺️" })}</p>
             </div>
           )}
+          <div className="flex-1 min-h-0 relative">
+            {activeRoadmap ? (
+              <VisualRoadmapGraph 
+                roadmapData={activeRoadmap.roadmapData}
+                completedNodeIds={completedNodeIds}
+                onToggleComplete={(nodeId) => onToggleNodeComplete(activeRoadmap.id, nodeId)}
+                onForceRetranslate={onForceRetranslate}
+                isForceRetranslating={isForceRetranslating}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-[#8E88AB]">
+                <div className="text-center">
+                  <Map className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>{t("common:selectRoadmapToViewGraph", { defaultValue: "Select a roadmap above to view its graph" })}</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

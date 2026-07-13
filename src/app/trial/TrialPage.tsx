@@ -238,6 +238,7 @@ export default function TrialPage() {
   const [selectedLesson, setSelectedLesson] = useState<any | null>(null);
   const [lessonContent, setLessonContent] = useState<string | null>(null);
   const [generatingLesson, setGeneratingLesson] = useState(false);
+  const [isTranslatingLesson, setIsTranslatingLesson] = useState(false);
 
   // Mentor Chat State
   const [mentorInput, setMentorInput] = useState("");
@@ -526,6 +527,57 @@ export default function TrialPage() {
     setQuizSubmitted(false);
     setSelectedAnswers({});
   }, [selectedLesson?.id]);
+
+  // Translate lesson content when language changes
+  useEffect(() => {
+    let cancelled = false;
+
+    const translateLesson = async () => {
+      if (!activeCourse || !selectedLesson || !lessonContent || generatingLesson || i18n.language === "en") {
+        return;
+      }
+
+      const userKey = localStorage.getItem("zc_user_key");
+      if (!userKey) return;
+
+      setIsTranslatingLesson(true);
+      try {
+        const contentTranslated = await translateWithRetry({ type: "lesson", content: lessonContent, language: i18n.language }, userKey);
+        if (!cancelled) {
+          setLessonContent(contentTranslated);
+        }
+      } catch (err: any) {
+        console.error("Failed to translate lesson:", err);
+      } finally {
+        if (!cancelled) {
+          setIsTranslatingLesson(false);
+        }
+      }
+    };
+
+    translateLesson();
+
+    const translateQuiz = async () => {
+      if (!quizData || generatingQuiz || i18n.language === "en") return;
+      const userKey = localStorage.getItem("zc_user_key");
+      if (!userKey) return;
+      
+      try {
+        const contentTranslated = await translateWithRetry({ type: "quiz", content: quizData, language: i18n.language }, userKey);
+        if (!cancelled) {
+          setQuizData(contentTranslated);
+        }
+      } catch (err: any) {
+        console.error("Failed to translate quiz:", err);
+      }
+    };
+
+    translateQuiz();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, activeCourse?.id, selectedLesson?.id]);
 
   // Trigger locked actions
   const triggerUpgrade = (reason: string) => {
@@ -1108,13 +1160,13 @@ export default function TrialPage() {
                   
                   {/* Left Column: Roadmap Syllabus navigation */}
                   <div className="lg:col-span-4 space-y-6">
+                    {isTranslatingCourse && (
+                      <div className="bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-4 flex items-center justify-center gap-3 animate-pulse">
+                        <Loader2 className="w-5 h-5 text-indigo-400 animate-spin shrink-0" />
+                        <p className="text-sm font-semibold text-indigo-200">{t("translatingRoadmap", { defaultValue: "Translating course content..." })}</p>
+                      </div>
+                    )}
                     <div className="bg-[#1A172E] border border-[#2A2443] rounded-3xl p-5 shadow-xl space-y-5 relative">
-                      {isTranslatingCourse && (
-                        <div className="absolute inset-0 bg-[#1A172E]/85 backdrop-blur-xs rounded-3xl z-30 flex flex-col items-center justify-center text-center p-4">
-                          <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mb-2" />
-                          <p className="text-xs font-semibold text-white">{t("translatingRoadmap", { defaultValue: "Translating course content..." })}</p>
-                        </div>
-                      )}
                       <div className="flex items-center gap-3">
                         <BookOpenIcon className="w-6 h-6 text-indigo-400" />
                         <div>
@@ -1230,10 +1282,15 @@ export default function TrialPage() {
 
                           {/* STUDY TEXT AREA */}
                           <div className="max-w-none">
-                            {generatingLesson ? (
+                            {generatingLesson || isTranslatingLesson ? (
                               <div className="py-16 text-center space-y-4">
                                 <Loader2 className="w-8 h-8 text-[#4F46E5] animate-spin mx-auto" />
-                                <p className="text-sm font-semibold text-[#8E88AB]">{t("geminiDrafting", { defaultValue: "AI Tutor is writing customized syllabus guide..." })}</p>
+                                <p className="text-sm font-semibold text-[#8E88AB]">
+                                  {isTranslatingLesson 
+                                    ? t("translatingStudyGuide", { defaultValue: "Translating study guide... 📚" }) 
+                                    : t("geminiDrafting", { defaultValue: "AI Tutor is writing customized syllabus guide..." })
+                                  }
+                                </p>
                               </div>
                             ) : lessonContent ? (
                               <div className="markdown-body text-base space-y-4 mt-6">
