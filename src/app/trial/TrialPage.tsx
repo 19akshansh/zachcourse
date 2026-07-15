@@ -45,6 +45,7 @@ import { PersonalizationFields } from "../../components/PersonalizationFields";
 import { DocumentUpload } from "../../components/DocumentUpload";
 import { TourController } from "../../components/tour/TourController";
 import AnalyticsDashboard from "../../components/AnalyticsDashboard";
+import { ApiKeyOnboarding } from "../../components/ApiKeyOnboarding";
 
 function formatJsonLessonToMarkdown(content: string): string {
   if (!content) return "";
@@ -217,6 +218,15 @@ export default function TrialPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  useEffect(() => {
+    const handleKeyChange = () => {
+      const k = localStorage.getItem("zc_user_key");
+      setHasKey(!!k && k !== "null" && k !== "undefined" && k.trim() !== "");
+    };
+    window.addEventListener("zc-key-status-changed", handleKeyChange);
+    return () => window.removeEventListener("zc-key-status-changed", handleKeyChange);
+  }, []);
+
   // Upgrade Modal State
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState("");
@@ -239,6 +249,14 @@ export default function TrialPage() {
   const [lessonContent, setLessonContent] = useState<string | null>(null);
   const [generatingLesson, setGeneratingLesson] = useState(false);
   const [isTranslatingLesson, setIsTranslatingLesson] = useState(false);
+
+  const [hasKey, setHasKey] = useState(() => {
+    if (typeof window !== "undefined") {
+      const k = localStorage.getItem("zc_user_key");
+      return !!k && k !== "null" && k !== "undefined" && k.trim() !== "";
+    }
+    return false;
+  });
 
   // Mentor Chat State
   const [mentorInput, setMentorInput] = useState("");
@@ -919,6 +937,12 @@ export default function TrialPage() {
   const completedLessonsCount = displayCourse?.completedLessons?.length || 0;
   const completionPercentage = totalLessonsCount > 0 ? Math.round((completedLessonsCount / totalLessonsCount) * 100) : 0;
   const completedQuizzes = displayCourse?.completedQuizzes || {};
+
+  if (!hasKey) {
+    return (
+      <ApiKeyOnboarding onActivate={() => setHasKey(true)} onSkip={() => {}} />
+    );
+  }
 
   return (
     <div className="flex h-screen bg-[#0F0D19] overflow-hidden text-[#CECADF] font-sans antialiased selection:bg-indigo-900 selection:text-indigo-200">

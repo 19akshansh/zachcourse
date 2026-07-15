@@ -43,6 +43,7 @@ export function ApiKeyOnboarding({ onActivate, onSkip }: ApiKeyOnboardingProps) 
     }
     
     localStorage.setItem("zc_user_key", key);
+    window.dispatchEvent(new CustomEvent("zc-key-status-changed"));
     toast.success(t("toastKeyActivated", { defaultValue: "API key activated! Let's go 🚀" }));
     onActivate();
   };
