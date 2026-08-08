@@ -40,9 +40,9 @@ Check cache (NeonDB / LessonContent table)
 
 ### Cascade & Fallback Mechanism
 To ensure absolute reliability, all core agents leverage a model-cascade fallback loop:
-1. Try `gemini-2.5-flash` for blazing-fast speed and low cost.
-2. If unavailable, throttle, or fail, fall back to `gemini-2.0-flash`.
-3. If issues persist, invoke `gemini-2.5-pro` as the heavy, highly resilient backup model.
+1. Try `gemini-3.6-flash` for blazing-fast speed and low cost.
+2. If unavailable, throttle, or fail, fall back to `gemini-3.6-flash`.
+3. If issues persist, invoke `gemini-3.1-pro-preview` as the heavy, highly resilient backup model.
 4. Hardcoded offline JSON templates act as a final local fail-safe if all internet models are unavailable.
 
 ### Evaluation Pipelines (Inline QA)

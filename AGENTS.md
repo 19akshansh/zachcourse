@@ -97,7 +97,7 @@ z.object({
 
 **Fallback:** `getLocalFallbackRoadmap()` — returns a hardcoded template if all Gemini models fail.
 
-**Model:** `callAI()` helper — tries `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-2.5-pro` in order.
+**Model:** `callAI()` helper — tries `gemini-3.6-flash` → `gemini-3.6-flash` → `gemini-3.1-pro-preview` in order.
 
 ---
 
@@ -277,7 +277,7 @@ Final text response → saved to CourseMessage table
 
 **System prompt context:** Receives `currentCourseTitle` and `currentLessonTitle` on every call so responses are always scoped to what the user is studying.
 
-**Model cascade:** `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-2.5-pro`. Retries on 503/429/overloaded errors with 1.5s sleep between attempts.
+**Model cascade:** `gemini-3.6-flash` → `gemini-3.6-flash` → `gemini-3.1-pro-preview`. Retries on 503/429/overloaded errors with 1.5s sleep between attempts.
 
 **Supports:** User's own Gemini API key via `x-user-key` header (bypasses server-side quota entirely).
 

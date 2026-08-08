@@ -27,7 +27,7 @@ export async function callGemini<T = any>(
       throw new Error("INVALID_API_KEY")
     }
     const google = createGoogleGenerativeAI({ apiKey: trimmed })
-    const model = google("gemini-2.5-flash")
+    const model = google("gemini-3.6-flash")
     if (options?.schema) {
       const { object } = await generateObject({
         model,
@@ -61,7 +61,7 @@ export async function callGemini<T = any>(
       const google = createGoogleGenerativeAI({ 
         apiKey: trimmed 
       })
-      const model = google("gemini-2.5-flash")
+      const model = google("gemini-3.6-flash")
       
       if (options?.schema) {
         const { object } = await generateObject({

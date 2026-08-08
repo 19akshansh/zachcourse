@@ -264,7 +264,7 @@ npm run test
 ### Dual Execution Modes
 
 To ensure a seamless experience for judges, the script supports two execution modes:
-1. **Live AI Evaluation Mode:** When a valid `GEMINI_API_KEY` environment variable is defined, the evaluation pipeline calls `gemini-2.5-flash` in real time to generate object scores and critiques matching the production Judge Agent's prompt guidelines.
+1. **Live AI Evaluation Mode:** When a valid `GEMINI_API_KEY` environment variable is defined, the evaluation pipeline calls `gemini-3.6-flash` in real time to generate object scores and critiques matching the production Judge Agent's prompt guidelines.
 2. **Graceful Simulated Mode:** If `GEMINI_API_KEY` is not present, the script automatically alerts the console and prints pre-calculated, verified model outputs. This demonstrates the exact schema-compliant metrics and feedback that the Judge Agent returns in production without requiring configuration.
 
 ### What the Judge Agent Validates

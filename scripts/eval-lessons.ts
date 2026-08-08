@@ -108,7 +108,7 @@ async function runEvaluation() {
   }
 
   const google = createGoogleGenerativeAI({ apiKey });
-  const model = google("gemini-2.5-flash");
+  const model = google("gemini-3.6-flash");
 
   for (const lesson of SAMPLE_LESSONS) {
     console.log(`Evaluating Sample: "${lesson.title}"`);

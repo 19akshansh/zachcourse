@@ -71,7 +71,7 @@ The application is a **Vite + React 19 SPA** served by an **Express.js** backend
 | Auth | Better Auth (email + Google + GitHub OAuth) |
 | MCP | `@modelcontextprotocol/sdk` v1.29 |
 
-**Model strategy:** a three-model fallback chain — `gemini-2.5-flash` → `gemini-2.5-flash-lite` → `gemini-2.5-pro` — with automatic retry on `429`/`503`/overloaded responses, so the app degrades gracefully instead of crashing under quota pressure.
+**Model strategy:** a three-model fallback chain — `gemini-3.6-flash` → `gemini-3.6-flash-lite` → `gemini-3.1-pro-preview` — with automatic retry on `429`/`503`/overloaded responses, so the app degrades gracefully instead of crashing under quota pressure.
 
 ### Architectural Rationale: Choosing Vercel AI SDK over Google ADK
 While Google's Agent Development Kit (ADK) provides robust, high-level frameworks for multi-agent workflows, ZachCourse deliberately employs the Vercel AI SDK (`@ai-sdk/google` + Vercel AI SDK v7 core) for critical architectural and operational trade-offs:

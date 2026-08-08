@@ -283,9 +283,8 @@ async function callAI(
   options: { json?: boolean; schema?: z.ZodType<any>, systemPrompt?: string, messages?: { role: "system" | "user" | "assistant", content: string }[], apiKey?: string } = {}
 ): Promise<any> {
   const models = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-2.5-pro"
+    "gemini-3.6-flash",
+    "gemini-3.1-pro-preview"
   ];
   
   let userKey = options.apiKey;
@@ -1233,7 +1232,7 @@ app.post("/api/mentor-chat", requireAuth, async (req, res) => {
     }
 
     const googleClient = createGoogleGenerativeAI({ apiKey: activeKey });
-    const model = googleClient("gemini-2.5-flash");
+    const model = googleClient("gemini-3.6-flash");
 
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
