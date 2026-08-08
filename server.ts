@@ -210,6 +210,7 @@ async function requireApiKey(req: express.Request, res: express.Response, next: 
   }
 }
 
+app.use("/api/v1/courses", selectRateLimiter);
 app.use("/api/v1/users", selectRateLimiter);
 app.use("/api/v1/cohorts", selectRateLimiter);
 app.use("/api/v1/roadmaps", selectRateLimiter);
@@ -614,6 +615,101 @@ app.get("/api/v1/users/:id/progress", requireApiKey, async (req, res) => {
   }
 
   res.json({ progress });
+});
+
+app.post("/api/v1/courses/generate", requireApiKey, async (req, res) => {
+  const { topic, sourceUrl, textContent, documentContext, language } = req.body;
+  const callerUserId = (req as any).user.id;
+  const resolvedKey = resolveApiKey(req);
+
+  if (!resolvedKey) {
+    res.status(403).json({ error: "MISSING_API_KEY" });
+    return;
+  }
+  if (topic && topic.length > 500) {
+    res.status(400).json({ error: "Topic too long. Max 500 characters." });
+    return;
+  }
+  if (textContent && textContent.length > 10000) {
+    res.status(400).json({ error: "Text content too long. Max 10000 characters." });
+    return;
+  }
+  if (!topic && !sourceUrl && !textContent) {
+    res.status(400).json({ error: "Missing topic, url, or content." });
+    return;
+  }
+
+  try {
+    const roadmapData = await generateRoadmapContent({
+      topic,
+      experienceLevel: req.body.experienceLevel || "beginner",
+      backgroundContext: req.body.backgroundContext || "",
+      weeklyHours: req.body.weeklyHours || 5,
+      sourceUrl,
+      textContent,
+      documentContext,
+      tone: req.body.tone || "friendly",
+      language,
+      userKey: resolvedKey,
+    });
+
+    const course = await prisma.course.create({
+      data: {
+        userId: callerUserId,
+        title: roadmapData.title,
+        topic: topic || "Personalized Technology Fundamentals",
+        description: req.body.description || roadmapData.description,
+        sourceUrl,
+        difficulty: req.body.difficulty || roadmapData.difficulty || "Beginner",
+        totalDuration: req.body.totalDuration,
+        prerequisites: req.body.prerequisites || [],
+        experienceLevel: req.body.experienceLevel || "beginner",
+        backgroundContext: req.body.backgroundContext || "",
+        tone: req.body.tone || "friendly",
+        weeklyHours: req.body.weeklyHours || 5,
+        roadmapData,
+      },
+    });
+
+    const greetings: Record<string, string> = {
+      en: "Hey! 👋 I'm your ZachCourse mentor for **{{title}}**. I've built your personalized roadmap — click any lesson on the left to start learning. I'm here to answer any questions about the course or anything else on your mind! What would you like to explore first? 🚀",
+      es: "¡Hola! 👋 Soy tu mentor de ZachCourse para **{{title}}**. He creado tu hoja de ruta personalizada. Haz clic en cualquier lección de la izquierda para empezar a aprender. ¡Estoy aquí para responder cualquier pregunta sobre el curso o lo que tengas en mente! ¿Qué te gustaría explorar primero? 🚀",
+      fr: "Salut ! 👋 Je suis votre mentor ZachCourse pour **{{title}}**. J'ai créé votre feuille de route personnalisée — cliquez sur n'importe quelle leçon à gauche pour commencer à apprendre. Je suis là pour répondre à toutes vos questions sur le cours ou tout autre sujet en tête ! Qu'aimeriez-vous explorer en premier ? 🚀",
+      de: "Hallo! 👋 Ich bin dein ZachCourse-Mentor für **{{title}}**. Ich habe deine personalisierte Roadmap erstellt – klicke links auf eine beliebige Lektion, um mit dem Lernen zu beginnen. Ich bin hier, um all deine Fragen zum Kurs oder zu allem anderen zu beantworten! Was möchtest du als Erstes erkunden? 🚀",
+      hi: "अरे! 👋 मैं **{{title}}** के लिए आपका ZachCourse मेंटर हूँ। मैंने आपका व्यक्तिगत रोडमैप तैयार किया है — सीखना शुरू करने के लिए बाईं ओर किसी भी पाठ पर क्लिक करें। मैं यहाँ पाठ्यक्रम या आपके मन में मौजूद किसी भी चीज़ के बारे में आपके प्रश्नों का उत्तर देने के लिए हूँ! आप सबसे पहले क्या तलाशना चाहेंगे? 🚀",
+      zh: "嘿！👋 我是你的 ZachCourse 导师，负责 **{{title}}**。我已经为你制定了量身定制的路线图——点击左侧的任意一课即可开始学习。我在这里为你解答有关课程或你脑海中任何其他问题的疑问！你最想先探索什么？ 🚀"
+    };
+    const template = greetings[language || "en"] || greetings.en;
+    const greetingMessage = template.replace("{{title}}", roadmapData.title);
+
+    await prisma.courseMessage.create({
+      data: {
+        courseId: course.id,
+        role: "assistant",
+        content: greetingMessage,
+      }
+    });
+
+    res.status(201).json({ course });
+  } catch (error: any) {
+    console.error("Error generating course via API:", error);
+    res.status(500).json({ error: error.message || "Failed to generate course" });
+  }
+});
+
+app.get("/api/v1/courses/:id", requireApiKey, async (req, res) => {
+  const courseId = req.params.id;
+  const callerUserId = (req as any).user.id;
+
+  const course = await prisma.course.findFirst({
+    where: { id: courseId, userId: callerUserId },
+  });
+  if (!course) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  res.json({ course });
 });
 
 // ============================================================================
