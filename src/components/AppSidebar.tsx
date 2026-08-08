@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Map, MessageSquare, FileText, TrendingUp, LogOut, LogIn, Plus, MoreVertical, Trash2, Edit2, GitBranch, BarChart2, Users, GraduationCap, Loader2 } from "lucide-react";
+import { Map, MessageSquare, FileText, TrendingUp, LogOut, LogIn, Plus, MoreVertical, Trash2, Edit2, GitBranch, BarChart2, Users, GraduationCap, Loader2, Key } from "lucide-react";
 import type { Course } from "@prisma/client";
 import { trpc } from "../lib/trpc-client";
 import { toast } from "sonner";
@@ -277,6 +277,31 @@ export default function AppSidebar({
               <div className="flex items-center justify-between w-full ml-3">
                 <span className="text-xs font-semibold truncate transition-opacity duration-200">
                   {t("learningAnalytics", { defaultValue: "Learning Analytics" })}
+                </span>
+              </div>
+            )}
+          </button>
+
+          <button
+            data-tour="nav-api-keys"
+            onClick={() => {
+              setActiveCourseId(null);
+              setActiveTab("api-keys");
+              if (window.innerWidth < 768) onClose();
+            }}
+            className={`w-full flex items-center h-10 rounded-xl transition-all duration-200 cursor-pointer mb-1
+              ${effectivelyCollapsed ? "px-0 justify-center" : "px-3"}
+              ${activeTab === "api-keys"
+                ? "bg-[#4F46E5]/15 text-[#818CF8]" 
+                : "text-[#8E88AB] hover:bg-white/5 hover:text-[#FAF9FD]"
+              }
+            `}
+          >
+            <Key className="w-4 h-4 shrink-0" />
+            {!effectivelyCollapsed && (
+              <div className="flex items-center justify-between w-full ml-3">
+                <span className="text-xs font-semibold truncate transition-opacity duration-200">
+                  {t("apiKeys", { defaultValue: "API Keys" })}
                 </span>
               </div>
             )}

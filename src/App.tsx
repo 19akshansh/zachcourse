@@ -22,6 +22,7 @@ import { TONE_INSTRUCTIONS, LANGUAGE_INSTRUCTIONS } from "./lib/tone-options";
 import AnalyticsDashboard from "./components/AnalyticsDashboard";
 import CohortsDashboard from "./components/CohortsDashboard";
 import TeacherDashboard from "./components/TeacherDashboard";
+import { ApiKeysDashboard } from "./components/ApiKeysDashboard";
 import { DocumentUpload } from "./components/DocumentUpload";
 import { QuizRunner } from "./components/QuizRunner";
 import { ProgressDashboard } from "./components/ProgressDashboard";
@@ -2148,6 +2149,11 @@ ${lessonContent}`;
             {/* TAB: ANALYTICS */}
             {activeTab === "analytics" && (
               <AnalyticsDashboard />
+            )}
+
+            {/* TAB: API KEYS */}
+            {activeTab === "api-keys" && (
+              <ApiKeysDashboard />
             )}
 
             {/* TAB: COHORTS */}

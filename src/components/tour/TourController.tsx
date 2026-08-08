@@ -345,7 +345,7 @@ export function TourController({
         } else {
           trpc.markTourCompleted.mutate({ version: CURRENT_TOUR_VERSION }).catch(console.error);
           if (tourProgress) {
-            setTourProgress({ ...tourProgress, completedAt: new Date() });
+            setTourProgress({ ...tourProgress, completedAt: new Date(), contentVersion: CURRENT_TOUR_VERSION });
           }
         }
       } else if (activeChapter) {

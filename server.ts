@@ -47,6 +47,7 @@ const ALLOWED_ORIGINS = [
   process.env.BETTER_AUTH_URL,
   "http://localhost:3000",
   "http://localhost:5173",
+  "https://zachcourse.ai.studio"
 ].filter(Boolean) as string[];
 
 app.use(cors({
@@ -1355,7 +1356,7 @@ async function startServer() {
           let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
           template = await vite.transformIndexHtml(req.originalUrl, template);
           template = template.replace(/content="\/thumbnail\.svg"/g, `content="${baseUrl}/thumbnail.png"`);
-          template = template.replace(/https:\/\/zachcourse\.com\//g, `${baseUrl}/`);
+          template = template.replace(/https:\/\/zachcourse\.ai\.studio\//g, `${baseUrl}/`);
           if (!template.includes('application/json+oembed')) {
             template = template.replace('</title>', `</title>\n    <link rel="alternate" type="application/json+oembed" href="${baseUrl}/oembed.json" title="ZachCourse" />`);
           }
@@ -1395,7 +1396,7 @@ async function startServer() {
         
         let html = data;
         html = html.replace(/content="\/thumbnail\.svg"/g, `content="${baseUrl}/thumbnail.png"`);
-        html = html.replace(/https:\/\/zachcourse\.com\//g, `${baseUrl}/`);
+        html = html.replace(/https:\/\/zachcourse\.ai\.studio\//g, `${baseUrl}/`);
         if (!html.includes('application/json+oembed')) {
           html = html.replace('</title>', `</title>\n    <link rel="alternate" type="application/json+oembed" href="${baseUrl}/oembed.json" title="ZachCourse" />`);
         }

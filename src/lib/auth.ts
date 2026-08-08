@@ -72,6 +72,7 @@ export const auth = betterAuth({
     "https://*.usercontent.goog",
     "https://zachcourse-955328668699.asia-southeast1.run.app",
     "https://zachcourse.com",
+    "https://zachcourse.ai.studio",
     "http://localhost:3000",
     ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
     ...(process.env.APP_URL ? [process.env.APP_URL] : []),

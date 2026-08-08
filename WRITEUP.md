@@ -4,7 +4,7 @@
 
 > **Track: Agents for Good — Education**
 
-> **Live Demo:** https://zachcourse-955328668699.asia-southeast1.run.app
+> **Live Demo:** https://zachcourse.ai.studio
 
 > **Video:** https://youtu.be/sBsXeVhbKHE
 
