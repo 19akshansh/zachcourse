@@ -135,7 +135,7 @@ function formatJsonLessonToMarkdown(content: string): string {
 }
 
 async function translateWithRetry(
-  params: { type?: "roadmap" | "quiz" | "vroadmap"; content: any; language: string },
+  params: { type?: "roadmap" | "quiz" | "vroadmap" | "lesson"; content: any; language: string },
   userKey: string,
   retries = 2,
   delayMs = 1500

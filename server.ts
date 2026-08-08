@@ -191,6 +191,28 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
   }
 }
 
+async function requireApiKey(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const key = req.headers["x-api-key"] as string | undefined;
+  if (!key) {
+    res.status(401).json({ error: "UNAUTHORIZED", message: "Missing API key." });
+    return;
+  }
+  try {
+    const result = await auth.api.verifyApiKey({ body: { key } });
+    if (!result.valid || !result.key) {
+      res.status(401).json({ error: "UNAUTHORIZED", message: "Invalid API key." });
+      return;
+    }
+    (req as any).user = { id: result.key.referenceId };
+    next();
+  } catch {
+    res.status(401).json({ error: "UNAUTHORIZED" });
+  }
+}
+
+app.use("/api/v1/users", selectRateLimiter);
+app.use("/api/v1/cohorts", selectRateLimiter);
+app.use("/api/v1/roadmaps", selectRateLimiter);
 app.use("/api/generate-roadmap", selectRateLimiter);
 app.use("/api/generate-lesson", selectRateLimiter);
 app.use("/api/generate-quiz", selectRateLimiter);
@@ -501,6 +523,97 @@ app.post("/api/generate-roadmap", requireAuth, async (req, res) => {
     console.error("Error generating roadmap:", error);
     res.status(500).json({ error: error.message || "Failed to generate roadmap" });
   }
+});
+
+app.post("/api/v1/roadmaps", requireApiKey, async (req, res) => {
+  const { topic, sourceUrl, textContent, documentContext, language } = req.body;
+  const resolvedKey = resolveApiKey(req);
+
+  if (!resolvedKey) {
+    res.status(403).json({ error: "MISSING_API_KEY" });
+    return;
+  }
+  if (topic && topic.length > 500) {
+    res.status(400).json({ error: "Topic too long. Max 500 characters." });
+    return;
+  }
+  if (textContent && textContent.length > 10000) {
+    res.status(400).json({ error: "Text content too long. Max 10000 characters." });
+    return;
+  }
+  if (!topic && !sourceUrl && !textContent) {
+    res.status(400).json({ error: "Missing topic, url, or content." });
+    return;
+  }
+
+  try {
+    const roadmapData = await generateRoadmapContent({
+      topic,
+      experienceLevel: req.body.experienceLevel || "beginner",
+      backgroundContext: req.body.backgroundContext || "",
+      weeklyHours: req.body.weeklyHours || 5,
+      sourceUrl,
+      textContent,
+      documentContext,
+      tone: req.body.tone || "friendly",
+      language,
+      userKey: resolvedKey,
+    });
+    res.json({ roadmap: roadmapData });
+  } catch (error: any) {
+    console.error("Error generating roadmap via API:", error);
+    res.status(500).json({ error: error.message || "Failed to generate roadmap" });
+  }
+});
+
+app.get("/api/v1/cohorts/:id", requireApiKey, async (req, res) => {
+  const cohortId = req.params.id;
+  const userId = (req as any).user.id;
+
+  const isMember = await prisma.cohortMember.findUnique({
+    where: { cohortId_userId: { cohortId, userId } },
+  });
+  if (!isMember) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  const cohort = await prisma.cohort.findUnique({
+    where: { id: cohortId },
+    include: { members: { select: { userId: true, joinedAt: true } } },
+  });
+  if (!cohort) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  res.json({ cohort });
+});
+
+app.get("/api/v1/users/:id/progress", requireApiKey, async (req, res) => {
+  const targetUserId = req.params.id;
+  const callerUserId = (req as any).user.id;
+
+  if (targetUserId !== callerUserId) {
+    res.status(403).json({ error: "FORBIDDEN", message: "You can only fetch your own progress." });
+    return;
+  }
+
+  let progress = await prisma.userProgress.findUnique({ where: { userId: callerUserId } });
+  if (!progress) {
+    progress = await prisma.userProgress.create({
+      data: {
+        userId: callerUserId,
+        currentCourse: "Mastering Python & Smart Software Creation",
+        currentWeek: 1,
+        streakDays: 1,
+        totalHoursLogged: 0.1,
+        quizScores: {},
+      },
+    });
+  }
+
+  res.json({ progress });
 });
 
 // ============================================================================

@@ -1,3 +1,4 @@
+
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
@@ -50,6 +51,7 @@ model Session {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("session")
+  @@index([userId])
 }
 
 model Account {
@@ -70,6 +72,7 @@ model Account {
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("account")
+  @@index([userId])
 }
 
 model Verification {
@@ -81,6 +84,7 @@ model Verification {
   updatedAt  DateTime @updatedAt
 
   @@map("verification")
+  @@index([identifier])
 }
 
 model UserProgress {
@@ -169,40 +173,40 @@ model LessonContent {
 }
 
 model VisualRoadmap {
-  id                  String   @id @default(cuid())
-  userId              String
-  title               String
-  topic               String
-  description         String?
-  difficulty          String   @default("Beginner")
-  totalDuration       String?
-  experienceLevel     String   @default("beginner")
-  backgroundContext   String?
-  tone                String   @default("friendly")
-  weeklyHours         Int      @default(5)
-  roadmapData         Json
-  completedNodeIds    Json     @default("[]")
-  isFavorite          Boolean  @default(false)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  clonedFromRoadmapId String?
-  cohorts             Cohort[]
+  id                        String                     @id @default(cuid())
+  userId                    String
+  title                     String
+  topic                     String
+  description               String?
+  difficulty                String                     @default("Beginner")
+  totalDuration             String?
+  experienceLevel           String                     @default("beginner")
+  backgroundContext         String?
+  tone                      String                     @default("friendly")
+  weeklyHours               Int                        @default(5)
+  roadmapData               Json
+  completedNodeIds          Json                       @default("[]")
+  isFavorite                Boolean                    @default(false)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  user                      User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clonedFromRoadmapId       String?
+  cohorts                   Cohort[]
   visualRoadmapTranslations VisualRoadmapTranslation[]
 
   @@map("visual_roadmap")
 }
 
 model VisualRoadmapTranslation {
-  id               String        @id @default(cuid())
-  visualRoadmapId  String
-  language         String
-  title            String
-  topic            String
-  description      String
-  roadmapData      Json          // Translated node graph data
+  id              String @id @default(cuid())
+  visualRoadmapId String
+  language        String
+  title           String
+  topic           String
+  description     String
+  roadmapData     Json // Translated node graph data
 
-  visualRoadmap    VisualRoadmap @relation(fields: [visualRoadmapId], references: [id], onDelete: Cascade)
+  visualRoadmap VisualRoadmap @relation(fields: [visualRoadmapId], references: [id], onDelete: Cascade)
 
   @@unique([visualRoadmapId, language])
   @@map("visual_roadmap_translation")
@@ -318,4 +322,34 @@ model CourseTranslation {
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, language])
+}
+
+model Apikey {
+  id                  String    @id
+  configId            String    @default("default")
+  name                String?
+  start               String?
+  referenceId         String
+  prefix              String?
+  key                 String
+  refillInterval      Int?
+  refillAmount        Int?
+  lastRefillAt        DateTime?
+  enabled             Boolean?  @default(true)
+  rateLimitEnabled    Boolean?  @default(true)
+  rateLimitTimeWindow Int?      @default(3600)
+  rateLimitMax        Int?      @default(100)
+  requestCount        Int?      @default(0)
+  remaining           Int?
+  lastRequest         DateTime?
+  expiresAt           DateTime?
+  createdAt           DateTime
+  updatedAt           DateTime
+  permissions         String?
+  metadata            String?
+
+  @@index([configId])
+  @@index([referenceId])
+  @@index([key])
+  @@map("apikey")
 }

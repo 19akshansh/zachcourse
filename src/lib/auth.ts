@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { apiKey } from "@better-auth/api-key";
 import { prisma } from "./db.js";
 import { sendEmail } from "./mail";
 
@@ -8,7 +9,16 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  secret: process.env.BETTER_AUTH_SECRET || "default-secret-development-key-123",
+  plugins: [
+    apiKey({
+      rateLimit: {
+        enabled: true,
+        maxRequests: 100,
+        timeWindow: 60 * 60, // 1 hour
+      }
+    }),
+  ],
+  secret: process.env.BETTER_AUTH_SECRET,
   baseURL: (() => {
     if (process.env.BETTER_AUTH_URL) {
       return process.env.BETTER_AUTH_URL;
